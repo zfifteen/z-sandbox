@@ -50,27 +50,32 @@ public class FactorizationShortcutDemo {
     return low;
   }
 
-  static BigDecimal frac(BigDecimal x) {
-    return x.subtract(x.setScale(0, RoundingMode.FLOOR));
-  }
-
-  static BigDecimal thetaPrimeInt(BigDecimal n, BigDecimal k) {
-    BigDecimal nModPhi = n.remainder(PHI);
-    BigDecimal x = nModPhi.divide(PHI, MC);
-    // Use double for pow since BigDecimal pow is integer
-    double xDouble = x.doubleValue();
-    double kDouble = k.doubleValue();
-    double valDouble = PHI.doubleValue() * Math.pow(xDouble, kDouble);
-    BigDecimal val = BigDecimal.valueOf(valDouble);
-    return frac(val);
+  // === Utilities ===
+  static BigDecimal frac01(BigDecimal x) {
+    // Euclidean fractional part in [0,1)
+    BigDecimal flo = x.setScale(0, RoundingMode.FLOOR);
+    BigDecimal r = x.subtract(flo, MC);
+    // Guard against 0.999999999999... due to doubles later:
+    if (r.signum() < 0) r = r.add(BigDecimal.ONE, MC);
+    if (r.compareTo(BigDecimal.ONE) >= 0) r = r.subtract(BigDecimal.ONE, MC);
+    return r;
   }
 
   static BigDecimal circDist(BigDecimal a, BigDecimal b) {
-    BigDecimal diff = a.subtract(b, MC);
-    BigDecimal shifted = diff.add(BigDecimal.valueOf(0.5), MC);
-    BigDecimal mod = shifted.remainder(BigDecimal.ONE, MC);
-    BigDecimal d = mod.subtract(BigDecimal.valueOf(0.5), MC);
-    return d.abs(MC);
+    // d = | ((a - b + 0.5) mod 1) - 0.5 |  in [0, 0.5]
+    BigDecimal s = a.subtract(b, MC).add(new BigDecimal("0.5"), MC);
+    BigDecimal m = frac01(s);
+    BigDecimal d = m.subtract(new BigDecimal("0.5"), MC).abs(MC);
+    return d;
+  }
+
+  static BigDecimal thetaPrimeInt(BigDecimal n, BigDecimal k) {
+    // θ'(n,k) = frac( PHI * ( frac(n/PHI) )^k )
+    BigDecimal x = frac01(n.divide(PHI, MC));
+    double xd = x.doubleValue();
+    double kd = k.doubleValue();
+    BigDecimal val = BigDecimal.valueOf(PHI.doubleValue() * Math.pow(xd, kd));
+    return frac01(val);
   }
 
   static boolean isPrimeTrial(long n, List<Integer> primesSmall) {
@@ -83,59 +88,65 @@ public class FactorizationShortcutDemo {
     return true;
   }
 
-  static List<long[]> sampleSemiprimesBalanced(
-      List<Integer> primes, int targetCount, long Nmax, long seed) {
-    Random rand = new Random(seed);
-    List<long[]> out = new ArrayList<>();
-    long sqrtNmax = (long) Math.sqrt(Nmax);
-    long bandLo = Math.max(2, sqrtNmax / 2);
-    long bandHi = Math.max(bandLo + 1, sqrtNmax * 2);
-    List<Integer> primesBal =
-        primes.stream().filter(p -> p >= bandLo && p <= bandHi).collect(Collectors.toList());
-    if (primesBal.isEmpty()) {
-      throw new IllegalArgumentException("No primes in balanced band; increase Nmax.");
-    }
-    while (out.size() < targetCount) {
-      int p = primesBal.get(rand.nextInt(primesBal.size()));
-      int q = primesBal.get(rand.nextInt(primesBal.size()));
-      if (p > q) {
-        int temp = p;
-        p = q;
-        q = temp;
+  // === Balanced sampler: uniform over unique (p<=q, p*q<Nmax), without replacement ===
+  static List<long[]> sampleSemiprimesBalanced(List<Integer> primes, int targetCount, long Nmax, long seed) {
+    List<long[]> pairs = new ArrayList<>();
+    int m = primes.size();
+    for (int i = 0; i < m; i++) {
+      long p = primes.get(i);
+      for (int j = i; j < m; j++) {
+        long q = primes.get(j);
+        long N = p * q;
+        if (N < Nmax) pairs.add(new long[] {p, q, N});
+        else break; // primes are increasing; further q will only grow
       }
-      long N = (long) p * q;
-      if (N < Nmax) {
-        out.add(new long[] {p, q, N});
+    }
+    if (pairs.isEmpty()) throw new IllegalArgumentException("No valid (p,q) pairs under Nmax.");
+    Random rng = new Random(seed);
+    List<long[]> out = new ArrayList<>(targetCount);
+
+    // Keep shuffling & emitting until targetCount reached (no duplicates before exhaustion)
+    List<long[]> bag = new ArrayList<>(pairs);
+    while (out.size() < targetCount) {
+      Collections.shuffle(bag, rng);
+      for (long[] t : bag) {
+        out.add(t);
+        if (out.size() >= targetCount) break;
       }
     }
     return out;
   }
 
-  static List<long[]> sampleSemiprimesUnbalanced(
-      List<Integer> primes, int targetCount, long Nmax, long seed) {
-    Random rand = new Random(seed);
-    List<long[]> out = new ArrayList<>();
-    long sqrtNmax = (long) Math.sqrt(Nmax);
-    long smallHi = Math.max(7, sqrtNmax / 5);
-    long largeHi = sqrtNmax * 3;
-    List<Integer> primesSmall =
-        primes.stream().filter(p -> p >= 2 && p <= smallHi).collect(Collectors.toList());
-    List<Integer> primesLarge =
-        primes.stream().filter(p -> p > smallHi && p <= largeHi).collect(Collectors.toList());
-    if (primesSmall.isEmpty() || primesLarge.isEmpty()) {
+  // === Unbalanced sampler: p small, q large, still no replacement until exhaustion ===
+  static List<long[]> sampleSemiprimesUnbalanced(List<Integer> primes, int targetCount, long Nmax, long seed) {
+    long sqrtN = (long) Math.sqrt(Nmax);
+    long smallHi = Math.max(7, sqrtN / 5);
+    long largeHi = sqrtN * 3;
+
+    List<Integer> primesSmall = primes.stream().filter(p -> p >= 2 && p <= smallHi).collect(Collectors.toList());
+    List<Integer> primesLarge = primes.stream().filter(p -> p > smallHi && p <= largeHi).collect(Collectors.toList());
+    if (primesSmall.isEmpty() || primesLarge.isEmpty())
       throw new IllegalArgumentException("Insufficient primes for unbalanced sampling.");
-    }
-    while (out.size() < targetCount) {
-      int p = primesSmall.get(rand.nextInt(primesSmall.size()));
-      int q = primesLarge.get(rand.nextInt(primesLarge.size()));
-      if (p > q) {
-        int temp = p;
-        p = q;
-        q = temp;
+
+    // Build unique candidate set S = {(p,q): p small, q large, p<=q, p*q<Nmax}
+    List<long[]> pairs = new ArrayList<>();
+    for (int p : primesSmall) {
+      for (int q : primesLarge) {
+        int pp = Math.min(p, q), qq = Math.max(p, q);
+        long N = 1L * pp * qq;
+        if (N < Nmax) pairs.add(new long[] {pp, qq, N});
       }
-      long N = (long) p * q;
-      if (N < Nmax) {
-        out.add(new long[] {p, q, N});
+    }
+    if (pairs.isEmpty()) throw new IllegalArgumentException("No valid unbalanced pairs under Nmax.");
+    Random rng = new Random(seed);
+    List<long[]> out = new ArrayList<>(targetCount);
+    List<long[]> bag = new ArrayList<>(pairs);
+
+    while (out.size() < targetCount) {
+      Collections.shuffle(bag, rng);
+      for (long[] t : bag) {
+        out.add(t);
+        if (out.size() >= targetCount) break;
       }
     }
     return out;
@@ -163,17 +174,30 @@ public class FactorizationShortcutDemo {
     return cands;
   }
 
-  static double[] wilsonCi(int successes, int n, double z) {
-    if (n == 0) return new double[] {Double.NaN, Double.NaN, Double.NaN};
-    double p = (double) successes / n;
-    double denom = 1.0 + (z * z) / n;
-    double center = (p + (z * z) / (2 * n)) / denom;
-    double half = z * Math.sqrt((p * (1 - p) / n) + (z * z) / (4 * n * n)) / denom;
-    return new double[] {p, Math.max(0.0, center - half), Math.min(1.0, center + half)};
-  }
+    // === Wilson CI (clamped) ===
+    static double[] wilsonCi(int successes, int n, double z) {
+        if (n == 0) return new double[] {Double.NaN, Double.NaN, Double.NaN};
+        double p = (double) successes / n;
+        double z2 = z * z;
+        double denom = 1.0 + z2 / n;
+        double center = (p + z2 / (2.0 * n)) / denom;
+        double half = z * Math.sqrt((p * (1.0 - p) / n) + (z2 / (4.0 * n * n))) / denom;
+        double lo = Math.max(0.0, center - half);
+        double hi = Math.min(1.0, center + half);
+        return new double[] {p, lo, hi};
+    }
 
+  // === Factorization (add fast paths) ===
   static long[] factorizeWithCandidates(
       long N, List<Integer> candidates, List<Integer> primesSmall) {
+    if ((N & 1L) == 0L) {
+      long q = N / 2L;
+      return new long[] {1, 2L, q, isPrimeTrial(q, primesSmall) ? 1 : 0};
+    }
+    long r = (long) Math.sqrt(N);
+    if (r * r == N && isPrimeTrial(r, primesSmall)) {
+      return new long[] {1, r, r, 1};
+    }
     for (int p : candidates) {
       if (p > 1 && N % p == 0) {
         long q = N / p;
