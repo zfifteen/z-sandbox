@@ -63,11 +63,8 @@ public class TestRSAChallenges {
         }
     }
 
-    // Integration tests are disabled by default; run with -Dintegration=true
     @Test
-    @Tag("integration")
-    @EnabledIfSystemProperty(named="integration", matches="true")
-    @DisplayName("Integration: timed candidate-attempt on RSA entries (opt-in)")
+    @DisplayName("Integration: timed candidate-attempt on RSA entries")
     void integrationCandidateAttempt() throws Exception {
         Path out = Paths.get("build/test-results/rsa_challenge_report.json");
         List<Map<String,Object>> report = new ArrayList<>();
@@ -91,7 +88,7 @@ public class TestRSAChallenges {
                     return FactorizationShortcutDemo.factorizeWithCandidatesBig(N, candidates, 64);
                 });
                 try {
-                    FactorizationShortcutDemo.Factor res = fut.get(10, TimeUnit.MINUTES); // configurable per-number
+                    FactorizationShortcutDemo.Factor res = fut.get(10, TimeUnit.SECONDS); // short timeout for default runs
                     row.put("success", res.success());
                     if (res.success()) { row.put("p", res.p().toString()); row.put("q", res.q().toString()); }
                 } catch (TimeoutException te) {
