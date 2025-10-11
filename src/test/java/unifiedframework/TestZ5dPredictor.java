@@ -410,12 +410,12 @@ public class TestZ5dPredictor {
 
             System.out.printf("Total predictions: %,d%n", allTimesMs.size());
             System.out.printf("Total test time: %.2f ms%n", totalTestTimeMs);
-            System.out.printf("Effective avg time per prediction (total/count): %.3f ��s%n", (totalTestTimeMs / allTimesMs.size()) * 1000);
-            System.out.printf("Median individual prediction time: %.3f \u00B5s%n", medianTime * 1000);
-            System.out.printf("Min individual prediction time: %.3f \u00B5s%n", minTime * 1000);
-            System.out.printf("Max individual prediction time: %.3f \u00B5s%n", maxTime * 1000);
-            System.out.printf("95th percentile individual time: %.3f \u00B5s%n", p95Time * 1000);
-            System.out.printf("99th percentile individual time: %.3f \u00B5s%n", p99Time * 1000);
+            System.out.printf("Effective avg time per prediction (total/count): %.3f µs%n", (totalTestTimeMs / allTimesMs.size()) * 1000);
+            System.out.printf("Median individual prediction time: %.3f µs%n", medianTime * 1000);
+            System.out.printf("Min individual prediction time: %.3f µs%n", minTime * 1000);
+            System.out.printf("Max individual prediction time: %.3f µs%n", maxTime * 1000);
+            System.out.printf("95th percentile individual time: %.3f µs%n", p95Time * 1000);
+            System.out.printf("99th percentile individual time: %.3f µs%n", p99Time * 1000);
             System.out.printf("Predictions per second (effective): %.0f%n", (allTimesMs.size() / (totalTestTimeMs / 1000.0)));
 
             System.out.println("\nPER-SCALE BREAKDOWN:");
@@ -443,6 +443,72 @@ public class TestZ5dPredictor {
             System.err.println("Error writing to CSV file: " + e.getMessage());
             fail("Failed to write performance log");
         }
+    }
+
+    @Test
+    @DisplayName("Smoke test for ultra-high scales 10^19 to 10^50")
+    public void testSmokeHighScales() {
+        System.out.println("=== SMOKE TEST: Ultra-High Scales 10^19 to 10^50 ===");
+        boolean allPassed = true;
+        for (int exp = 19; exp <= 50; exp++) {
+            double k = Math.pow(10, exp);
+            double result = Z5dPredictor.z5dPrime(k, 0, 0, 0, true);
+            double pnt = Z5dPredictor.z5dBasePntPrime(k);
+            boolean finite = Double.isFinite(result);
+            boolean positive = result > 0;
+            boolean greaterThanK = result > k;
+            double relDiff = (pnt != 0 && Double.isFinite(pnt)) ? Math.abs((result - pnt) / pnt) : Double.POSITIVE_INFINITY;
+            boolean closeToPnt = relDiff < 0.1; // within 10%
+            System.out.printf("Scale 10^%d: k=%.0e, result=%.2e, PNT=%.2e, finite=%b, positive=%b, >k=%b, rel_diff_to_PNT=%.4f%n",
+                exp, k, result, pnt, finite, positive, greaterThanK, relDiff);
+            if (!finite || !positive || !greaterThanK || !closeToPnt) {
+                allPassed = false;
+                System.out.println("  -> FAILED");
+            } else {
+                System.out.println("  -> PASSED");
+            }
+        }
+        assertTrue(allPassed, "Smoke test failed for some high scales");
+        System.out.println("=== SMOKE TEST COMPLETE ===");
+    }
+
+    @Test
+    @DisplayName("Find maximum finite scale limit")
+    public void testMaxFiniteScale() {
+        System.out.println("=== FINDING MAX FINITE SCALE LIMIT ===");
+        int maxExp = 0;
+        int maxFiniteExp = 0;
+        boolean overflowSeen = false;
+        for (int exp = 1; exp <= 10000; exp++) {  // Upper bound way beyond double limit
+            try {
+                double k = Math.pow(10, exp);
+                if (!Double.isFinite(k)) {
+                    if (!overflowSeen) {
+                        System.out.printf("k overflows at 10^%d (k=%.2e -> Inf)%n", exp, k);
+                        overflowSeen = true;
+                    }
+                    break;
+                }
+                double result = Z5dPredictor.z5dPrime(k, 0, 0, 0, true);
+                double pnt = Z5dPredictor.z5dBasePntPrime(k);
+                if (Double.isFinite(result) && Double.isFinite(pnt)) {
+                    maxFiniteExp = exp;
+                    if (exp % 50 == 0) {  // Log every 50 to avoid spam
+                        System.out.printf("10^%d: finite (result=%.2e, PNT=%.2e)%n", exp, result, pnt);
+                    }
+                } else {
+                    System.out.printf("Result/PNT non-finite at 10^%d (k=%.2e, result=%.2e, PNT=%.2e)%n", exp, k, result, pnt);
+                    break;
+                }
+            } catch (Exception e) {
+                System.out.printf("Exception at 10^%d: %s%n", exp, e.getMessage());
+                break;
+            }
+        }
+        System.out.printf("Maximum finite exponent: %d (10^%d)%n", maxFiniteExp, maxFiniteExp);
+        System.out.printf("Corresponding k ~ 10^%d, π(k) ~ %.2e%n", maxFiniteExp, Z5dPredictor.z5dPrime(Math.pow(10, maxFiniteExp), 0, 0, 0, true));
+        assertTrue(maxFiniteExp > 300, "Expected finite up to at least 10^300");
+        System.out.println("=== MAX FINITE SCALE TEST COMPLETE ===");
     }
 
     private String formatScale(double scale) {
