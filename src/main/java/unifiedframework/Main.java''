@@ -1,0 +1,29 @@
+package unifiedframework;
+
+import java.util.Arrays;
+
+public class Main {
+    public static void main(String[] args) {
+        System.out.println("Exploring discriminators between primes and composites in Domain getters, starting from n=100000:");
+        for (int n = 100000; n <= 100010; n++) {
+            if (isPrime(n)) {
+                Domain d = new Domain(n);
+                System.out.println("Prime " + n + ": z=" + d.getZ() + ", d=" + d.getD() + ", e=" + d.getE() + ", f=" + d.getF() + ", g=" + d.getG());
+            } else {
+                Domain d = new Domain(n);
+                System.out.println("Composite " + n + ": z=" + d.getZ() + ", d=" + d.getD() + ", e=" + d.getE() + ", f=" + d.getF() + ", g=" + d.getG());
+            }
+        }
+        System.out.println("\nPatterns: Primes may show different oscillation amplitudes or ratios in the getters.");
+    }
+
+    public static boolean isPrime(int n) {
+        if (n <= 1) return false;
+        if (n <= 3) return true;
+        if (n % 2 == 0 || n % 3 == 0) return false;
+        for (int i = 5; i * i <= n; i += 6) {
+            if (n % i == 0 || n % (i + 2) == 0) return false;
+        }
+        return true;
+    }
+}
