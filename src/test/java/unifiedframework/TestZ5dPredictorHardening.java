@@ -1,18 +1,18 @@
 package unifiedframework;
 
 import static org.junit.jupiter.api.Assertions.*;
-import org.junit.jupiter.api.Test;
+
 import java.util.Random;
+import org.junit.jupiter.api.Test;
 
 /**
- * Hardening tests for Z5d predictor: monotonicity, tight accuracy guards,
- * randomized domain fuzzing, and deviation vs PNT baseline.
+ * Hardening tests for Z5d predictor: monotonicity, tight accuracy guards, randomized domain
+ * fuzzing, and deviation vs PNT baseline.
  *
- * Assumptions:
- *  - Z5dPredictor.prime(double k) -> double
- *  - Z5dPredictor.basePntPrime(double k) -> double (PNT baseline)
+ * <p>Assumptions: - Z5dPredictor.prime(double k) -> double - Z5dPredictor.basePntPrime(double k) ->
+ * double (PNT baseline)
  *
- * Adjust method names if your API differs.
+ * <p>Adjust method names if your API differs.
  */
 public class TestZ5dPredictorHardening {
 
@@ -39,8 +39,9 @@ public class TestZ5dPredictorHardening {
     for (double k : ks) {
       double v = z5dPrime(k);
       boolean isFinitePositive = Double.isFinite(v) && v > 0.0;
-      System.out.printf("k=%.0f: value=%.6f, finite=%b, positive=%b, valid=%b%n",
-                       k, v, Double.isFinite(v), v > 0.0, isFinitePositive);
+      System.out.printf(
+          "k=%.0f: value=%.6f, finite=%b, positive=%b, valid=%b%n",
+          k, v, Double.isFinite(v), v > 0.0, isFinitePositive);
 
       assertTrue(isFinitePositive, "finite/positive @k=" + k);
 
@@ -113,8 +114,9 @@ public class TestZ5dPredictorHardening {
         passed++;
       } else {
         failed++;
-        System.out.printf("  FAILED @k=%.6e: value=%.6f, finite=%b, positive=%b%n",
-                         k, z, Double.isFinite(z), z > 0.0);
+        System.out.printf(
+            "  FAILED @k=%.6e: value=%.6f, finite=%b, positive=%b%n",
+            k, z, Double.isFinite(z), z > 0.0);
       }
     }
 
@@ -138,8 +140,9 @@ public class TestZ5dPredictorHardening {
     for (double k : ks) {
       double b = pnt(k);
       boolean isValid = Double.isFinite(b) && b > 0.0;
-      System.out.printf("k=%.0f: PNT=%.6f, finite=%b, positive=%b, valid=%b%n",
-                       k, b, Double.isFinite(b), b > 0.0, isValid);
+      System.out.printf(
+          "k=%.0f: PNT=%.6f, finite=%b, positive=%b, valid=%b%n",
+          k, b, Double.isFinite(b), b > 0.0, isValid);
 
       assertTrue(isValid);
 
