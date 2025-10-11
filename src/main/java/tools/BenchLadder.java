@@ -255,7 +255,7 @@ public class BenchLadder {
           for (int i = 0; i < K; i++) {
             BigInteger[] pq = balancedSemiprimeDigits(d, seed + i);
             BigInteger N = pq[0].multiply(pq[1]);
-             List<BigInteger> cands = builder.build(N, 10000, seed + i);
+            List<BigInteger> cands = builder.build(N, 10000, seed + i);
             Collections.shuffle(cands, new Random(seed + i));
             long start = System.currentTimeMillis();
             Factor f = factorizeWithCandidatesBig(N, cands, 64);
@@ -285,7 +285,7 @@ public class BenchLadder {
         for (int i = 0; i < K; i++) {
           BigInteger[] pq = balancedSemiprimeDigits(digits, seed + i);
           BigInteger N = pq[0].multiply(pq[1]);
-           List<BigInteger> cands = builder.build(N, 10000, seed + i);
+          List<BigInteger> cands = builder.build(N, 10000, seed + i);
           Collections.shuffle(cands, new Random(seed + i));
           long start = System.currentTimeMillis();
           Factor f = factorizeWithCandidatesBig(N, cands, 64);

@@ -1,7 +1,6 @@
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
-import unifiedframework.Z5dPredictor;
 
 /**
  * Demonstration of Z5D Predictor handling ultra-high scales up to 10^1233.

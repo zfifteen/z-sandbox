@@ -89,3 +89,23 @@ tasks.register('rsa260') {
         }
     }
 }
+
+tasks.register('demo') {
+    doLast {
+        // run ultra-high scale demo
+        exec {
+            workingDir projectDir
+            commandLine 'java', '-cp', sourceSets.main.runtimeClasspath.asPath, 'unifiedframework.UltraHighScaleExample'
+        }
+    }
+}
+
+tasks.register('demofull') {
+    doLast {
+        // run full ultra-high scale demonstration with timings
+        exec {
+            workingDir projectDir
+            commandLine 'java', '-cp', sourceSets.main.runtimeClasspath.asPath, 'unifiedframework.demo_ultra_high_scale'
+        }
+    }
+}

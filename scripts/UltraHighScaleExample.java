@@ -1,7 +1,6 @@
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
-import unifiedframework.Z5dPredictor;
 
 /**
  * Simple example demonstrating the new BigDecimal API for ultra-high scale
