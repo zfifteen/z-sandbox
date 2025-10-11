@@ -386,6 +386,8 @@ public class TestZ5dPredictor {
     java.util.List<Double> allTimesMs = new java.util.ArrayList<>();
     java.util.Map<Double, java.util.List<Double>> scaleTimes = new java.util.HashMap<>();
     java.util.Map<Double, Double> scaleTotalTimes = new java.util.HashMap<>();
+    double totalMeasuredMs = 0.0;
+    double totalWarmupMs = 0.0;
 
     long testStartTime = System.nanoTime();
 
@@ -397,10 +399,14 @@ public class TestZ5dPredictor {
 
         // Warm-up to stabilize memory and JIT
         System.out.println("Warming up...");
+        long warmupStart = System.nanoTime();
         for (int w = 0; w < 10; w++) {
           Z5dPredictor.z5dPrime(scale, 0, 0, 0, true);
         }
         System.gc(); // Suggest GC to stabilize memory
+        long warmupEnd = System.nanoTime();
+        double warmupMs = (warmupEnd - warmupStart) / 1_000_000.0;
+        totalWarmupMs += warmupMs;
         System.out.println("Warm-up complete.");
 
         System.out.println("Progress: [");
@@ -443,6 +449,7 @@ public class TestZ5dPredictor {
 
         long scaleEndTime = System.nanoTime();
         double scaleTotalTimeMs = (scaleEndTime - scaleStartTime) / 1_000_000.0;
+        totalMeasuredMs += scaleTotalTimeMs;
 
         System.out.printf("] Complete%n");
         System.out.printf(
@@ -477,9 +484,13 @@ public class TestZ5dPredictor {
       double p99Time = allTimesArray[(int) (allTimesArray.length * 0.99)];
 
       System.out.printf("Total predictions: %,d%n", allTimesMs.size());
-      System.out.printf("Total test time: %.2f ms%n", totalTestTimeMs);
+      System.out.printf("Total test time (measurement only): %.2f ms%n", totalMeasuredMs);
+      System.out.printf("Total test time (incl. warmup): %.2f ms%n", totalTestTimeMs);
       System.out.printf(
-          "Effective avg time per prediction (total/count): %.3f µs%n",
+          "Effective avg time per prediction (measurement only): %.3f µs%n",
+          (totalMeasuredMs / allTimesMs.size()) * 1000);
+      System.out.printf(
+          "Effective avg time per prediction (incl. warmup): %.3f µs%n",
           (totalTestTimeMs / allTimesMs.size()) * 1000);
       System.out.printf("Median individual prediction time: %.3f µs%n", medianTime * 1000);
       System.out.printf("Min individual prediction time: %.3f µs%n", minTime * 1000);
@@ -487,7 +498,10 @@ public class TestZ5dPredictor {
       System.out.printf("95th percentile individual time: %.3f µs%n", p95Time * 1000);
       System.out.printf("99th percentile individual time: %.3f µs%n", p99Time * 1000);
       System.out.printf(
-          "Predictions per second (effective): %.0f%n",
+          "Predictions per second (measurement only): %.0f%n",
+          (allTimesMs.size() / (totalMeasuredMs / 1000.0)));
+      System.out.printf(
+          "Predictions per second (incl. warmup): %.0f%n",
           (allTimesMs.size() / (totalTestTimeMs / 1000.0)));
 
       System.out.println("\nPER-SCALE BREAKDOWN:");
