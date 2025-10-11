@@ -1,11 +1,12 @@
 plugins {
     id 'java'
+    id 'application'
     id 'jacoco'  // Code coverage
     id 'com.diffplug.spotless' version '6.25.0'  // Code formatting
 }
 
-group = 'unified-framework'
-version = '1.0-SNAPSHOT'
+group = 'org.zfifteen'
+version = '0.0.1'
 
 java {
     sourceCompatibility = JavaVersion.VERSION_17
@@ -17,10 +18,15 @@ repositories {
 }
 
 dependencies {
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.11.0'
+    implementation 'org.apache.commons:commons-math3:3.6.1'
     testImplementation 'junit:junit:4.13.2'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.0'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.0'
+}
+
+application {
+    mainClass = 'org.zfifteen.sandbox.Main'
 }
 
 test {

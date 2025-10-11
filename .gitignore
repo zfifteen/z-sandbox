@@ -1,9 +1,18 @@
-.gradle
-build/
-!gradle/wrapper/gradle-wrapper.jar
-!**/src/main/**/build/
-!**/src/test/**/build/
-.kotlin
+# Java
+/build/
+.gradle/
+*.class
+
+# Python
+.venv/
+__pycache__/
+
+# Sandbox outputs
+/data/
+out/
+
+# OS
+.DS_Store
 
 ### IntelliJ IDEA ###
 .idea/modules.xml
@@ -13,9 +22,12 @@ build/
 *.iws
 *.iml
 *.ipr
-out/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
 !**/src/main/**/out/
 !**/src/test/**/out/
+.kotlin
 
 ### Eclipse ###
 .apt_generated
@@ -39,6 +51,4 @@ bin/
 ### VS Code ###
 .vscode/
 
-### Mac OS ###
-.DS_Store
 /.idea/
