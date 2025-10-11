@@ -11,17 +11,16 @@ import java.util.stream.Collectors;
 /**
  * Factorization Shortcut Demo (BigInteger/BigDecimal-safe, Z5D-only)
  *
- * Key properties:
- * - NO sieve. Prime pool is built by inverting pi(x) using a Z5D BigDecimal oracle (secant),
- *   then a tiny local odd-step search to the nearest probable prime.
- * - Sampling uniformly without replacement from all (p <= q, p*q < Nmax) using
- *   an LCG permutation over the implicit pair index space (no materialization).
- * - Full BigInteger/BigDecimal safety for N, p, q, comparisons, and sqrt(Nmax).
- * - Theta banding uses BigDecimal; only bounded double is used for x^k with x in [0,1).
+ * <p>Key properties: - NO sieve. Prime pool is built by inverting pi(x) using a Z5D BigDecimal
+ * oracle (secant), then a tiny local odd-step search to the nearest probable prime. - Sampling
+ * uniformly without replacement from all (p <= q, p*q < Nmax) using an LCG permutation over the
+ * implicit pair index space (no materialization). - Full BigInteger/BigDecimal safety for N, p, q,
+ * comparisons, and sqrt(Nmax). - Theta banding uses BigDecimal; only bounded double is used for x^k
+ * with x in [0,1).
  *
- * Plug your BigDecimal Z5D oracle at: PiOracle pi = x -> Z5dPredictorBD.pi(x);
- * If absent, we fallback to a double-based adapter via Z5dPredictor.z5dPrime(...),
- * which is NOT scale-safe for huge N and is provided for compilation/demo only.
+ * <p>Plug your BigDecimal Z5D oracle at: PiOracle pi = x -> Z5dPredictorBD.pi(x); If absent, we
+ * fallback to a double-based adapter via Z5dPredictor.z5dPrime(...), which is NOT scale-safe for
+ * huge N and is provided for compilation/demo only.
  */
 public class FactorizationShortcut {
 
@@ -53,9 +52,9 @@ public class FactorizationShortcut {
   }
 
   /**
-   * thetaPrimeInt: θ′(n,k) = frac( PHI * ( frac(n/PHI) )^k )
-   * We compute pow in double over x in [0,1) -- bounded and overflow-free.
-   * If pure BigDecimal pow is required, replace with a ln/exp kernel.
+   * thetaPrimeInt: θ′(n,k) = frac( PHI * ( frac(n/PHI) )^k ) We compute pow in double over x in
+   * [0,1) -- bounded and overflow-free. If pure BigDecimal pow is required, replace with a ln/exp
+   * kernel.
    */
   static BigDecimal thetaPrimeInt(BigDecimal n, BigDecimal k) {
     BigDecimal x = frac01(n.divide(PHI, MC)); // x in [0,1)
@@ -117,7 +116,7 @@ public class FactorizationShortcut {
       long off = g - pref[i];
       int jj = (int) (i + off);
       BigInteger p = P.get(i), q = P.get(jj);
-      out.add(new BigInteger[]{p, q, p.multiply(q)});
+      out.add(new BigInteger[] {p, q, p.multiply(q)});
     }
     return out;
   }
@@ -126,22 +125,36 @@ public class FactorizationShortcut {
     int lo = 0, hi = a.length;
     while (lo < hi) {
       int mid = (lo + hi) >>> 1;
-      if (a[mid] <= x) lo = mid + 1; else hi = mid;
+      if (a[mid] <= x) lo = mid + 1;
+      else hi = mid;
     }
     return lo;
   }
-  static long gcdLong(long a, long b) { a=Math.abs(a); b=Math.abs(b);
-    while (b != 0) { long t = a % b; a = b; b = t; } return a; }
+
+  static long gcdLong(long a, long b) {
+    a = Math.abs(a);
+    b = Math.abs(b);
+    while (b != 0) {
+      long t = a % b;
+      a = b;
+      b = t;
+    }
+    return a;
+  }
+
   static long coPrimeOddMultiplier(long S, long seed) {
     long a = Math.floorMod((seed << 1) | 1L, S);
     if (a == 0) a = 1;
     while (gcdLong(a, S) != 1) a = (a + 2) % S;
     return a;
   }
+
   static long permuteIdx(long t, long S, long A, long B) {
-    return BigInteger.valueOf(A).multiply(BigInteger.valueOf(t))
+    return BigInteger.valueOf(A)
+        .multiply(BigInteger.valueOf(t))
         .add(BigInteger.valueOf(B))
-        .mod(BigInteger.valueOf(S)).longValue();
+        .mod(BigInteger.valueOf(S))
+        .longValue();
   }
 
   // ======== C) Big-safe factorization with fast paths ========
@@ -171,7 +184,9 @@ public class FactorizationShortcut {
   // ======== D) Z5D-only prime pool around √Nmax (secant on π(x)) ========
 
   @FunctionalInterface
-  interface PiOracle { BigDecimal pi(BigDecimal x); }
+  interface PiOracle {
+    BigDecimal pi(BigDecimal x);
+  }
 
   /** Build a PiOracle from available predictors. Prefers BigDecimal Z5dPredictorBD.pi(x). */
   static PiOracle buildPiOracle() {
@@ -180,8 +195,11 @@ public class FactorizationShortcut {
       Class<?> cls = Class.forName("unifiedframework.Z5dPredictorBD");
       Method m = cls.getMethod("pi", BigDecimal.class);
       return x -> {
-        try { return (BigDecimal) m.invoke(null, x); }
-        catch (Throwable t) { throw new RuntimeException("Z5dPredictorBD.pi call failed", t); }
+        try {
+          return (BigDecimal) m.invoke(null, x);
+        } catch (Throwable t) {
+          throw new RuntimeException("Z5dPredictorBD.pi call failed", t);
+        }
       };
     } catch (Throwable ignored) {
       // Fallback: use double z5dPrime(long) adapter (NOT scale-safe; demo only).
@@ -193,14 +211,16 @@ public class FactorizationShortcut {
           return new BigDecimal(pi, MC);
         } catch (Throwable t) {
           throw new UnsupportedOperationException(
-            "No BigDecimal Z5D oracle found. Provide unifiedframework.Z5dPredictorBD.pi(BigDecimal).", t);
+              "No BigDecimal Z5D oracle found. Provide unifiedframework.Z5dPredictorBD.pi(BigDecimal).",
+              t);
         }
       };
     }
   }
 
   /** Secant inversion: find x with pi(x) ≈ k. */
-  static BigInteger invertPiSecant(BigInteger k, PiOracle pi, BigInteger x0, BigInteger x1, int iters) {
+  static BigInteger invertPiSecant(
+      BigInteger k, PiOracle pi, BigInteger x0, BigInteger x1, int iters) {
     BigDecimal kBD = new BigDecimal(k);
     BigDecimal xPrev = new BigDecimal(x0);
     BigDecimal xCurr = new BigDecimal(x1);
@@ -213,7 +233,8 @@ public class FactorizationShortcut {
       BigDecimal step = fCurr.multiply(xCurr.subtract(xPrev, MC), MC).divide(denom, MC);
       BigDecimal xNext = xCurr.subtract(step, MC);
       if (xNext.compareTo(BigDecimal.TWO) < 0) xNext = BigDecimal.TWO;
-      xPrev = xCurr; xCurr = xNext;
+      xPrev = xCurr;
+      xCurr = xNext;
       if (xCurr.subtract(xPrev, MC).abs().compareTo(BigDecimal.ONE) <= 0) break;
     }
     return xCurr.toBigInteger(); // prime refinement next
@@ -234,12 +255,17 @@ public class FactorizationShortcut {
 
   /** Build prime pool in [bandLo*√Nmax, bandHi*√Nmax] using ONLY Z5D π(x) oracle. */
   static List<BigInteger> generatePrimePoolBandZ5D(
-      BigInteger Nmax, double bandLo, double bandHi, int poolTarget,
-      PiOracle pi, int secantIters, int localWindow, int mrIters) {
+      BigInteger Nmax,
+      double bandLo,
+      double bandHi,
+      int poolTarget,
+      PiOracle pi,
+      int secantIters,
+      int localWindow,
+      int mrIters) {
 
-    if (!(bandLo > 0 && bandHi > bandLo))
-      throw new IllegalArgumentException("bad band");
-    BigInteger s = sqrtFloor(Nmax);            // √Nmax
+    if (!(bandLo > 0 && bandHi > bandLo)) throw new IllegalArgumentException("bad band");
+    BigInteger s = sqrtFloor(Nmax); // √Nmax
     BigDecimal sBD = new BigDecimal(s);
     BigInteger pLo = new BigDecimal(bandLo, MC).multiply(sBD, MC).toBigInteger();
     BigInteger pHi = new BigDecimal(bandHi, MC).multiply(sBD, MC).toBigInteger();
@@ -252,7 +278,7 @@ public class FactorizationShortcut {
 
     int step = 0;
     while (pool.size() < poolTarget) {
-      for (int sign : new int[]{+1, -1}) {
+      for (int sign : new int[] {+1, -1}) {
         BigInteger k = kS.add(BigInteger.valueOf((long) sign * step));
         if (k.compareTo(BigInteger.TWO) < 0) continue;
         BigInteger xApprox = invertPiSecant(k, pi, x0, x1, secantIters);
@@ -275,10 +301,7 @@ public class FactorizationShortcut {
   // ======== E) Heuristic banding (BigInteger) ========
 
   /** Return candidate primes whose θ′ are within eps of θ′(N). */
-  static List<BigInteger> heuristicBand(
-      BigInteger N,
-      Map<String, Object> ctx
-  ) {
+  static List<BigInteger> heuristicBand(BigInteger N, Map<String, Object> ctx) {
     BigDecimal eps = (BigDecimal) ctx.getOrDefault("eps", new BigDecimal("0.05"));
     int maxCandidates = (Integer) ctx.getOrDefault("maxCandidates", 1000);
     BigDecimal k = (BigDecimal) ctx.getOrDefault("k", new BigDecimal("0.3"));
@@ -304,7 +327,7 @@ public class FactorizationShortcut {
   // ======== F) Stats helpers ========
 
   static double[] wilsonCi(int successes, int n, double z) {
-    if (n == 0) return new double[]{Double.NaN, Double.NaN, Double.NaN};
+    if (n == 0) return new double[] {Double.NaN, Double.NaN, Double.NaN};
     double p = (double) successes / n;
     double z2 = z * z;
     double denom = 1.0 + z2 / n;
@@ -312,7 +335,7 @@ public class FactorizationShortcut {
     double half = z * Math.sqrt((p * (1.0 - p) / n) + (z2 / (4.0 * n * n))) / denom;
     double lo = Math.max(0.0, center - half);
     double hi = Math.min(1.0, center + half);
-    return new double[]{p, lo, hi};
+    return new double[] {p, lo, hi};
   }
 
   static double quantileInt(List<Integer> xs, double q) {
@@ -400,15 +423,17 @@ public class FactorizationShortcut {
     PiOracle pi = buildPiOracle();
 
     // Build Z5D-only prime pool near sqrt(Nmax)
-    List<BigInteger> pool = generatePrimePoolBandZ5D(
-        Nmax, bandLo, bandHi, poolTarget, pi, secantIters, localWindow, mrIters);
+    List<BigInteger> pool =
+        generatePrimePoolBandZ5D(
+            Nmax, bandLo, bandHi, poolTarget, pi, secantIters, localWindow, mrIters);
 
     // primesSmall up to sqrt(Nmax) (for trial/fast checks if desired)
     BigInteger sqrt = sqrtFloor(Nmax);
     final BigInteger finalSqrt = sqrt;
-    List<BigInteger> primesSmall = pool.stream()
-        .filter(p -> p.multiply(p).compareTo(finalSqrt) <= 0)
-        .collect(Collectors.toList());
+    List<BigInteger> primesSmall =
+        pool.stream()
+            .filter(p -> p.multiply(p).compareTo(finalSqrt) <= 0)
+            .collect(Collectors.toList());
 
     // Precompute theta for pool
     Map<BigInteger, BigDecimal> thetaPool = new HashMap<>(pool.size() * 2);
@@ -430,47 +455,50 @@ public class FactorizationShortcut {
     for (BigInteger[] semi : semis) {
       BigInteger p = semi[0], q = semi[1], N = semi[2];
 
-      List<BigInteger> cands = heuristicBand(
-          N,
-          Map.of(
-              "eps", new BigDecimal(epsVal, MC),
-              "maxCandidates", maxCandidates,
-              "k", kTheta,
-              "thetaPool", thetaPool,
-              "pool", pool
-          )
-      );
+      List<BigInteger> cands =
+          heuristicBand(
+              N,
+              Map.of(
+                  "eps", new BigDecimal(epsVal, MC),
+                  "maxCandidates", maxCandidates,
+                  "k", kTheta,
+                  "thetaPool", thetaPool,
+                  "pool", pool));
       Factor res = factorizeWithCandidatesBig(N, cands, mrIters);
       if (res.success()) {
         System.out.println(
-            "N=" + N +
-            " -> recovered p=" + res.p() +
-            "; q=N/p=" + res.q() +
-            "; q is prime? " + res.qPrime() +
-            "; candidates=" + cands.size());
+            "N="
+                + N
+                + " -> recovered p="
+                + res.p()
+                + "; q=N/p="
+                + res.q()
+                + "; q is prime? "
+                + res.qPrime()
+                + "; candidates="
+                + cands.size());
         printed++;
         if (printed >= examples) break;
       }
     }
 
     // Aggregate
-    double[] epsSweep = new double[]{epsVal, Math.max(1e-4, epsVal*0.75), epsVal*1.25};
+    double[] epsSweep = new double[] {epsVal, Math.max(1e-4, epsVal * 0.75), epsVal * 1.25};
     for (double eps : epsSweep) {
       int partial = 0;
       int full = 0;
       List<Integer> candSizes = new ArrayList<>(semis.size());
       for (BigInteger[] semi : semis) {
         BigInteger p = semi[0], q = semi[1], N = semi[2];
-        List<BigInteger> cands = heuristicBand(
-            N,
-            Map.of(
-                "eps", new BigDecimal(eps, MC),
-                "maxCandidates", maxCandidates,
-                "k", kTheta,
-                "thetaPool", thetaPool,
-                "pool", pool
-            )
-        );
+        List<BigInteger> cands =
+            heuristicBand(
+                N,
+                Map.of(
+                    "eps", new BigDecimal(eps, MC),
+                    "maxCandidates", maxCandidates,
+                    "k", kTheta,
+                    "thetaPool", thetaPool,
+                    "pool", pool));
         candSizes.add(cands.size());
         Factor res = factorizeWithCandidatesBig(N, cands, mrIters);
         if (res.success()) partial++;
@@ -482,45 +510,56 @@ public class FactorizationShortcut {
       double p90 = quantileInt(candSizes, 0.90);
       double p99 = quantileInt(candSizes, 0.99);
       System.out.println(
-          String.format(Locale.ROOT,
+          String.format(
+              Locale.ROOT,
               "eps=%.5f: partial=%.4f [%.4f, %.4f]; full=%d/%d; cand avg=%.1f | p50=%.0f p90=%.0f p99=%.0f | pool=%d",
-              eps, ci[0], ci[1], ci[2], full, samples, avg, p50, p90, p99, pool.size()));
+              eps,
+              ci[0],
+              ci[1],
+              ci[2],
+              full,
+              samples,
+              avg,
+              p50,
+              p90,
+              p99,
+              pool.size()));
     }
   }
 
-
   // ======== H) Backward-compatibility shims (small-scale only) ========
-  /** 
-   * Legacy API: small-scale balanced sampler returning List<long[]>.
-   * Converts to BigInteger pipeline and back. For large N, prefer sampleSemiprimesBalancedLCG(...).
+  /**
+   * Legacy API: small-scale balanced sampler returning List<long[]>. Converts to BigInteger
+   * pipeline and back. For large N, prefer sampleSemiprimesBalancedLCG(...).
    */
   public static List<long[]> sampleSemiprimesBalanced(
       List<Integer> primes, int targetCount, long Nmax, long seed) {
     List<BigInteger> P = new ArrayList<>();
     for (int v : primes) P.add(BigInteger.valueOf(v));
-    List<BigInteger[]> big = sampleSemiprimesBalancedLCG(P, targetCount, BigInteger.valueOf(Nmax), seed);
+    List<BigInteger[]> big =
+        sampleSemiprimesBalancedLCG(P, targetCount, BigInteger.valueOf(Nmax), seed);
     List<long[]> out = new ArrayList<>(big.size());
     for (BigInteger[] t : big) {
       long p = t[0].longValueExact(); // safe only if values fit in long
       long q = t[1].longValueExact();
       long N = t[2].longValueExact();
-      out.add(new long[]{p, q, N});
+      out.add(new long[] {p, q, N});
     }
     return out;
   }
 
   /**
-   * Legacy API: small-scale factorization using candidates (long-based result).
-   * Wraps the BigInteger version. "primesSmall" parameter is ignored here.
+   * Legacy API: small-scale factorization using candidates (long-based result). Wraps the
+   * BigInteger version. "primesSmall" parameter is ignored here.
    */
   public static long[] factorizeWithCandidates(
       long N, List<Integer> candidates, List<Integer> primesSmall) {
     List<BigInteger> cands = new ArrayList<>(candidates.size());
     for (int v : candidates) cands.add(BigInteger.valueOf(v));
     Factor f = factorizeWithCandidatesBig(BigInteger.valueOf(N), cands, 64);
-    if (!f.success()) return new long[]{0, 0, 0, 0};
+    if (!f.success()) return new long[] {0, 0, 0, 0};
     long p = f.p().longValueExact();
     long q = f.q().longValueExact();
-    return new long[]{1, p, q, f.qPrime() ? 1 : 0};
+    return new long[] {1, p, q, f.qPrime() ? 1 : 0};
   }
 }

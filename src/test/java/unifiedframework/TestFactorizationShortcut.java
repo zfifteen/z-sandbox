@@ -2,10 +2,10 @@ package unifiedframework;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.math.BigDecimal;
-import java.util.List;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.math.BigDecimal;
+import java.util.List;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -18,7 +18,11 @@ public class TestFactorizationShortcut {
     System.out.println("==========================================");
 
     // OS and Java Info
-    System.out.printf("OS: %s %s (%s)%n", System.getProperty("os.name"), System.getProperty("os.version"), System.getProperty("os.arch"));
+    System.out.printf(
+        "OS: %s %s (%s)%n",
+        System.getProperty("os.name"),
+        System.getProperty("os.version"),
+        System.getProperty("os.arch"));
     System.out.printf("Java Version: %s%n", System.getProperty("java.version"));
     System.out.printf("Java Vendor: %s%n", System.getProperty("java.vendor"));
     System.out.printf("JVM: %s%n", System.getProperty("java.vm.name"));
@@ -41,7 +45,8 @@ public class TestFactorizationShortcut {
     System.out.printf("JVM Total Memory: %.2f MB%n", jvmTotalMemory / (1024.0 * 1024.0));
     System.out.printf("JVM Free Memory: %.2f MB%n", jvmFreeMemory / (1024.0 * 1024.0));
     System.out.printf("JVM Max Memory: %.2f MB%n", jvmMaxMemory / (1024.0 * 1024.0));
-    System.out.printf("JVM Used Memory: %.2f MB%n", (jvmTotalMemory - jvmFreeMemory) / (1024.0 * 1024.0));
+    System.out.printf(
+        "JVM Used Memory: %.2f MB%n", (jvmTotalMemory - jvmFreeMemory) / (1024.0 * 1024.0));
 
     System.out.println("==========================================");
     System.out.println();
@@ -70,12 +75,12 @@ public class TestFactorizationShortcut {
     System.out.printf("Input n: %s%n", n);
     System.out.printf("Input k: %s%n", k);
     System.out.printf("Result theta: %s%n", theta);
-    System.out.printf("Is in [0,1): %b%n", theta.compareTo(BigDecimal.ZERO) >= 0 && theta.compareTo(BigDecimal.ONE) < 0);
+    System.out.printf(
+        "Is in [0,1): %b%n",
+        theta.compareTo(BigDecimal.ZERO) >= 0 && theta.compareTo(BigDecimal.ONE) < 0);
 
     assertTrue(theta.compareTo(BigDecimal.ZERO) >= 0 && theta.compareTo(BigDecimal.ONE) < 0);
   }
-
-
 
   @Test
   public void testSampleSemiprimesBalanced() {
@@ -84,7 +89,8 @@ public class TestFactorizationShortcut {
     int targetCount = 10;
     long Nmax = 1000;
     long seed = 42;
-    List<long[]> semis = FactorizationShortcut.sampleSemiprimesBalanced(primes, targetCount, Nmax, seed);
+    List<long[]> semis =
+        FactorizationShortcut.sampleSemiprimesBalanced(primes, targetCount, Nmax, seed);
 
     System.out.printf("Input primes: %s%n", primes);
     System.out.printf("Target count: %d%n", targetCount);
@@ -93,7 +99,9 @@ public class TestFactorizationShortcut {
     System.out.printf("Generated semiprimes count: %d%n", semis.size());
     for (int i = 0; i < semis.size(); i++) {
       long[] s = semis.get(i);
-      System.out.printf("Semiprime %d: p=%d, q=%d, N=%d, N < Nmax: %b, p*q==N: %b%n", i+1, s[0], s[1], s[2], s[2] < Nmax, s[0] * s[1] == s[2]);
+      System.out.printf(
+          "Semiprime %d: p=%d, q=%d, N=%d, N < Nmax: %b, p*q==N: %b%n",
+          i + 1, s[0], s[1], s[2], s[2] < Nmax, s[0] * s[1] == s[2]);
     }
 
     assertEquals(10, semis.size());
@@ -102,8 +110,6 @@ public class TestFactorizationShortcut {
       assertTrue(s[0] * s[1] == s[2]);
     }
   }
-
-
 
   @Test
   public void testWilsonCi() {
@@ -135,7 +141,8 @@ public class TestFactorizationShortcut {
     System.out.printf("Input N: %d%n", N);
     System.out.printf("Input candidates: %s%n", cands);
     System.out.printf("Input primesSmall: %s%n", primesSmall);
-    System.out.printf("Result: success=%d, p=%d, q=%d, q_prime=%d%n", res[0], res[1], res[2], res[3]);
+    System.out.printf(
+        "Result: success=%d, p=%d, q=%d, q_prime=%d%n", res[0], res[1], res[2], res[3]);
     System.out.printf("Success: %b%n", res[0] == 1);
     System.out.printf("p correct: %b%n", res[1] == 2);
     System.out.printf("q correct: %b%n", res[2] == 3);

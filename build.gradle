@@ -69,3 +69,23 @@ tasks.register('integrationTest', Test) {
     // increase heap/timeouts for long runs
     jvmArgs '-Xmx8g', '-XX:+UseG1GC'
 }
+
+tasks.register('ladder') {
+    doLast {
+        // run rungs 200..260, log CSV
+        exec {
+            workingDir projectDir
+            commandLine 'java', '-cp', sourceSets.main.runtimeClasspath.asPath, 'tools.BenchLadder', '--ladder', '--builder', 'ResidueFilter'
+        }
+    }
+}
+
+tasks.register('rsa260') {
+    doLast {
+        // run best builder on RSA-260 with checkpointing
+        exec {
+            workingDir projectDir
+            commandLine 'java', '-cp', sourceSets.main.runtimeClasspath.asPath, 'tools.BenchLadder', '--rsa260'
+        }
+    }
+}
