@@ -14,3 +14,122 @@ WARNING: Restricted methods will be blocked in a future release unless native ac
 
 BUILD SUCCESSFUL in 1s
 4 actionable tasks: 4 executed
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by net.rubygrapefruit.platform.internal.NativeLibraryLoader in an unnamed module (file:/Users/velocityworks/.gradle/wrapper/dists/gradle-8.14-bin/38aieal9i53h9rfe7vjup95b9/gradle-8.14/lib/native-platform-0.22-milestone-28.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+
+> Task :demofull
+================================================================================
+Z5D PREDICTOR - ULTRA-HIGH SCALE DEMONSTRATION
+================================================================================
+
+Z5D Version: 2025-10-11-Java-BigDecimal
+
+PART 1: Double Precision Limitation
+--------------------------------------------------------------------------------
+Testing double precision at and beyond its limit (~10^305):
+
+k = 10^305 = 1.00e+305
+  Is finite: true
+  Z5D result: 7.05e+307
+  Is finite: true
+
+k = 10^306 = 1.00e+306
+  Is finite: true
+  Is infinite: false
+  Z5D result: NaN
+  Is finite: false
+
+Conclusion: Double precision fails at scales >= 10^306
+
+PART 2: BigDecimal Beyond Double Limit
+--------------------------------------------------------------------------------
+Testing BigDecimal at scales where double fails:
+
+k = 1e305:
+  Z5D(k) = 70.54629857680249070636195399636196701269443006496174005935670826316766969110842845905167554006145248E+306
+  Positive: true
+  Greater than k: true
+  Status: SUCCESS ✓
+
+k = 1e306:
+  Z5D(k) = 707.7454534107605081226880801667689589306068720089795112474380644780903264351171818722422661763617118E+306
+  Positive: true
+  Greater than k: true
+  Status: SUCCESS ✓
+
+k = 1e310:
+  Z5D(k) = 7.168736935509861391140002964333677956142572226855029244139915499434727721572022474952116417662604445E+312
+  Positive: true
+  Greater than k: true
+  Status: SUCCESS ✓
+
+k = 1e320:
+  Z5D(k) = 73.96827318239987459663671876498804004789397629558260288031099456072238745201476674338399939404384156E+321
+  Positive: true
+  Greater than k: true
+  Status: SUCCESS ✓
+
+k = 1e350:
+  Z5D(k) = 80.80069380673108022229278032180846772769832977464423621635433721259146659986576396852924947952815347E+351
+  Positive: true
+  Greater than k: true
+  Status: SUCCESS ✓
+
+
+PART 3: Target Scale 10^1233
+--------------------------------------------------------------------------------
+Testing at the TARGET SCALE: 10^1233
+
+k = 1e1233
+
+Results:
+--------
+PNT baseline π(k) ≈ 2.846040753789958291664191893169337381694608774162938838451002825479249978374843726527791516393000744E+1236
+Z5D prediction   ≈ 2.691265070628440861440974591994237760506214870194845353257273536478478254849205664962670444793316617E+1236
+
+Validation:
+-----------
+Z5D > 0: true ✓
+Z5D > k: true ✓
+Relative diff from PNT: 0.054383
+Within 10% of PNT: true ✓
+
+Computation time: 8.61 ms
+
+✓ SUCCESS: Z5D Predictor handles 10^1233 correctly!
+
+PART 4: Range of Ultra-High Scales
+--------------------------------------------------------------------------------
+Testing predictions across a wide range of ultra-high scales:
+
+Scale      Z5D Result           Time (ms)       Status    
+---------------------------------------------------------------------------
+10^100     2.346251514381890... 1.95            PASS ✓    
+10^200     46.49779741982570... 2.22            PASS ✓    
+10^400     9.215109888090410... 2.68            PASS ✓    
+10^600     1.369827407262521... 3.86            PASS ✓    
+10^800     180.6160427949663... 4.13            PASS ✓    
+10^1000    22.26628903509705... 5.41            PASS ✓    
+10^1233    2.691265070628440... 4.66            PASS ✓    
+10^1500    3.182709516250201... 7.75            PASS ✓    
+10^2000    395.3885238335301... 8.09            PASS ✓    
+
+All scales tested successfully!
+
+================================================================================
+DEMONSTRATION COMPLETE
+================================================================================
+
+[Incubating] Problems report is available at: file:///Users/velocityworks/IdeaProjects/untitled/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.14/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 557ms
+1 actionable task: 1 executed
