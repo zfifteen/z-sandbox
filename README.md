@@ -6,44 +6,40 @@
 
 ## Structure
 ```
-/src/                    # Java source (e.g., Domain.java, ZFrameworkValidation.java)
-/scripts/                # Python scripts (analyze_domain.py, hologram.py, proof.py)
-/data/                   # Datasets (zeta_1000.txt, etc.)
-/plots/                 # Generated visualizations
-/build/                 # Gradle build artifacts
-.github/                # CI/CD workflows
+/src/                    # Java experiments (Gradle)
+  main/java/org/zfifteen/sandbox/...
+/python/                 # Python experiments (mpmath/numpy/etc.)
+/plots/                  # Generated figures (git-tracked if small)
+/data/                   # Local datasets (gitignored)
+/out/                    # Run artifacts, logs, CSV, PNG (gitignored)
+/scripts/                # One-liners, bootstrap helpers
 ```
 
-## Quick Start
-### Java (Z-Framework Validation)
+## Quickstart
+
+### Java
 ```bash
-./gradlew build
-java -cp build/classes/java/main unifiedframework.ZFrameworkValidation
+./gradlew run        # runs org.zfifteen.sandbox.Main
+./gradlew test
 ```
-Validates θ' invariants for primes vs. zeta zeros.
 
-### Python (Analysis & Visualization)
+### Python
 ```bash
-python analyze_domain.py  # Log magnitude plots
-python hologram.py       # 3D helical embeddings
-python proof.py          # Symbolic proofs
+python3 -m venv .venv && source .venv/bin/activate
+pip install -U pip
+pip install -r python/requirements.txt
+python python/examples/phi_bias_demo.py
 ```
 
-## Experiments
-- **Prime Geometry**: θ' mappings, curvature κ(n), fractal patterns.
-- **Zeta Zero Correlations**: Helical embeddings, φ-geodesics.
-- **RSA Filters**: Grid-based cryptographic experiments.
-- **Imaging Demos**: Visualizing Z-triangles.
+## Logging standard
 
-## Dependencies
-- Java 17+ (Gradle for builds)
-- Python 3.8+ (matplotlib, sympy, numpy)
+Every experiment should emit a line-oriented JSON log to `out/<exp>/<RUN_ID>.jsonl`:
 
-## Logs & Changes
-See `CHANGELOG.md` for experiment notes.
+```json
+{"ts":"2025-10-11T12:00:00Z","exp":"phi_bias","host":"m1max","params":{"k":0.3},"metrics":{"enhancement_pct":15.0}}
+```
 
-## Contributing
-Messy PRs welcome—focus on Z-Framework insights. Assign zfifteen for reviews.
+## Disclaimers
 
-## License
-Research sandbox—see unified-framework for licensing.
+* For educational/research use only. Crypto demos are **insecure** by design.
+* Large data and private DICOM go in `/data/` (gitignored).
