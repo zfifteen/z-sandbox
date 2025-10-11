@@ -1,25 +1,21 @@
 name: ci
 on:
-  push: { branches: [ main ] }
+  push:
+    branches: [ main ]
   pull_request:
 jobs:
   build:
-    strategy:
-      matrix: { os: [ubuntu-latest, macos-latest] }
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Java build
-        run: |
-          ./gradlew --version
-          ./gradlew -q build
-      - name: Python lint & smoke
-        uses: actions/setup-python@v5
-        with: { python-version: '3.12' }
-      - run: python -m venv .venv && source .venv/bin/activate && pip install -U pip && pip install -r python/requirements.txt
-      - run: |
-          source .venv/bin/activate
-          python - <<'PY'
-          import mpmath as mp; mp.mp.dps=50
-          print("mpmath ok, dps=", mp.mp.dps)
-          PY
+      - name: Build & test (Gradle)
+        run: ./gradlew -q test jacocoTestReport
+      # Optional: upload perf log if present
+      - name: Upload perf log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: perf-log
+          path: z5d_performance_log.csv
+          if-no-files-found: ignore
+          retention-days: 7

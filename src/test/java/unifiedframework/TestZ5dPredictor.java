@@ -410,23 +410,23 @@ public class TestZ5dPredictor {
 
             System.out.printf("Total predictions: %,d%n", allTimesMs.size());
             System.out.printf("Total test time: %.2f ms%n", totalTestTimeMs);
-            System.out.printf("Average time per prediction: %.4f ms%n", meanTime);
-            System.out.printf("Median time per prediction: %.4f ms%n", medianTime);
-            System.out.printf("Min time per prediction: %.4f ms%n", minTime);
-            System.out.printf("Max time per prediction: %.4f ms%n", maxTime);
-            System.out.printf("95th percentile: %.4f ms%n", p95Time);
-            System.out.printf("99th percentile: %.4f ms%n", p99Time);
-            System.out.printf("Predictions per second: %.0f%n", (allTimesMs.size() / (totalTestTimeMs / 1000.0)));
+            System.out.printf("Effective avg time per prediction (total/count): %.3f ��s%n", (totalTestTimeMs / allTimesMs.size()) * 1000);
+            System.out.printf("Median individual prediction time: %.3f \u00B5s%n", medianTime * 1000);
+            System.out.printf("Min individual prediction time: %.3f \u00B5s%n", minTime * 1000);
+            System.out.printf("Max individual prediction time: %.3f \u00B5s%n", maxTime * 1000);
+            System.out.printf("95th percentile individual time: %.3f \u00B5s%n", p95Time * 1000);
+            System.out.printf("99th percentile individual time: %.3f \u00B5s%n", p99Time * 1000);
+            System.out.printf("Predictions per second (effective): %.0f%n", (allTimesMs.size() / (totalTestTimeMs / 1000.0)));
 
             System.out.println("\nPER-SCALE BREAKDOWN:");
             System.out.println("-".repeat(60));
-            System.out.printf("%-10s %-10s %-12s %-12s %-12s%n", "Scale", "Count", "Total Time", "Avg Time", "Pred/sec");
+            System.out.printf("%-10s %-10s %-12s %-12s %-12s%n", "Scale", "Count", "Total Time", "Avg Time (ms)", "Pred/sec");
             System.out.println("-".repeat(60));
 
             for (double scale : scales) {
                 java.util.List<Double> times = scaleTimes.get(scale);
                 double totalTime = scaleTotalTimes.get(scale);
-                double avgTime = times.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
+                double avgTime = totalTime / predictionsPerScale;
                 double predsPerSec = predictionsPerScale / (totalTime / 1000.0);
 
                 System.out.printf("%-10s %-10d %-12.2f %-12.4f %-12.0f%n",
