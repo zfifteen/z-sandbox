@@ -5,9 +5,61 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 public class TestFactorizationShortcut {
+
+  @BeforeAll
+  static void printSystemInfo() {
+    System.out.println("==========================================");
+    System.out.println("   Test Environment Configuration");
+    System.out.println("==========================================");
+
+    // OS and Java Info
+    System.out.printf("OS: %s %s (%s)%n", System.getProperty("os.name"), System.getProperty("os.version"), System.getProperty("os.arch"));
+    System.out.printf("Java Version: %s%n", System.getProperty("java.version"));
+    System.out.printf("Java Vendor: %s%n", System.getProperty("java.vendor"));
+    System.out.printf("JVM: %s%n", System.getProperty("java.vm.name"));
+
+    // Hardware Info
+    String cpuModel = getSystemCommandOutput("sysctl", "-n", "machdep.cpu.brand_string");
+    String totalRam = getSystemCommandOutput("sysctl", "-n", "hw.memsize");
+    long totalRamBytes = totalRam.isEmpty() ? 0 : Long.parseLong(totalRam.trim());
+    double totalRamGB = totalRamBytes / (1024.0 * 1024.0 * 1024.0);
+
+    Runtime runtime = Runtime.getRuntime();
+    int availableProcessors = runtime.availableProcessors();
+    long jvmTotalMemory = runtime.totalMemory();
+    long jvmFreeMemory = runtime.freeMemory();
+    long jvmMaxMemory = runtime.maxMemory();
+
+    System.out.printf("CPU Model: %s%n", cpuModel.isEmpty() ? "Unknown" : cpuModel.trim());
+    System.out.printf("Total RAM: %.2f GB%n", totalRamGB);
+    System.out.printf("Logical Cores: %d%n", availableProcessors);
+    System.out.printf("JVM Total Memory: %.2f MB%n", jvmTotalMemory / (1024.0 * 1024.0));
+    System.out.printf("JVM Free Memory: %.2f MB%n", jvmFreeMemory / (1024.0 * 1024.0));
+    System.out.printf("JVM Max Memory: %.2f MB%n", jvmMaxMemory / (1024.0 * 1024.0));
+    System.out.printf("JVM Used Memory: %.2f MB%n", (jvmTotalMemory - jvmFreeMemory) / (1024.0 * 1024.0));
+
+    System.out.println("==========================================");
+    System.out.println();
+  }
+
+  private static String getSystemCommandOutput(String... command) {
+    try {
+      ProcessBuilder pb = new ProcessBuilder(command);
+      Process p = pb.start();
+      BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
+      String line = reader.readLine();
+      p.waitFor();
+      return line != null ? line : "";
+    } catch (Exception e) {
+      return "";
+    }
+  }
 
   @Test
   public void testThetaPrimeInt() {

@@ -1,118 +1,236 @@
-Awesome run — lots of green ✅
+100% agreed — if we’re playing at 1e1233, every `long`/`double` is a landmine. Here’s a hardening patch that makes the **sampling + factoring path fully BigInteger/BigDecimal-safe**, and confines any floating-point to a harmless micro-domain (the θ′ fractional power). You can drop these in without touching your higher-level pipeline.
 
-A couple quick, high-impact notes from those logs and a tiny patch you’ll probably want:
+### What this patch does
+
+* Switches **semiprime sampling** and **factoring** to `BigInteger` throughout (no overflow).
+* Uses a **deterministic LCG permutation** to sample pairs `(p≤q, p·q<Nmax)` **without replacement**, comparing with `BigInteger`.
+* Adds BigInt **even/square fast paths** (`sqrt` via Newton) in `factorizeWithCandidates`.
+* Makes `frac01`/`circDist` fully **BigDecimal-correct** (Euclidean mod), independent of magnitude.
+* Keeps `θ′(n,k)` in BigDecimal; the only float involved is `x^k` on **x∈[0,1)**, which never overflows. If you want a pure-BigDecimal `pow`, I can swap in a BigDecimal `ln/exp` kernel, but it’s slower.
 
 ---
 
-## 1) Your “effective avg time” is (now) including warm-ups ✅ COMPLETED
-
-You added warm-ups per scale (nice!), but the aggregate `Total test time` is ~double the sum of just the measured windows:
-
-* Per-scale sum ≈ **101.97 ms** → **7.284 µs/pred**, **~137,295 pred/s**
-* Printed “Total test time” = **204.74 ms** → **14.624 µs/pred**, **~68,379 pred/s**
-
-So the aggregate is counting warm-up, while the per-scale line is not. Two good options:
-
-**A. Print both (recommended)** ✅ IMPLEMENTED
-
-* `Total test time (measurement only)`
-* `Total test time (incl. warmup)`
-
-**B. Keep aggregate aligned with the per-scale window**
-Exclude warm-up from the “effective avg” and “pred/s”.
-
-Minimal tweak (pseudo-diff) to your perf harness:
+## Drop-in code (add/replace in `FactorizationShortcutDemo`)
 
 ```java
-double measuredTotalMs = 0.0;
-double warmupTotalMs   = 0.0;
+// ======= BigDecimal helpers =======
 
-for (Scale s : scales) {
-  long t0 = System.nanoTime();
-  warmup(s);                       // <-- do your warm-up
-  long t1 = System.nanoTime();
-  double warmupMs = (t1 - t0) / 1e6;
-
-  t0 = System.nanoTime();
-  runMeasuredBlock(s);             // <-- the 1000 predictions you time
-  t1 = System.nanoTime();
-  double measuredMs = (t1 - t0) / 1e6;
-
-  warmupTotalMs   += warmupMs;
-  measuredTotalMs += measuredMs;
-
-  System.out.printf("Scale %s: 1000 predictions in %.2f ms%n", s.label(), measuredMs);
+static BigDecimal frac01(BigDecimal x) {
+  // Euclidean fractional part in [0,1)
+  BigDecimal flo = x.setScale(0, RoundingMode.FLOOR);
+  BigDecimal r = x.subtract(flo, MC);
+  if (r.signum() < 0) r = r.add(BigDecimal.ONE, MC);
+  if (r.compareTo(BigDecimal.ONE) >= 0) r = r.subtract(BigDecimal.ONE, MC);
+  return r;
 }
 
-// Print both so nobody is confused:
-double avgUsPerPred_measured = (measuredTotalMs / 1000.0 / totalPreds) * 1e6;
-double avgUsPerPred_inclWarm = ((measuredTotalMs + warmupTotalMs) / 1000.0 / totalPreds) * 1e6;
+static BigDecimal circDist(BigDecimal a, BigDecimal b) {
+  // d = | ((a - b + 0.5) mod 1) - 0.5 |  ∈ [0, 0.5]
+  BigDecimal s = a.subtract(b, MC).add(new BigDecimal("0.5"), MC);
+  BigDecimal m = frac01(s);
+  return m.subtract(new BigDecimal("0.5"), MC).abs(MC);
+}
 
-System.out.println("============================================================");
-System.out.println("AGGREGATE PERFORMANCE STATISTICS");
-System.out.println("============================================================");
-System.out.printf("Total predictions: %,d%n", totalPreds);
-System.out.printf("Total test time (measurement only): %.2f ms%n", measuredTotalMs);
-System.out.printf("Total test time (incl. warmup):     %.2f ms%n", measuredTotalMs + warmupTotalMs);
-System.out.printf("Effective avg time per prediction (measurement only): %.3f µs%n", avgUsPerPred_measured);
-System.out.printf("Effective avg time per prediction (incl. warmup):     %.3f µs%n", avgUsPerPred_inclWarm);
-System.out.printf("Predictions per second (measurement only): %.0f%n", totalPreds / (measuredTotalMs / 1000.0));
-System.out.printf("Predictions per second (incl. warmup):     %.0f%n", totalPreds / ((measuredTotalMs + warmupTotalMs) / 1000.0));
+/**
+ * θ′(n,k) = frac( PHI * ( frac(n/PHI) )^k )
+ * Notes:
+ * - We only need the fractional part of n/PHI → finite precision is fine.
+ * - The (frac)^k is on x∈[0,1). Using double for that micro-domain is safe and overflow-free.
+ *   If you require pure BigDecimal power, ask and I’ll drop in a ln/exp implementation.
+ */
+static BigDecimal thetaPrimeInt(BigDecimal n, BigDecimal k) {
+  BigDecimal x = frac01(n.divide(PHI, MC)); // x in [0,1)
+  // micro-domain float for pow; no overflow, bounded ulp impact
+  double xd = x.doubleValue();
+  double kd = k.doubleValue();
+  BigDecimal val = BigDecimal.valueOf(PHI.doubleValue() * Math.pow(xd, kd));
+  return frac01(val);
+}
 ```
 
-That will make the aggregate line up with what the per-scale lines imply, and still lets you report the “real-world” number including warm-ups for fairness.
+```java
+// ======= BigInteger helpers =======
+
+static boolean isEven(BigInteger n) { return !n.testBit(0); }
+
+static BigInteger sqrtFloor(BigInteger n) {
+  if (n.signum() < 0) throw new ArithmeticException("sqrt of negative");
+  if (n.bitLength() <= 52) {
+    long v = n.longValue();
+    return BigInteger.valueOf((long)Math.floor(Math.sqrt(v)));
+  }
+  // Newton-Raphson on integers
+  BigInteger x = BigInteger.ONE.shiftLeft((n.bitLength() + 1) >>> 1); // 2^(ceil(bits/2))
+  while (true) {
+    BigInteger xNext = x.add(n.divide(x)).shiftRight(1);
+    if (xNext.equals(x) || xNext.equals(x.subtract(BigInteger.ONE))) {
+      if (xNext.multiply(xNext).compareTo(n) > 0) return xNext.subtract(BigInteger.ONE);
+      return xNext;
+    }
+    x = xNext;
+  }
+}
+```
+
+```java
+// ======= BigInteger factorization with candidate set =======
+
+static long[] factorizeWithCandidatesBig(
+    BigInteger N, List<BigInteger> candidates, int mrCertainty) {
+
+  // Even fast path
+  if (isEven(N)) {
+    BigInteger q = N.shiftRight(1);
+    return new long[]{1, 2L, q.longValueExact(), q.isProbablePrime(mrCertainty) ? 1 : 0};
+    // If N won't fit in long for logging, adapt the return type to BigInteger[] in your codebase.
+  }
+
+  // Square fast path
+  BigInteger r = sqrtFloor(N);
+  if (r.multiply(r).equals(N) && r.isProbablePrime(mrCertainty)) {
+    // For consistency with your existing signature, we still return long[].
+    // If r exceeds long, update signature to BigInteger[].
+    return new long[]{1, r.longValueExact(), r.longValueExact(), 1};
+  }
+
+  for (BigInteger p : candidates) {
+    if (p.signum() > 0 && N.mod(p).equals(BigInteger.ZERO)) {
+      BigInteger q = N.divide(p);
+      boolean qPrime = q.isProbablePrime(mrCertainty);
+      // same note as above re: longValueExact()
+      return new long[]{1, p.longValueExact(), q.longValueExact(), qPrime ? 1 : 0};
+    }
+  }
+  return new long[]{0, 0, 0, 0};
+}
+```
+
+> **Important:** your current `long[]` return type will explode once `p` or `q` exceed `Long.MAX_VALUE`. For true 1e1233 runs, **change the API** to return `BigInteger[]` or a small record:
+
+```java
+static record Factor(BigInteger p, BigInteger q, boolean qPrime, boolean success) {}
+```
+
+```java
+// ======= Deterministic no-replacement sampler (BigInteger-safe) =======
+
+static long gcdLong(long a, long b) {
+  a = Math.abs(a); b = Math.abs(b);
+  while (b != 0) { long t = a % b; a = b; b = t; }
+  return a;
+}
+
+static long coPrimeOddMultiplier(long S, long seed) {
+  long a = Math.floorMod((seed << 1) | 1L, S);
+  if (a == 0) a = 1;
+  while (gcdLong(a, S) != 1) a = (a + 2) % S;
+  return a;
+}
+
+static long permuteIdx(long t, long S, long A, long B) {
+  return BigInteger.valueOf(A).multiply(BigInteger.valueOf(t))
+      .add(BigInteger.valueOf(B))
+      .mod(BigInteger.valueOf(S)).longValue();
+}
+
+/**
+ * Sample uniformly without replacement from S = {(i,j): i<=j, P[i]*P[j] < Nmax},
+ * where P is a BigInteger prime pool. We DO NOT materialize all pairs upfront.
+ * Complexity O(m log m + targetCount log m). m = P.size().
+ */
+static List<BigInteger[]> sampleSemiprimesBalancedLCGBig(
+    List<BigInteger> primesSorted, int targetCount, BigInteger Nmax, long seed) {
+
+  List<BigInteger> P = new ArrayList<>(primesSorted);
+  P.sort(null);
+  final int m = P.size();
+
+  // jmax[i] = max j ≥ i with P[i]*P[j] < Nmax   (or j<i if none)
+  int[] jmax = new int[m];
+  int j = m - 1;
+  for (int i = 0; i < m; i++) {
+    BigInteger p = P.get(i);
+    while (j >= i && p.multiply(P.get(j)).compareTo(Nmax) >= 0) j--;
+    jmax[i] = j; // may be < i
+  }
+
+  // prefix counts over "rows" i
+  long[] pref = new long[m + 1];
+  for (int i = 0; i < m; i++) {
+    int cnt = Math.max(0, jmax[i] - i + 1);
+    pref[i + 1] = pref[i] + cnt;
+  }
+  long S = pref[m];
+  if (S <= 0) throw new IllegalArgumentException("No valid (p,q) under Nmax.");
+  if (targetCount > S) targetCount = (int) S;
+
+  long A = coPrimeOddMultiplier(S, seed ^ 0x9E3779B97F4A7C15L);
+  long B = Math.floorMod(seed * 0xA0761D6478BD642FL + 0xE7037ED1A0B428DBL, S);
+
+  List<BigInteger[]> out = new ArrayList<>(targetCount);
+  for (long t = 0; t < targetCount; t++) {
+    long g = permuteIdx(t, S, A, B);      // 0..S-1 unique
+    // binary search row i s.t. pref[i] <= g < pref[i+1]
+    int lo = 0, hi = m;
+    while (lo < hi) {
+      int mid = (lo + hi) >>> 1;
+      if (pref[mid] <= g) lo = mid + 1; else hi = mid;
+    }
+    int i = lo - 1;
+    long off = g - pref[i];
+    int jIdx = (int) (i + off);
+    BigInteger p = P.get(i), q = P.get(jIdx);
+    out.add(new BigInteger[]{p, q, p.multiply(q)});
+  }
+  return out;
+}
+```
 
 ---
 
-## 2) Notation nit: use **pₖ** (k-th prime), not π(k) ✅ COMPLETED
+## How to use this at “meaningful scales”
 
-Your banner says:
+* **Represent everything as strings → BigInteger/BigDecimal.**
 
+  ```java
+  BigInteger Nmax = new BigInteger("1" + "0".repeat(1233)); // 10^1233
+  ```
+
+* **Build your prime pool as `List<BigInteger>`** using your Z5D BigDecimal inversion (pk from π(x)=k).
+  (Your previous `generatePrimesZ5D(int)` returns `List<Integer>`—that won’t cut it. Keep the same idea but change types to `BigInteger` and compute with `BigDecimal`/`MathContext`. If you want, I’ll paste a BigInteger version that uses your Z5D π(x) as an oracle and does Newton on `BigDecimal`.)
+
+* **Sample without replacement** using `sampleSemiprimesBalancedLCGBig(pool, samples, Nmax, seed)`.
+
+* **Factor** using `factorizeWithCandidatesBig(N, candidatesBig, mrCertainty)` (or switch to a `record` return to carry BigIntegers losslessly).
+
+* **θ′ banding** stays the same API-wise; pass `n` as `BigDecimal` (wrap your `N` with `new BigDecimal(N)` once), pick an `MC` precision that covers only what you need for θ′ (e.g., 80–120 digits), not the full 1e1233 magnitude.
+
+### One-liner policy for θ′ precision
+
+You only need ~**30–60 correct fractional digits** for θ′ comparisons. Set:
+
+```java
+// e.g., 120-digit precision regardless of N magnitude
+final MathContext MC = new MathContext(120, RoundingMode.HALF_EVEN);
 ```
-Corresponding k ~ 10^305, p_k ~ 7.05e+307
-```
 
-Perfect. Keep it as **pₖ**. Earlier runs said “π(k)” in that slot — that’s the prime-counting function and means something else.
+This avoids ballooning cost while staying scale-proof.
 
 ---
 
-## 3) Ammo for the critic (“you’re just making up numbers”) ✅ COMPLETED
+## Minimal API changes I recommend (to be truly 1e1233-ready)
 
-Short answer: we’re estimating **pₖ** (the k-th prime), and we **continuously cross-check** against ground truth where it’s known.
+* Change any `long[] {success,p,q,qPrime}` to a **BigInteger-friendly** struct:
 
-Your own logs already carry the receipts:
+  ```java
+  static record Factor(BigInteger p, BigInteger q, boolean qPrime, boolean success) {}
+  ```
+* Ensure your **prime pool** is `List<BigInteger>` and your **candidates** list is the same.
+* Keep **sampling** and **multiplications** exclusively in `BigInteger`.
 
-* **Exact spot checks:**
-  `k=100000: predicted=1299807.930786, true=1299709, rel err=7.6e-5` (✔ within threshold)
-* **Large truth points (published values):**
-  `k=1e6 → true=15,485,863`
-  `k=1e7 → true=179,424,673`
-  `k=1e9 → true=22,801,644,371`
-  `k=1e10 → true=252,097,800,623`
-  Your harness prints the relative errors beside each; they’re tiny (e.g., 4.877e-6 at 1e9).
-* **Robustness:** fuzzing (2,000 random k), monotonicity checks, PNT consistency checks, and a BigDecimal path that stays finite where `double` overflows (e.g., 10^306).
+If you want me to:
 
-If you want a single sentence to paste in issues/PRs:
+1. refactor your **Z5D pk-inversion** to pure `BigDecimal/BigInteger` (Newton on π(x)=k with derivative ~1/log x), or
+2. replace the θ′ `double` pow with a **pure BigDecimal `powFrac`** (ln/exp kernel),
 
-> Z5D estimates the k-th prime pₖ. We verify accuracy with known pₖ values (e.g., k=10⁶,10⁷,10⁹,10¹⁰), targeted spot checks (k=100k), monotonicity and fuzz tests, and consistency vs. the PNT asymptotic. The test log shows the exact errors for each.
-
-I can also add a tiny CLI `verify` command that prints `k, Z5D(k), true pₖ (when known), abs/rel error`. Say the word and I’ll drop in a ready-to-merge class wired to your existing predictor. ✅ IMPLEMENTED (verify and truth CLI added)
-
----
-
-## 4) README follow-ups I’ll add (tell me if you’d like a patch or new PR) ✅ COMPLETED
-
-* **“What does Z5D predict?”** Clear statement: Z5D predicts **pₖ** (the k-th prime), not primality and not π(x). ✅ ADDED
-* **“How do we know it’s not made up?”** One-screen “Proof-it” section citing the exact test outputs you already have. ✅ ADDED
-* **Benchmarking methodology:** ✅ ADDED
-
-    * warm-up vs measured windows,
-    * units (µs for per-prediction),
-    * two aggregates (incl/excl warm-up),
-    * concurrency note (your 10×100 tasks passed with `bad=0`).
-* **BigDecimal path:** Why it exists and when it’s selected (handles 10^306+ cleanly). ✅ ALREADY COVERED
-
-If you’d like, I’ll prep a small patch that:
-
-1. adjusts the perf stats printout as above, and ✅ DONE
-2. updates the README with the “not made up numbers” section + notation cleanup. ✅ DONE
+say the word—I’ll drop the exact, tested code.
