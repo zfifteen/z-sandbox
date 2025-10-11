@@ -12,6 +12,7 @@ public class TestZ5dTruthPanels {
     double truth = 15_485_863d;   // p_1,000,000
     double z = Z5dPredictor.z5dPrime(k, 0, 0, 0, true);
     double rel = Math.abs(z - truth) / truth;
+    System.out.printf("k=%.0f, truth=%.0f, z=%.6f, rel=%.10f%n", k, truth, z, rel);
     assertTrue(rel <= 2e-4, "rel err ≤ 0.02% (was " + rel + ")");
   }
 
@@ -21,6 +22,7 @@ public class TestZ5dTruthPanels {
     double truth = 179_424_673d;  // p_10,000,000
     double z = Z5dPredictor.z5dPrime(k, 0, 0, 0, true);
     double rel = Math.abs(z - truth) / truth;
+    System.out.printf("k=%.0f, truth=%.0f, z=%.6f, rel=%.10f%n", k, truth, z, rel);
     assertTrue(rel <= 2e-4, "rel err ≤ 0.02% (was " + rel + ")");
   }
 
@@ -30,6 +32,7 @@ public class TestZ5dTruthPanels {
     double truth = 22_801_644_371d;  // p_1,000,000,000
     double z = Z5dPredictor.z5dPrime(k, 0, 0, 0, true);
     double rel = Math.abs(z - truth) / truth;
+    System.out.printf("k=%.0f, truth=%.0f, z=%.6f, rel=%.10f%n", k, truth, z, rel);
     assertTrue(rel <= 2e-4, "rel err ≤ 0.02% (was " + rel + ")");
   }
 
@@ -39,6 +42,7 @@ public class TestZ5dTruthPanels {
     double truth = 252_097_800_623d;  // p_10,000,000,000
     double z = Z5dPredictor.z5dPrime(k, 0, 0, 0, true);
     double rel = Math.abs(z - truth) / truth;
+    System.out.printf("k=%.0f, truth=%.0f, z=%.6f, rel=%.10f%n", k, truth, z, rel);
     assertTrue(rel <= 2e-4, "rel err ≤ 0.02% (was " + rel + ")");
   }
 
@@ -51,6 +55,7 @@ public class TestZ5dTruthPanels {
       // Approximate check: z should be roughly k * ln(k) + k * ln(ln(k))
       double approx = k * Math.log(k) + k * Math.log(Math.log(k));
       double rel = Math.abs(z - approx) / approx;
+      System.out.printf("k=%.0f, approx=%.6f, z=%.6f, rel=%.10f%n", k, approx, z, rel);
       assertTrue(rel < 0.1, "Diverse k=" + k + " rel err >10% (was " + rel + ")");
     }
   }

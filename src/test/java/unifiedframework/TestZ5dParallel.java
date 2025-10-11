@@ -15,6 +15,7 @@ public class TestZ5dParallel {
       .map(k -> Z5dPredictor.z5dPrime(k, 0, 0, 0, true))
       .filter(v -> !Double.isFinite(v) || v <= 0.0)
       .count();
+    System.out.printf("Parallel test: ks length=%d, bad=%d%n", ks.length, bad);
     assertEquals(0, bad, "non-finite/≤0 values exist in parallel path");
   }
 
@@ -24,6 +25,8 @@ public class TestZ5dParallel {
     int tasksPerThread = 100;
     ExecutorService executor = Executors.newFixedThreadPool(numThreads);
     List<Future<Void>> futures = new ArrayList<>();
+
+    System.out.printf("Concurrent test: numThreads=%d, tasksPerThread=%d%n", numThreads, tasksPerThread);
 
     for (int i = 0; i < numThreads; i++) {
       futures.add(executor.submit(() -> {
@@ -41,6 +44,8 @@ public class TestZ5dParallel {
     }
 
     executor.shutdown();
-    assertTrue(executor.awaitTermination(10, TimeUnit.SECONDS), "Executor did not terminate in time");
+    boolean terminated = executor.awaitTermination(10, TimeUnit.SECONDS);
+    System.out.printf("Executor terminated: %b%n", terminated);
+    assertTrue(terminated, "Executor did not terminate in time");
   }
 }
