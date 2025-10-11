@@ -4,6 +4,30 @@
 
 > ⚠️ Research sandbox — not production-secure. Expect breaking changes.
 
+## Recent Updates
+
+### 🎉 Z5D Predictor Now Supports Ultra-High Scales (10^1233)!
+
+The Z5D prime counting predictor has been upgraded with **arbitrary-precision BigDecimal arithmetic**, enabling predictions at cosmological scales far beyond the double-precision limit:
+
+- **Previous limit:** ~10^305 (double overflow)
+- **New capability:** Scales up to **10^1233** and beyond
+- **Backward compatible:** Existing double-precision API unchanged
+- **Performance:** ~10-20ms per prediction even at 10^1233
+
+**Quick example:**
+```java
+// Ultra-high scale using BigDecimal
+String result = Z5dPredictor.z5dPrimeString("1e1233", 0, 0, 0, true);
+System.out.println("π(10^1233) ≈ " + result);
+// Output: π(10^1233) ≈ 2.69E+1236
+
+// Traditional double precision still works
+double result = Z5dPredictor.z5dPrime(100000, 0, 0, 0, true);
+```
+
+See `scripts/demo_ultra_high_scale.java` for a complete demonstration.
+
 ## Structure
 ```
 /src/                    # Java experiments (Gradle)

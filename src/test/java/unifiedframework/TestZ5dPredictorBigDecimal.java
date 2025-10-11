@@ -15,7 +15,8 @@ import org.junit.jupiter.api.Test;
 public class TestZ5dPredictorBigDecimal {
 
   private static final MathContext MC = new MathContext(100, RoundingMode.HALF_UP);
-  private static final double RELATIVE_TOLERANCE = 1e-6; // 10^-6 relative error (adequate for comparison)
+  private static final double RELATIVE_TOLERANCE =
+      1e-6; // 10^-6 relative error (adequate for comparison)
 
   @Test
   @DisplayName("Test BigDecimal PNT matches double PNT for reasonable scales")
