@@ -23,4 +23,22 @@ public class TestZ5dTruthPanels {
     double rel = Math.abs(z - truth) / truth;
     assertTrue(rel <= 2e-4, "rel err ≤ 0.02% (was " + rel + ")");
   }
+
+  @Test
+  void k1e9_matchesTruth_tight() {
+    double k = 1_000_000_000d;
+    double truth = 22_801_644_371d;  // p_1,000,000,000
+    double z = Z5dPredictor.z5dPrime(k, 0, 0, 0, true);
+    double rel = Math.abs(z - truth) / truth;
+    assertTrue(rel <= 2e-4, "rel err ≤ 0.02% (was " + rel + ")");
+  }
+
+  @Test
+  void k1e10_matchesTruth_tight() {
+    double k = 10_000_000_000d;
+    double truth = 252_097_800_623d;  // p_10,000,000,000
+    double z = Z5dPredictor.z5dPrime(k, 0, 0, 0, true);
+    double rel = Math.abs(z - truth) / truth;
+    assertTrue(rel <= 2e-4, "rel err ≤ 0.02% (was " + rel + ")");
+  }
 }
