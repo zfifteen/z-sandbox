@@ -43,6 +43,7 @@ public class TestRSAChallenges {
     @Test
     @DisplayName("Quick: verify small factored RSA entries (unit)")
     void quickFactoredRSA() {
+        System.out.println("Testing quick factored RSA entries");
         for (RSAEntry e : entries) {
             if (!e.f1.isEmpty() && !e.f2.isEmpty()) {
                 // skip huge ones for which you don't want to do heavy factoring in unit tests
@@ -51,14 +52,25 @@ public class TestRSAChallenges {
                 BigInteger expectedP = new BigInteger(e.f1);
                 BigInteger expectedQ = new BigInteger(e.f2);
 
+                System.out.printf("Input RSA ID: %s%n", e.id);
+                System.out.printf("Input N digits: %d%n", e.dec.length());
+                System.out.printf("Expected p: %s%n", expectedP);
+                System.out.printf("Expected q: %s%n", expectedQ);
+
                 // Use BigInteger API with known factor as candidate (shortcut assumes candidates are provided)
                 List<BigInteger> candidates = Arrays.asList(expectedP);
                 FactorizationShortcutDemo.Factor result = FactorizationShortcutDemo.factorizeWithCandidatesBig(N, candidates, 64);
+                System.out.printf("Factorization success: %b%n", result.success());
                 Assertions.assertTrue(result.success(), e.id + " should factor");
                 BigInteger p = result.p();
                 BigInteger q = result.q();
+                System.out.printf("Recovered p: %s%n", p);
+                System.out.printf("Recovered q: %s%n", q);
+                System.out.printf("p matches expected: %b%n", p.equals(expectedP) || p.equals(expectedQ));
+                System.out.printf("q matches expected: %b%n", q.equals(expectedP) || q.equals(expectedQ));
                 Assertions.assertTrue(p.equals(expectedP) || p.equals(expectedQ));
                 Assertions.assertTrue(q.equals(expectedP) || q.equals(expectedQ));
+                System.out.println();
             }
         }
     }
@@ -66,6 +78,7 @@ public class TestRSAChallenges {
     @Test
     @DisplayName("Integration: timed candidate-attempt on RSA entries")
     void integrationCandidateAttempt() throws Exception {
+        System.out.println("Testing integration candidate attempts on RSA entries");
         Path out = Paths.get("build/test-results/rsa_challenge_report.json");
         List<Map<String,Object>> report = new ArrayList<>();
 
@@ -76,9 +89,12 @@ public class TestRSAChallenges {
             row.put("notes", e.notes);
             BigInteger N = new BigInteger(e.dec);
 
+            System.out.printf("Processing RSA ID: %s, digits: %d, notes: %s%n", e.id, e.dec.length(), e.notes);
+
             if (!e.f1.isEmpty() && !e.f2.isEmpty() && e.dec.length() <= 160) {
                 // short factored numbers we already tested above; skip or re-run with longer timeout
                 row.put("status","skipped-unit");
+                System.out.println("Skipped (already tested in unit)");
             } else {
                 // run candidate-guided attempt with timeout
                 ExecutorService ex = Executors.newSingleThreadExecutor();
@@ -90,16 +106,23 @@ public class TestRSAChallenges {
                 try {
                     FactorizationShortcutDemo.Factor res = fut.get(10, TimeUnit.SECONDS); // short timeout for default runs
                     row.put("success", res.success());
-                    if (res.success()) { row.put("p", res.p().toString()); row.put("q", res.q().toString()); }
+                    System.out.printf("Attempt result: success=%b%n", res.success());
+                    if (res.success()) {
+                        row.put("p", res.p().toString());
+                        row.put("q", res.q().toString());
+                        System.out.printf("Factors: p=%s, q=%s%n", res.p(), res.q());
+                    }
                 } catch (TimeoutException te) {
                     fut.cancel(true);
                     row.put("success", false);
                     row.put("error", "timeout");
+                    System.out.println("Attempt timed out");
                 } finally {
                     ex.shutdownNow();
                 }
             }
             report.add(row);
+            System.out.println();
         }
         Files.createDirectories(out.getParent());
         // Simple JSON without Jackson for now
