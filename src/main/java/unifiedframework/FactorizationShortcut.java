@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
  * If absent, we fallback to a double-based adapter via Z5dPredictor.z5dPrime(...),
  * which is NOT scale-safe for huge N and is provided for compilation/demo only.
  */
-public class FactorizationShortcutDemo {
+public class FactorizationShortcut {
 
   // ======== Configuration ========
   // Precision for all BigDecimal computations (theta, secant steps, etc.).
@@ -146,7 +146,7 @@ public class FactorizationShortcutDemo {
 
   // ======== C) Big-safe factorization with fast paths ========
 
-  static record Factor(BigInteger p, BigInteger q, boolean qPrime, boolean success) {}
+  public static record Factor(BigInteger p, BigInteger q, boolean qPrime, boolean success) {}
 
   static Factor factorizeWithCandidatesBig(
       BigInteger N, List<BigInteger> candidates, int mrCertainty) {

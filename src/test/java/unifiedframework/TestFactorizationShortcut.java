@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Map;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import org.junit.jupiter.api.BeforeAll;
@@ -66,7 +65,7 @@ public class TestFactorizationShortcut {
     System.out.println("Testing thetaPrimeInt functionality");
     BigDecimal n = BigDecimal.valueOf(100);
     BigDecimal k = BigDecimal.valueOf(0.3);
-    BigDecimal theta = FactorizationShortcutDemo.thetaPrimeInt(n, k);
+    BigDecimal theta = FactorizationShortcut.thetaPrimeInt(n, k);
 
     System.out.printf("Input n: %s%n", n);
     System.out.printf("Input k: %s%n", k);
@@ -85,7 +84,7 @@ public class TestFactorizationShortcut {
     int targetCount = 10;
     long Nmax = 1000;
     long seed = 42;
-    List<long[]> semis = FactorizationShortcutDemo.sampleSemiprimesBalanced(primes, targetCount, Nmax, seed);
+    List<long[]> semis = FactorizationShortcut.sampleSemiprimesBalanced(primes, targetCount, Nmax, seed);
 
     System.out.printf("Input primes: %s%n", primes);
     System.out.printf("Target count: %d%n", targetCount);
@@ -112,7 +111,7 @@ public class TestFactorizationShortcut {
     int successes = 50;
     int n = 100;
     double z = 1.96;
-    double[] ci = FactorizationShortcutDemo.wilsonCi(successes, n, z);
+    double[] ci = FactorizationShortcut.wilsonCi(successes, n, z);
 
     System.out.printf("Input successes: %d%n", successes);
     System.out.printf("Input n: %d%n", n);
@@ -131,7 +130,7 @@ public class TestFactorizationShortcut {
     long N = 6;
     List<Integer> cands = List.of(2, 3);
     List<Integer> primesSmall = List.of(2, 3, 5, 7);
-    long[] res = FactorizationShortcutDemo.factorizeWithCandidates(N, cands, primesSmall);
+    long[] res = FactorizationShortcut.factorizeWithCandidates(N, cands, primesSmall);
 
     System.out.printf("Input N: %d%n", N);
     System.out.printf("Input candidates: %s%n", cands);
