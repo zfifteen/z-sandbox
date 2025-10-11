@@ -6,12 +6,14 @@ import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 /**
  * Test suite for BigDecimal arbitrary-precision support in Z5dPredictor. Tests ultra-high scales up
  * to 10^1233 and validates consistency with double-precision methods.
  */
+@Tag("bigdecimal")
 public class TestZ5dPredictorBigDecimal {
 
   private static final MathContext MC = new MathContext(100, RoundingMode.HALF_UP);

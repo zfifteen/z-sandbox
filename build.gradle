@@ -30,8 +30,18 @@ application {
 }
 
 test {
-    useJUnitPlatform()
+    useJUnitPlatform {
+        // optional: exclude slow/tagged tests by default; run with `-Pgroups=bigdecimal` to include
+        if (project.hasProperty("groups") && "bigdecimal".equals(project.property("groups"))) {
+            includeTags 'bigdecimal'
+        } else {
+            excludeTags 'bigdecimal'
+        }
+    }
     finalizedBy jacocoTestReport
+
+    // ensure "π" prints cleanly everywhere
+    jvmArgs "-Dfile.encoding=UTF-8"
 }
 
 jacocoTestReport {

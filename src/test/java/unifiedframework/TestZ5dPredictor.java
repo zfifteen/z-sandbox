@@ -579,7 +579,7 @@ public class TestZ5dPredictor {
     }
     System.out.printf("Maximum finite exponent: %d (10^%d)%n", maxFiniteExp, maxFiniteExp);
     System.out.printf(
-        "Corresponding k ~ 10^%d, π(k) ~ %.2e%n",
+        "Corresponding k ~ 10^%d, p_k ~ %.2e%n",
         maxFiniteExp, Z5dPredictor.z5dPrime(Math.pow(10, maxFiniteExp), 0, 0, 0, true));
     assertTrue(maxFiniteExp > 300, "Expected finite up to at least 10^300");
     System.out.println("=== MAX FINITE SCALE TEST COMPLETE ===");
