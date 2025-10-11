@@ -41,4 +41,17 @@ public class TestZ5dTruthPanels {
     double rel = Math.abs(z - truth) / truth;
     assertTrue(rel <= 2e-4, "rel err ≤ 0.02% (was " + rel + ")");
   }
+
+  @Test
+  void diverseK_accuracyCheck() {
+    // Test diverse k values across calibration boundaries
+    double[] ks = {1e4, 5e6, 2e7, 5e9, 2e10};
+    for (double k : ks) {
+      double z = Z5dPredictor.z5dPrime(k, 0, 0, 0, true);
+      // Approximate check: z should be roughly k * ln(k) + k * ln(ln(k))
+      double approx = k * Math.log(k) + k * Math.log(Math.log(k));
+      double rel = Math.abs(z - approx) / approx;
+      assertTrue(rel < 0.1, "Diverse k=" + k + " rel err >10% (was " + rel + ")");
+    }
+  }
 }
