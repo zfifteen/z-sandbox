@@ -316,4 +316,138 @@ public class TestZ5dPredictor {
             assertTrue(result > k); // Should be larger than k for reasonable k values
         }
     }
+
+
+    @Test
+    @DisplayName("Test prediction performance across scales")
+    public void testPredictionPerformance() {
+        System.out.println("Testing prediction performance across scales");
+        System.out.println("==================================================");
+
+        // Define scales from 10^5 to 10^18
+        double[] scales = new double[14]; // 10^5 to 10^18
+        for (int i = 0; i < scales.length; i++) {
+            scales[i] = Math.pow(10, 5 + i);
+        }
+
+        int predictionsPerScale = 1000;
+        String csvFileName = "z5d_performance_log.csv";
+
+        // CSV header
+        String csvHeader = "Timestamp,Scale,Prediction_Number,Prediction_Value,Time_ns,Time_ms,Total_Time_ns,Total_Time_ms\n";
+
+        // Statistics collectors
+        java.util.List<Double> allTimesMs = new java.util.ArrayList<>();
+        java.util.Map<Double, java.util.List<Double>> scaleTimes = new java.util.HashMap<>();
+        java.util.Map<Double, Double> scaleTotalTimes = new java.util.HashMap<>();
+
+        long testStartTime = System.nanoTime();
+
+        try (java.io.FileWriter csvWriter = new java.io.FileWriter(csvFileName)) {
+            csvWriter.write(csvHeader);
+
+            for (double scale : scales) {
+                System.out.printf("\nTesting scale: %.0e (%s)%n", scale, formatScale(scale));
+                System.out.println("Progress: [");
+
+                java.util.List<Double> scaleTimeList = new java.util.ArrayList<>();
+                long scaleStartTime = System.nanoTime();
+
+                for (int i = 0; i < predictionsPerScale; i++) {
+                    long predictionStart = System.nanoTime();
+
+                    // Make prediction with auto-calibration
+                    double result = Z5dPredictor.z5dPrime(scale, 0, 0, 0, true);
+
+                    long predictionEnd = System.nanoTime();
+                    long predictionTimeNs = predictionEnd - predictionStart;
+                    double predictionTimeMs = predictionTimeNs / 1_000_000.0;
+
+                    // Log to CSV
+                    String timestamp = java.time.Instant.now().toString();
+                    csvWriter.write(String.format("%s,%.0f,%d,%.6f,%d,%.6f,%d,%.6f%n",
+                        timestamp, scale, i + 1, result, predictionTimeNs, predictionTimeMs,
+                        predictionEnd - scaleStartTime, (predictionEnd - scaleStartTime) / 1_000_000.0));
+
+                    scaleTimeList.add(predictionTimeMs);
+                    allTimesMs.add(predictionTimeMs);
+
+                    // Progress indicator
+                    if ((i + 1) % 100 == 0) {
+                        System.out.print("█");
+                    }
+                }
+
+                long scaleEndTime = System.nanoTime();
+                double scaleTotalTimeMs = (scaleEndTime - scaleStartTime) / 1_000_000.0;
+
+                System.out.printf("] Complete%n");
+                System.out.printf("Scale %.0e: %d predictions in %.2f ms%n", scale, predictionsPerScale, scaleTotalTimeMs);
+
+                scaleTimes.put(scale, scaleTimeList);
+                scaleTotalTimes.put(scale, scaleTotalTimeMs);
+            }
+
+            long testEndTime = System.nanoTime();
+            double totalTestTimeMs = (testEndTime - testStartTime) / 1_000_000.0;
+
+            // Calculate aggregate statistics
+            System.out.println("\n" + "=".repeat(60));
+            System.out.println("AGGREGATE PERFORMANCE STATISTICS");
+            System.out.println("=".repeat(60));
+
+            double[] allTimesArray = allTimesMs.stream().mapToDouble(Double::doubleValue).toArray();
+            java.util.Arrays.sort(allTimesArray);
+
+            double minTime = allTimesArray[0];
+            double maxTime = allTimesArray[allTimesArray.length - 1];
+            double meanTime = allTimesMs.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
+            double medianTime = allTimesArray.length % 2 == 0 ?
+                (allTimesArray[allTimesArray.length / 2 - 1] + allTimesArray[allTimesArray.length / 2]) / 2.0 :
+                allTimesArray[allTimesArray.length / 2];
+            double p95Time = allTimesArray[(int) (allTimesArray.length * 0.95)];
+            double p99Time = allTimesArray[(int) (allTimesArray.length * 0.99)];
+
+            System.out.printf("Total predictions: %,d%n", allTimesMs.size());
+            System.out.printf("Total test time: %.2f ms%n", totalTestTimeMs);
+            System.out.printf("Average time per prediction: %.4f ms%n", meanTime);
+            System.out.printf("Median time per prediction: %.4f ms%n", medianTime);
+            System.out.printf("Min time per prediction: %.4f ms%n", minTime);
+            System.out.printf("Max time per prediction: %.4f ms%n", maxTime);
+            System.out.printf("95th percentile: %.4f ms%n", p95Time);
+            System.out.printf("99th percentile: %.4f ms%n", p99Time);
+            System.out.printf("Predictions per second: %.0f%n", (allTimesMs.size() / (totalTestTimeMs / 1000.0)));
+
+            System.out.println("\nPER-SCALE BREAKDOWN:");
+            System.out.println("-".repeat(60));
+            System.out.printf("%-10s %-10s %-12s %-12s %-12s%n", "Scale", "Count", "Total Time", "Avg Time", "Pred/sec");
+            System.out.println("-".repeat(60));
+
+            for (double scale : scales) {
+                java.util.List<Double> times = scaleTimes.get(scale);
+                double totalTime = scaleTotalTimes.get(scale);
+                double avgTime = times.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
+                double predsPerSec = predictionsPerScale / (totalTime / 1000.0);
+
+                System.out.printf("%-10s %-10d %-12.2f %-12.4f %-12.0f%n",
+                    formatScale(scale), predictionsPerScale, totalTime, avgTime, predsPerSec);
+            }
+
+            System.out.println("\n" + "=".repeat(60));
+            System.out.printf("Detailed timestamped logs saved to: %s%n", csvFileName);
+            System.out.println("=".repeat(60));
+
+            csvWriter.flush();
+
+        } catch (java.io.IOException e) {
+            System.err.println("Error writing to CSV file: " + e.getMessage());
+            fail("Failed to write performance log");
+        }
+    }
+
+    private String formatScale(double scale) {
+        int exponent = (int) Math.log10(scale);
+        return String.format("10^%d", exponent);
+    }
+
 }
