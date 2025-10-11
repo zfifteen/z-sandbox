@@ -54,3 +54,16 @@ spotless {
         googleJavaFormat()
     }
 }
+
+tasks.register('integrationTest', Test) {
+    group = 'verification'
+    description = 'Run long RSA integration experiments (opt-in)'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    systemProperty 'integration', 'true'
+    useJUnitPlatform {
+        includeTags 'integration'
+    }
+    // increase heap/timeouts for long runs
+    jvmArgs '-Xmx8g', '-XX:+UseG1GC'
+}
