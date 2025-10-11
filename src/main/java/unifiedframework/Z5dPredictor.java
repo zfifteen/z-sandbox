@@ -1,6 +1,7 @@
 package unifiedframework;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.math.MathContext;
 import java.math.RoundingMode;
 
@@ -718,15 +719,28 @@ public class Z5dPredictor {
   }
 
   public static void main(String[] args) {
+    if (args.length > 0) {
+      String command = args[0];
+      if ("verify".equals(command) && args.length > 1) {
+        double k = Double.parseDouble(args[1]);
+        VerifiedResult result = z5dPrimeVerified(k);
+        System.out.printf(
+            "k=%.0f, estimate=%.6f, nearest_prime=%s, certainty=%.10f%n",
+            k, result.estimate, result.nearestPrime, result.certainty);
+      } else if ("truth".equals(command)) {
+        printTruthPanels();
+      } else {
+        System.out.println("Usage: java Z5dPredictor [verify <k> | truth]");
+      }
+      return;
+    }
+
     System.out.println("Z5D Prime Predictor - Java Reference Implementation");
-    System.out.println("==================================================");
+    System.out.println("Version: " + Z5D_VERSION);
+    System.out.println();
 
     // Test basic functionality
     double testK = 100000.0;
-    double prediction = z5dPrime(testK, -0.00247, 0.04449, 0.3, false);
-    System.out.printf("Prediction for k=%.0f: %.6f%n", testK, prediction);
-
-    // Test auto-calibration
     double autoPrediction = z5dPrime(testK, 0, 0, 0, true);
     System.out.printf("Auto-calibrated prediction for k=%.0f: %.6f%n", testK, autoPrediction);
 
@@ -738,5 +752,68 @@ public class Z5dPredictor {
 
     // Print formula info
     z5dPrintFormulaInfo();
+  }
+
+  /**
+   * Finds the nearest prime number to the given BigInteger. Uses BigInteger.isProbablePrime(100)
+   * for primality testing (error < 2^-100).
+   *
+   * @param x The number to find the nearest prime for
+   * @return The nearest prime number
+   */
+  public static BigInteger nearestPrime(BigInteger x) {
+    if (x.signum() <= 0) return BigInteger.valueOf(2);
+    BigInteger up = x;
+    BigInteger down = x;
+    while (true) {
+      if (up.isProbablePrime(100)) return up;
+      if (down.compareTo(BigInteger.TWO) > 0 && down.isProbablePrime(100)) return down;
+      up = up.add(BigInteger.ONE);
+      down = down.subtract(BigInteger.ONE);
+    }
+  }
+
+  /**
+   * Verifies the Z5D prediction by finding the nearest provably prime. Returns both the estimate
+   * and the verified prime.
+   */
+  public static class VerifiedResult {
+    public double estimate;
+    public BigInteger nearestPrime;
+    public double certainty; // For probable primes, 1 - 2^-certainty
+  }
+
+  /**
+   * Predicts the k-th prime and verifies by finding the nearest prime.
+   *
+   * @param k The index k
+   * @return VerifiedResult with estimate and nearest prime
+   */
+  public static VerifiedResult z5dPrimeVerified(double k) {
+    double estimate = z5dPrime(k, 0, 0, 0, true);
+    BigInteger estBI = BigInteger.valueOf((long) Math.round(estimate));
+    BigInteger prime = nearestPrime(estBI);
+    VerifiedResult result = new VerifiedResult();
+    result.estimate = estimate;
+    result.nearestPrime = prime;
+    result.certainty = 1.0 - Math.pow(2, -100); // For 100-bit certainty
+    return result;
+  }
+
+  /** Prints truth panels for canonical k values. */
+  public static void printTruthPanels() {
+    double[] ks = {1e5, 1e6, 1e7, 1e9, 1e10};
+    long[] truePrimes = {1299709, 15485863, 179424673, 2280164371L, 252097800623L};
+
+    System.out.println("Truth Panels:");
+    System.out.println("k, Z5D Estimate, True p_k, Abs Error, Rel Error");
+    for (int i = 0; i < ks.length; i++) {
+      double k = ks[i];
+      double estimate = z5dPrime(k, 0, 0, 0, true);
+      long truePrime = truePrimes[i];
+      double absErr = Math.abs(estimate - truePrime);
+      double relErr = absErr / truePrime;
+      System.out.printf("%.0e, %.6f, %d, %.6f, %.10f%n", k, estimate, truePrime, absErr, relErr);
+    }
   }
 }

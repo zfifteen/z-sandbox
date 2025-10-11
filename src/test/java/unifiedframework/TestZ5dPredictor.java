@@ -392,21 +392,21 @@ public class TestZ5dPredictor {
     try (java.io.FileWriter csvWriter = new java.io.FileWriter(csvFileName)) {
       csvWriter.write(csvHeader);
 
-       for (double scale : scales) {
-         System.out.printf("\nTesting scale: %.0e (%s)%n", scale, formatScale(scale));
+      for (double scale : scales) {
+        System.out.printf("\nTesting scale: %.0e (%s)%n", scale, formatScale(scale));
 
-         // Warm-up to stabilize memory and JIT
-         System.out.println("Warming up...");
-         for (int w = 0; w < 10; w++) {
-           Z5dPredictor.z5dPrime(scale, 0, 0, 0, true);
-         }
-         System.gc(); // Suggest GC to stabilize memory
-         System.out.println("Warm-up complete.");
+        // Warm-up to stabilize memory and JIT
+        System.out.println("Warming up...");
+        for (int w = 0; w < 10; w++) {
+          Z5dPredictor.z5dPrime(scale, 0, 0, 0, true);
+        }
+        System.gc(); // Suggest GC to stabilize memory
+        System.out.println("Warm-up complete.");
 
-         System.out.println("Progress: [");
+        System.out.println("Progress: [");
 
-         java.util.List<Double> scaleTimeList = new java.util.ArrayList<>();
-         long scaleStartTime = System.nanoTime();
+        java.util.List<Double> scaleTimeList = new java.util.ArrayList<>();
+        long scaleStartTime = System.nanoTime();
 
         for (int i = 0; i < predictionsPerScale; i++) {
           long predictionStart = System.nanoTime();

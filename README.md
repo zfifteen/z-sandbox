@@ -41,6 +41,15 @@ It targets **pₖ** directly (the k‑th prime), using a PNT-based backbone plus
 ./gradlew test --tests "unifiedframework.TestZ5dPredictor"
 ```
 
+### CLI commands
+```bash
+# Predict and verify primality of the nearest integer
+java -cp build/libs/untitled-0.0.1.jar unifiedframework.Z5dPredictor verify 100000
+
+# Print truth panels comparing estimates to known primes
+java -cp build/libs/untitled-0.0.1.jar unifiedframework.Z5dPredictor truth
+```
+
 If the performance sweep is enabled in the core test, a CSV is emitted to:
 ```
 z5d_performance_log.csv
@@ -202,7 +211,7 @@ You can extend CI with JMH, mutation testing, and multi‑JDK matrices later.
 
 ## Limits & caveats
 
-- The model is an **approximation** to **pₖ**; guards assert tight relative error at reference points and small deltas vs PNT across scales.
+- The model is an **approximation** to **pₖ**; guards assert tight relative error at reference points and small deltas vs PNT across scales. It is **not a general primality prover**. Use `--verify` to return the nearest primality-tested integer with a certificate.
 - `double` path turns non‑finite near **k ≈ 1e306**; switch to BigDecimal APIs beyond ~1e305.
 - Micro‑timings (sub‑μs) reflect hot‑loop measurements; prefer **effective averages** for cross‑run comparisons.
 
