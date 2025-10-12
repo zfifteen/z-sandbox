@@ -10,6 +10,15 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 public class Z5DJumpTest {
 
+    // === Regression guard helpers ===
+    private static boolean approx(double a, double b, double tol) {
+        return Math.abs(a - b) <= tol;
+    }
+    private static void must(boolean cond, String msg) {
+        if (!cond) throw new AssertionError(msg);
+    }
+    // === End: Regression guard helpers ===
+
     @Test
     public void testGeodesicJumpCalculations() {
         System.out.println("=== Z5DJump Unit Test: Jump Size Verification ===");
@@ -37,11 +46,25 @@ public class Z5DJumpTest {
             "k=10^1233 (maximum test scale)"
         };
 
+        // Store lnPred values for regression guards
+        double[] lnPredValues = new double[testCases.length];
+
         for (int i = 0; i < testCases.length; i++) {
             BigDecimal k = testCases[i];
+            String predStr = Z5dPredictor.z5dPrimeString(k.toString(), Z5DJump.ZF_Z5D_C_CALIBRATED,
+                                                       Z5DJump.ZF_KAPPA_STAR_DEFAULT,
+                                                       Z5DJump.ZF_KAPPA_GEO_DEFAULT, true);
             double jumpSize = Z5DJump.computeGeodesicJump(k);
+            double lnPred;
+            try {
+                BigDecimal pred = new BigDecimal(predStr);
+                lnPred = Z5DJump.approximateLn(pred);
+            } catch (NumberFormatException e) {
+                lnPred = Z5DJump.parseLnFromScientificString(predStr);
+            }
+            lnPredValues[i] = lnPred;
 
-            System.out.printf("%-25s: jump_size = %.3f%n", descriptions[i], jumpSize);
+            System.out.printf("%-25s: jump_size = %.3f (ln(pred)=%.3f)%n", descriptions[i], jumpSize, lnPred);
 
             // Basic assertions
             assertTrue(jumpSize > 0, "Jump size must be positive for " + descriptions[i]);
@@ -49,8 +72,45 @@ public class Z5DJumpTest {
             assertTrue(jumpSize >= 2.0, "Jump size must be at least fallback value for " + descriptions[i]);
         }
 
+        // === Regression guards ===
+        double LN10 = Math.log(10.0);
+        double kappaGeo = 0.300;
+
+
+        // Anchor checks
+        must(approx(lnPredValues[0], 9.077, 0.5), "ln p_{1e3} out of expected range");
+        must(approx(lnPredValues[1], 11.602, 0.5), "ln p_{1e4} out of expected range");
+        must(approx(lnPredValues[3], 45.918, 0.5), "ln p_{1e18} out of expected range");
+
+        // Slope sanity: approximate using 1e100 and 1e101
+        BigDecimal k100 = new BigDecimal("1e100");
+        BigDecimal k101 = new BigDecimal("1e101");
+        String predStr100 = Z5dPredictor.z5dPrimeString(k100.toString(), Z5DJump.ZF_Z5D_C_CALIBRATED,
+                                                       Z5DJump.ZF_KAPPA_STAR_DEFAULT,
+                                                       Z5DJump.ZF_KAPPA_GEO_DEFAULT, true);
+        String predStr101 = Z5dPredictor.z5dPrimeString(k101.toString(), Z5DJump.ZF_Z5D_C_CALIBRATED,
+                                                       Z5DJump.ZF_KAPPA_STAR_DEFAULT,
+                                                       Z5DJump.ZF_KAPPA_GEO_DEFAULT, true);
+        double ln100, ln101;
+        try {
+            ln100 = Z5DJump.approximateLn(new BigDecimal(predStr100));
+            ln101 = Z5DJump.approximateLn(new BigDecimal(predStr101));
+        } catch (NumberFormatException e) {
+            ln100 = Z5DJump.parseLnFromScientificString(predStr100);
+            ln101 = Z5DJump.parseLnFromScientificString(predStr101);
+        }
+        double slope = (ln101 - ln100) / LN10;
+        must(slope > 0.9 && slope < 1.3, "slope d ln p / d ln k out of range (regression risk)");
+
+        // Jump-size anchors
+        must(approx(kappaGeo * lnPredValues[0], 2.723, 0.5), "jump(1e3) out of range");
+        must(approx(kappaGeo * lnPredValues[1], 3.481, 0.5), "jump(1e4) out of range");
+        must(approx(kappaGeo * lnPredValues[3], 13.775, 0.5), "jump(1e18) out of expected range");
+        // === End: Regression guards ===
+
         System.out.println("✓ All jump size calculations completed successfully");
         System.out.println("✓ Verification data displayed above");
+        System.out.println("✓ Regression guards passed");
     }
 
     @Test
