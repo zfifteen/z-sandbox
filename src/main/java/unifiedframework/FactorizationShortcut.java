@@ -232,7 +232,7 @@ public class FactorizationShortcut {
       if (denom.signum() == 0) break;
       BigDecimal step = fCurr.multiply(xCurr.subtract(xPrev, MC), MC).divide(denom, MC);
       BigDecimal xNext = xCurr.subtract(step, MC);
-      if (xNext.compareTo(BigDecimal.TWO) < 0) xNext = BigDecimal.TWO;
+      if (xNext.compareTo(new BigDecimal(2)) < 0) xNext = new BigDecimal(2);
       xPrev = xCurr;
       xCurr = xNext;
       if (xCurr.subtract(xPrev, MC).abs().compareTo(BigDecimal.ONE) <= 0) break;
