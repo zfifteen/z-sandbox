@@ -6,6 +6,7 @@ import java.math.BigInteger;
 import java.math.MathContext;
 import java.math.RoundingMode;
 import java.util.*;
+import java.util.LinkedHashSet;
 import java.util.stream.Collectors;
 
 /**
@@ -318,24 +319,67 @@ public class FactorizationShortcut {
   public static List<BigInteger> multiZ5DPool(
       BigInteger Nmax, int baseSize, PiOracle pi, int secantIters, int localWindow, int mrIters) {
 
-    // Generate three variants with different theta bands
-    List<BigInteger> variantA =
-        generatePrimePoolBandZ5D(Nmax, 0.05, 1.5, baseSize, pi, secantIters, localWindow, mrIters);
-    List<BigInteger> variantB =
-        generatePrimePoolBandZ5D(Nmax, 0.02, 0.6, baseSize, pi, secantIters, localWindow, mrIters);
-    List<BigInteger> variantX =
-        generatePrimePoolBandZ5D(Nmax, 1.0, 3.0, baseSize, pi, secantIters, localWindow, mrIters);
+    BigInteger sqrtN = sqrtFloor(Nmax);
+    double lnS = Math.log(sqrtN.doubleValue());
+    long gap = Math.max(1L, Math.round(lnS));
 
-    // Merge and deduplicate using LinkedHashSet to maintain insertion order
+    // Scale localWindow if too small
+    int scaledLocalWindow = Math.max(localWindow, (int) (baseSize * Math.ceil(lnS)));
+
+    double phi = (1 + Math.sqrt(5.0)) / 2.0;
+
+    double[][] thetaBands = {{0.05, 1.5}, {0.02, 0.6}, {1.0, 3.0}};
+    double[] scaleFactors = {0.5, 1.0, 1.5}; // Different scales for i0
+
     LinkedHashSet<BigInteger> merged = new LinkedHashSet<>(baseSize * 3);
-    merged.addAll(variantA);
-    merged.addAll(variantB);
-    merged.addAll(variantX);
+
+    for (int v = 0; v < 3; v++) {
+      BigDecimal scaledSqrt = new BigDecimal(sqrtN).multiply(new BigDecimal(scaleFactors[v]), MC);
+      BigInteger i0 = pi.pi(scaledSqrt).toBigInteger();
+      for (int j = 0; j < baseSize; j++) {
+        double w = (j * phi) - Math.floor(j * phi); // Weyl phase
+        long offset = Math.round((j - baseSize / 2.0) * gap + w * gap);
+        long idx = i0.longValue() + offset;
+        if (idx < 2) continue;
+        BigInteger x0 = scaledSqrt.toBigInteger();
+        BigInteger x1 = x0.add(BigInteger.valueOf(scaledLocalWindow));
+        BigInteger x = invertPiSecant(BigInteger.valueOf(idx), pi, x0, x1, secantIters);
+        if (inThetaBand(x, sqrtN, thetaBands[v][0], thetaBands[v][1])
+            && x.isProbablePrime(mrIters)) {
+          merged.add(x);
+        }
+      }
+    }
+
+    // Collapse sentinel
+    int totalBeforeDedup = baseSize * 3;
+    double dedupRate = 1.0 - (double) merged.size() / totalBeforeDedup;
+    BigInteger min = merged.stream().min(BigInteger::compareTo).orElse(BigInteger.ZERO);
+    BigInteger max = merged.stream().max(BigInteger::compareTo).orElse(BigInteger.ZERO);
+    BigInteger rangeWidth = max.subtract(min);
+    long expectedGap = (long) (baseSize * gap / 5.0);
+    if (dedupRate > 0.98 && rangeWidth.compareTo(BigInteger.valueOf(expectedGap)) < 0) {
+      System.err.println(
+          "WARNING: Variants collapsed—high dedup ("
+              + String.format("%.2f%%", dedupRate * 100)
+              + ") and narrow range ("
+              + rangeWidth
+              + " < "
+              + expectedGap
+              + "). Increase localWindow or diversify indices.");
+    }
 
     // Convert to sorted list
     List<BigInteger> result = new ArrayList<>(merged);
     result.sort(null);
     return result;
+  }
+
+  private static boolean inThetaBand(
+      BigInteger p, BigInteger sqrtN, double thetaMin, double thetaMax) {
+    BigDecimal theta = thetaPrimeInt(new BigDecimal(p), new BigDecimal("0.3"));
+    double t = theta.doubleValue();
+    return t >= thetaMin && t < thetaMax;
   }
 
   // ======== E) Heuristic banding (BigInteger) ========
