@@ -298,6 +298,52 @@ public class FactorizationShortcut {
     return out;
   }
 
+  // ======== D) Multi-variant Z5D Pool Generation ========
+
+  /**
+   * Generates a combined pool of prime candidates using three tuned Z5D variants.
+   *
+   * <p>Variants:
+   * - Z5D-A: Baseline for balanced semiprimes (theta band 0.05–1.5, epsilon 0.1)
+   * - Z5D-B: Stretch low-band for skinny factors (theta band 0.02–0.6, epsilon 0.05)
+   * - Z-X: High-offset-band for primes significantly above √N (theta band 1.0–3.0, epsilon 0.2)
+   *
+   * @param Nmax The maximum N value (used to compute √Nmax for band calculations)
+   * @param baseSize The base size for prime generation per variant (target: 30k per variant)
+   * @param pi The Z5D π(x) oracle for prime prediction
+   * @param secantIters Number of secant iterations for pi inversion
+   * @param localWindow Window size for local prime search
+   * @param mrIters Miller-Rabin iterations for primality testing
+   * @return A merged and distinct list of prime candidates (~80k total)
+   */
+  public static List<BigInteger> multiZ5DPool(
+      BigInteger Nmax,
+      int baseSize,
+      PiOracle pi,
+      int secantIters,
+      int localWindow,
+      int mrIters) {
+
+    // Generate three variants with different theta bands
+    List<BigInteger> variantA =
+        generatePrimePoolBandZ5D(Nmax, 0.05, 1.5, baseSize, pi, secantIters, localWindow, mrIters);
+    List<BigInteger> variantB =
+        generatePrimePoolBandZ5D(Nmax, 0.02, 0.6, baseSize, pi, secantIters, localWindow, mrIters);
+    List<BigInteger> variantX =
+        generatePrimePoolBandZ5D(Nmax, 1.0, 3.0, baseSize, pi, secantIters, localWindow, mrIters);
+
+    // Merge and deduplicate using LinkedHashSet to maintain insertion order
+    LinkedHashSet<BigInteger> merged = new LinkedHashSet<>(baseSize * 3);
+    merged.addAll(variantA);
+    merged.addAll(variantB);
+    merged.addAll(variantX);
+
+    // Convert to sorted list
+    List<BigInteger> result = new ArrayList<>(merged);
+    result.sort(null);
+    return result;
+  }
+
   // ======== E) Heuristic banding (BigInteger) ========
 
   /** Return candidate primes whose θ′ are within eps of θ′(N). */

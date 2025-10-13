@@ -5,7 +5,10 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -152,5 +155,93 @@ public class TestFactorizationShortcut {
     assertEquals(2, res[1]); // p
     assertEquals(3, res[2]); // q
     assertEquals(1, res[3]); // q prime
+  }
+
+  @Test
+  public void testMultiZ5DPool() {
+    System.out.println("Testing multiZ5DPool functionality");
+    
+    // Use a smaller Nmax for faster testing
+    BigInteger Nmax = new BigInteger("10000000000000000"); // 10^16 for better band separation
+    int baseSize = 50; // Smaller size for testing (instead of 30k)
+    
+    // Build the PiOracle
+    FactorizationShortcut.PiOracle pi = FactorizationShortcut.buildPiOracle();
+    
+    System.out.printf("Input Nmax: %s%n", Nmax);
+    System.out.printf("Base size per variant: %d%n", baseSize);
+    System.out.printf("Expected total candidates: ~%d (with deduplication)%n", baseSize * 3);
+    
+    // Generate multi-variant pool
+    long startTime = System.currentTimeMillis();
+    List<BigInteger> pool = FactorizationShortcut.multiZ5DPool(
+        Nmax,
+        baseSize,
+        pi,
+        20,    // secantIters
+        2048,  // localWindow
+        64     // mrIters
+    );
+    long endTime = System.currentTimeMillis();
+    
+    System.out.printf("Generated pool size: %d%n", pool.size());
+    System.out.printf("Generation time: %d ms%n", (endTime - startTime));
+    
+    // Verify pool properties
+    assertNotNull(pool);
+    assertTrue(pool.size() > 0, "Pool should contain candidates");
+    assertTrue(pool.size() <= baseSize * 3, "Pool should not exceed 3x base size");
+    
+    // Verify all candidates are prime (probabilistic test)
+    int primeCount = 0;
+    for (BigInteger p : pool) {
+      assertTrue(p.signum() > 0, "All candidates should be positive");
+      if (p.isProbablePrime(64)) {
+        primeCount++;
+      }
+    }
+    System.out.printf("Probable primes: %d / %d (%.2f%%)%n", 
+        primeCount, pool.size(), 100.0 * primeCount / pool.size());
+    assertTrue(primeCount > pool.size() * 0.95, 
+        "At least 95% of candidates should be probable primes");
+    
+    // Verify sorted order
+    for (int i = 1; i < pool.size(); i++) {
+      assertTrue(pool.get(i).compareTo(pool.get(i - 1)) > 0, 
+          "Pool should be sorted in ascending order");
+    }
+    System.out.println("✓ Pool is sorted");
+    
+    // Verify no duplicates
+    Set<BigInteger> uniqueSet = new HashSet<>(pool);
+    assertEquals(pool.size(), uniqueSet.size(), "Pool should contain no duplicates");
+    System.out.println("✓ Pool contains no duplicates");
+    
+    // Verify candidates are in reasonable range relative to sqrt(Nmax)
+    BigInteger sqrtNmax = FactorizationShortcut.sqrtFloor(Nmax);
+    System.out.printf("sqrt(Nmax): %s%n", sqrtNmax);
+    
+    // Check that candidates cover different bands
+    BigInteger minCandidate = pool.get(0);
+    BigInteger maxCandidate = pool.get(pool.size() - 1);
+    System.out.printf("Candidate range: [%s, %s]%n", minCandidate, maxCandidate);
+    
+    BigDecimal minRatio = new BigDecimal(minCandidate).divide(new BigDecimal(sqrtNmax), 
+        java.math.MathContext.DECIMAL128);
+    BigDecimal maxRatio = new BigDecimal(maxCandidate).divide(new BigDecimal(sqrtNmax), 
+        java.math.MathContext.DECIMAL128);
+    System.out.printf("Ratio to sqrt(Nmax): [%.3f, %.3f]%n", 
+        minRatio.doubleValue(), maxRatio.doubleValue());
+    
+    // Verify that we have coverage across the bands
+    // The bands in multiZ5DPool are: Z5D-A (0.05-1.5), Z5D-B (0.02-0.6), Z-X (1.0-3.0)
+    // The algorithm searches around sqrt(Nmax), so candidates will be in the overlapping regions
+    // For now, just verify we have some reasonable spread
+    assertTrue(minRatio.doubleValue() > 0.0 && minRatio.doubleValue() <= 2.0, 
+        "Minimum candidate should be in reasonable range");
+    assertTrue(maxRatio.doubleValue() >= 0.5 && maxRatio.doubleValue() <= 3.5, 
+        "Maximum candidate should be in reasonable range");
+    
+    System.out.println("✓ Multi-variant Z5D pool test passed");
   }
 }
