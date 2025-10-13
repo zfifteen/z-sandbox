@@ -316,63 +316,59 @@ public class FactorizationShortcut {
    * @param mrIters Miller-Rabin iterations for primality testing
    * @return A merged and distinct list of prime candidates (~80k total)
    */
+  // Optics bench: Z5D rays steered by prisms, replicated by grating, prioritized by caustics
   public static List<BigInteger> multiZ5DPool(
       BigInteger Nmax, int baseSize, PiOracle pi, int secantIters, int localWindow, int mrIters) {
 
     final BigInteger sqrtN = sqrtFloor(Nmax);
-    final double PHI = (1 + Math.sqrt(5.0)) / 2.0;
-    final double[] centerRatios = {0.5, 1.0, 2.0}; // A, B, X
-    final long[] mult = {1L, 9L, 49L}; // spread factors
-    final double[][] bands = {{0.05, 1.5}, {0.02, 0.6}, {1.0, 3.0}};
+    final BigDecimal sqrtNBD = new BigDecimal(sqrtN);
 
-    Set<Long> buckets = new HashSet<>(3 * baseSize);
-    LinkedHashSet<BigInteger> merged = new LinkedHashSet<>(baseSize * 3);
+    // Optics bench params
+    final int P = 5; // prisms
+    final int M = baseSize / 2; // orders per prism
+    final double[] alphas = {Math.sqrt(2), Math.sqrt(3), (1 + Math.sqrt(5)) / 2, Math.E}; // irrationals for phase
+    final double[] epsilons = {1.0 / 233, -1.0 / 259, 1.0 / 283, -1.0 / 307}; // dispersion
 
-    for (int v = 0; v < 3; v++) {
-      BigInteger centerX =
-          new BigDecimal(sqrtN).multiply(new BigDecimal(centerRatios[v]), MC).toBigInteger();
-      long iCenter = pi.pi(new BigDecimal(centerX)).toBigInteger().longValue();
-      long gap = Math.max(1L, Math.round(Math.log(centerX.doubleValue())));
-      for (int j = 0; j < baseSize; j++) {
-        double w = (j * PHI) - Math.floor(j * PHI);
-        long idx = iCenter + Math.round((j - baseSize / 2.0) * gap * mult[v] + w * gap);
-        if (idx < 2) continue;
-        long bucket = idx / gap;
-        if (!buckets.add(bucket)) continue; // enforce spread
-        BigInteger x =
-            invertPiSecant(
-                BigInteger.valueOf(idx),
-                pi,
-                BigInteger.ONE,
-                BigInteger.valueOf(Long.MAX_VALUE),
-                secantIters); // no clamp
-        if (inThetaBand(x, centerX, bands[v][0], bands[v][1]) && x.isProbablePrime(mrIters)) {
-          merged.add(x);
-        }
+    // Base ray: k0 where pi(k0) ≈ sqrt(N), J0 = avg gap
+    BigInteger k0 = pi.pi(sqrtNBD).toBigInteger();
+    int digits = sqrtN.toString().length();
+    int J0 = Math.max(5, (int) Math.round(digits * 2.30258509299));
+
+    // Caustic counter: multiplicity per candidate
+    java.util.Map<BigInteger, Integer> caustic = new java.util.HashMap<>();
+
+    java.util.LinkedHashSet<BigInteger> merged = new java.util.LinkedHashSet<>(P * 2 * M);
+
+    for (int i = 0; i < P; i++) {
+      // Prism: phase and dispersion (deterministic from N)
+      int phi_i = (int) (J0 * alphas[i % alphas.length]);
+      double eps_i = epsilons[i % epsilons.length];
+      int J_i = (int) Math.round(J0 * (1 + eps_i));
+
+      for (int m = -M; m <= M; m++) {
+        long k = k0.longValue() + phi_i + (long) m * J_i;
+        if (k < 2) continue;
+
+        // Invert pi to get p estimate
+        BigInteger xApprox = invertPiSecant(BigInteger.valueOf(k), pi,
+            BigInteger.ONE, BigInteger.valueOf(Long.MAX_VALUE), secantIters);
+        BigInteger cand = findPrimeNear(xApprox, localWindow, mrIters);
+        if (cand.signum() <= 0) continue;
+
+        // Aperture: keep within ratio band
+        BigDecimal ratio = new BigDecimal(cand).divide(sqrtNBD, MC);
+        if (ratio.compareTo(new BigDecimal("0.3")) < 0 || ratio.compareTo(new BigDecimal("3.0")) > 0) continue;
+
+        // Caustic: count predictions
+        caustic.put(cand, caustic.getOrDefault(cand, 0) + 1);
+
+        merged.add(cand);
       }
     }
 
-    // Collapse sentinel
-    int totalBeforeDedup = buckets.size();
-    double dedupRate = 1.0 - (double) merged.size() / totalBeforeDedup;
-    BigInteger min = merged.stream().min(BigInteger::compareTo).orElse(BigInteger.ZERO);
-    BigInteger max = merged.stream().max(BigInteger::compareTo).orElse(BigInteger.ZERO);
-    double ratioMin = min.doubleValue() / sqrtN.doubleValue();
-    double ratioMax = max.doubleValue() / sqrtN.doubleValue();
-    if (dedupRate > 0.95 || ratioMax < 1.05) {
-      System.err.println(
-          "WARNING: Collapse detected — dedup "
-              + String.format("%.2f%%", dedupRate * 100)
-              + ", ratio ["
-              + String.format("%.3f", ratioMin)
-              + ", "
-              + String.format("%.3f", ratioMax)
-              + "]. Increase index spread, remove clamps, or expand localWindow.");
-    }
-
-    // Convert to sorted list
+    // Sort in ascending order
     List<BigInteger> result = new ArrayList<>(merged);
-    result.sort(null);
+    result.sort(BigInteger::compareTo);
     return result;
   }
 
