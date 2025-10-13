@@ -204,6 +204,8 @@ public class BenchLadder {
     long seed = 42L;
     int K = 5;
     boolean ladder = false;
+    boolean factorMode = false;
+    BigInteger factorN = null;
 
     for (int i = 0; i < args.length; i++) {
       switch (args[i]) {
@@ -225,6 +227,10 @@ public class BenchLadder {
         case "--K":
           K = Integer.parseInt(args[++i]);
           break;
+        case "--factor":
+          factorMode = true;
+          factorN = new BigInteger(args[++i]);
+          break;
       }
     }
 
@@ -245,6 +251,26 @@ public class BenchLadder {
       default:
         builder = new ZNeighborhood();
         break;
+    }
+
+    if (factorMode) {
+      if (factorN.isProbablePrime(100)) {
+        System.out.println("The number " + factorN + " is probably prime.");
+        return;
+      }
+      List<BigInteger> cands = builder.build(factorN, 10000, seed);
+      long start = System.currentTimeMillis();
+      Factor f = factorizeWithCandidatesBig(factorN, cands, 64);
+      long time = System.currentTimeMillis() - start;
+      if (f.success) {
+        System.out.println("Factored: " + factorN + " = " + f.p + " * " + f.q);
+        System.out.println("Time: " + time + " ms");
+        System.out.println("Candidates checked: " + (cands.indexOf(f.p) + 1));
+      } else {
+        System.out.println(
+            "Failed to factor: " + factorN + " (not factored with current builders)");
+      }
+      return;
     }
 
     try (FileWriter fw = new FileWriter("ladder_results.csv", true)) {

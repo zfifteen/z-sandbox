@@ -349,11 +349,85 @@ public class FactorizationShortcut {
     return s.get(lo) * (1 - w) + s.get(hi) * w;
   }
 
+  // ======== Pollard's Rho ========
+
+  public static BigInteger pollardRho(BigInteger n) {
+    if (n.equals(BigInteger.ONE)) return n;
+    if (n.mod(BigInteger.TWO).equals(BigInteger.ZERO)) return BigInteger.TWO;
+
+    java.util.Random rand = new java.util.Random();
+    for (int tries = 0; tries < 10; tries++) {
+      BigInteger x = new BigInteger(n.bitLength(), rand).mod(n.subtract(BigInteger.TWO)).add(BigInteger.TWO);
+      BigInteger y = x;
+      BigInteger c = new BigInteger(n.bitLength(), rand).mod(n.subtract(BigInteger.ONE)).add(BigInteger.ONE);
+      BigInteger d = BigInteger.ONE;
+
+      int steps = 0;
+      while (d.equals(BigInteger.ONE) && steps < 1000000) {
+        x = x.modPow(BigInteger.TWO, n).add(c).mod(n);
+        y = y.modPow(BigInteger.TWO, n).add(c).mod(n);
+        y = y.modPow(BigInteger.TWO, n).add(c).mod(n);
+        BigInteger diff = x.subtract(y).abs();
+        d = diff.gcd(n);
+        steps++;
+      }
+      if (!d.equals(BigInteger.ONE) && !d.equals(n)) return d;
+    }
+    return n; // failed
+  }
+
+  // ======== Factor single N ========
+
+  public static Factor factorSingleN(BigInteger N) {
+    // Check even
+    if (!N.testBit(0)) {
+      BigInteger q = N.shiftRight(1);
+      return new Factor(BigInteger.TWO, q, q.isProbablePrime(64), true);
+    }
+
+    BigInteger r = sqrtFloor(N);
+    if (r.multiply(r).equals(N) && r.isProbablePrime(64)) {
+      return new Factor(r, r, true, true);
+    }
+
+    // Trial division with small primes
+    List<BigInteger> smallPrimes = generateSmallPrimes(100000);
+    for (BigInteger p : smallPrimes) {
+      if (N.mod(p).equals(BigInteger.ZERO)) {
+        BigInteger q = N.divide(p);
+        return new Factor(p, q, q.isProbablePrime(64), true);
+      }
+    }
+
+    // Use Pollard's Rho to find a factor
+    BigInteger p = pollardRho(N);
+    if (p.equals(N)) {
+      return new Factor(BigInteger.ZERO, BigInteger.ZERO, false, false); // prime?
+    }
+    BigInteger q = N.divide(p);
+    return new Factor(p, q, q.isProbablePrime(64), true);
+  }
+
+  private static List<BigInteger> generateSmallPrimes(int limit) {
+    List<BigInteger> primes = new ArrayList<>();
+    boolean[] isComposite = new boolean[limit + 1];
+    for (int i = 2; i <= limit; i++) {
+      if (!isComposite[i]) {
+        primes.add(BigInteger.valueOf(i));
+        for (int j = i * 2; j <= limit; j += i) {
+          isComposite[j] = true;
+        }
+      }
+    }
+    return primes;
+  }
+
   // ======== G) CLI / Main ========
 
   public static void main(String[] args) {
     // Defaults geared for a "meaningful" run; override via CLI flags below.
     BigInteger Nmax = new BigInteger("281474976710656"); // 2^48
+    BigInteger singleN = null;
     int samples = 200_000;
     String mode = "balanced-lcg"; // only mode implemented at scale
     double bandLo = 0.85, bandHi = 0.98;
@@ -414,9 +488,27 @@ public class FactorizationShortcut {
         case "--examples":
           examples = Integer.parseInt(args[++i]);
           break;
+        case "--factor-single":
+          singleN = new BigInteger(args[++i]);
+          break;
         default:
           System.err.println("Unknown arg: " + args[i]);
       }
+    }
+
+    if (singleN != null) {
+      Factor res = factorSingleN(singleN);
+      if (res.success()) {
+        System.out.println("N=" + singleN + " = " + res.p() + " * " + res.q());
+        if (res.qPrime()) {
+          System.out.println("q is prime");
+        } else {
+          System.out.println("q is composite");
+        }
+      } else {
+        System.out.println("Failed to factor " + singleN);
+      }
+      return;
     }
 
     // Build π oracle (prefers BigDecimal Z5dPredictorBD if present)
