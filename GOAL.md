@@ -1,86 +1,85 @@
-Ah—that run tells the whole story. You asked for ~90k candidates, but your three “variants” collapsed onto the **same tiny window** around √N, so after dedup you ended up with just **530 uniques**—which is exactly what prime density predicts for that ~10.6k-wide window near 3.16×10^8 (≈10,616 / ln(3.16e8) ≈ 540). In other words: your multi-variant generator is effectively just “all primes in a narrow slice around √N,” three times over.
+Nice bump! You cut runtime from 31.7s → **0.84s** and grew uniques **530 → 1,852**. But two signals say you’re still collapsing variants:
 
-Why it happened (and how to fix it fast):
+* **Dedup = 97.94%** → still sampling (nearly) the same indices.
+* **Ratio to √N = [0.500, 1.000]** → your “Z-X [1.0, 3.0]” never crossed above √N. Something is still **clamping to ≤ √N** or centering all variants at √N.
 
-1. **Variants aren’t actually disjoint.**
-   The PR’s design says Z5D-A/B/Z-X cover different theta bands, but the implementation still funnels everything through a single **localWindow** around √N and merges, so all three variants land in almost the same x-interval (hence 99.41% dedup). The PR signature exposes `localWindow` explicitly; defaults like `2048` make this inevitable at 10^17. ([GitHub][1])
+Here’s a surgical fix list that will explode coverage and keep the speed:
 
-2. **Base size ≠ coverage.**
-   “30k per variant” is requested, but you’re sampling many *seeds* that each search a tiny local band; because all seeds are near the same π(√N) index and the local window is tiny, you discover the **same ~500 primes** repeatedly.
+# What to change (minimal & precise)
 
-3. **Numbers line up with density.**
-   Your range 316,222,451…316,233,067 is ~10,616 integers. Prime density near 3.16×10^8 is 1/ln(x) ≈ 1/19.57 ≈ 5.1%. Expected primes ≈ 10,616×0.051 ≈ 541 → you saw 530. That’s confirmation, not bad luck.
+1. **Give each variant its own center in π-index space (not x-space):**
 
-Quick, surgical fixes (pick any 1–2 and you’ll see 10^4–10^5 uniques immediately):
+    * `centerRatios = {0.5, 1.0, 2.0}`  → centers at `{0.5√N, √N, 2√N}`
+    * `i_center[v] = π( floor(centerRatios[v] * √N) )`
+    * This guarantees Z-X actually targets **> √N**.
 
-A) **Spread in π-index space, not x-space.**
-Instead of many seeds that each do `±localWindow` around the *same* π(√N), generate **disjoint index bands**:
+2. **Stride by expected gap, with Weyl jitter (prevents collisions):**
 
-* Let `i0 = π(⌊√N⌋)`.
-* Use a stride `Δi ≈ ⌈ln(√N)⌉` (≈18–20 here) so each step jumps ~one average *gap*.
-* For each variant v∈{A,B,X}, set a bigger multiplier `{1, 9, 49}` and a phase offset using a Weyl sequence `ω = frac(j·φ)` to avoid lining up:
+   ```java
+   long gap = Math.max(1L, Math.round(Math.log(centerX.doubleValue()))); // ~avg prime gap
+   for (int j = 0; j < baseSize; j++) {
+     double w = (j * PHI) - Math.floor(j * PHI); // PHI = (1+√5)/2
+     long idx = i_center[v] + Math.round((j - baseSize/2.0) * gap * mult[v] + w * gap);
+     BigInteger x = pi.invertIndexSecant(idx, secantIters);
+     if (!inThetaBand(x, centerX[v], band[v])) continue; // use v’s band
+     if (x.isProbablePrime(32)) add(x);
+   }
+   ```
 
-  ```
-  i(j,v) = i0 + round((j - baseSize/2) * Δi * mult_v + ω_j * Δi)
-  ```
+   Where `mult = {1, 9, 49}` (A, B, X) and `centerX[v] = floor(centerRatios[v] * √N)`.
 
-  Invert π with your secant (as you already do) to get x, then apply that variant’s theta filter. (The PR explicitly documents secant-inverted π and multi-variant theta bands; push the diversity into the index targets.) ([GitHub][1])
+3. **Kill the global clamp around √N:**
+   If you still have something like `clampToWindow(sqrtN ± localWindow)`, replace it with **variant-local windows around `centerX[v]`**, or **no clamp** at all when you already pick by index. Clamping is why Z-X tops out at ratio 1.000.
 
-B) **Make `localWindow` scale with the target size.**
-Right now it looks like `localWindow` defaults tiny (the docs show `localWindow` in the API; the demo examples use small values). For 30k primes/variant near 3.16e8, you want **on the order of baseSize×ln(√N)** indices of room if you stick to a single window. Concretely, set:
+4. **Scale window to target size (if you keep any windowing):**
+   `localWindow ≥ baseSize * ceil(ln(centerX[v]))`. For 30k near 3.16e8, use **≥ 600k** indices. Small windows create repeats → high dedup.
 
-* `localWindow ≥ baseSize * ceil(ln(√N))` → at 30k and ln(√N)≈19.6, use **≥ 600k**.
-  This alone will blow past 530 uniques.
+5. **De-dup early across variants by index buckets:**
+   Keep a `LongOpenHashSet seenBuckets`. Bucket = `idx / gap`. Skip if seen; this forces non-overlap with O(1) cost.
 
-C) **Enforce non-overlap per variant.**
-Assign each variant a **disjoint index band** (e.g., A: `i0 ± [0…W]`, B: `i0 ± [W…2W]`, X: `i0 ± [2W…4W]` in *index* space). Don’t let them all search `[i0−localWindow, i0+localWindow]`.
+6. **Make θ a *weight* (optional), not a hard filter:**
+   If θ filtering is still aggressive, move it to a scoring/priority step instead of discarding; that will keep coverage high for arbitrary moduli.
 
-D) **Cheaper primality for contiguous windows.**
-If you *do* harvest contiguous x-intervals, run a **segmented sieve** for that slice instead of 90k `isProbablePrime` calls. You’ll cut your 31.74 s wall-time to sub-second for windows this small, then keep MR as a guard.
-
-Concrete knobs to try right now (no code churn, just params):
-
-* Bump the window: `localWindow = 600000` (or more) for `Nmax=1e17`.
-* Increase secant iterations a bit: `secantIters = 30`.
-* Trim MR rounds (it’s only for candidate confirmation here): `mrIters = 16–32`.
-* If there’s a CLI, run your demo like:
-  `java unifiedframework.MultiZ5DDemo 100000000000000000 30000 --full`
-  then inside, map `--full` to the larger `localWindow` + diversified index bands (A/B/X disjoint).
-
-Minimal code change (pseudopatch, inside your multiZ5DPool loop):
+# Quick patch sketch (drop-in structure)
 
 ```java
 final BigInteger sqrtN = isqrt(Nmax);
-final long i0 = pi.indexOfFloor(sqrtN);        // π(⌊√N⌋)
-final double lnS = Math.log(sqrtN.doubleValue());
-final long gap = Math.max(1L, Math.round(lnS)); // ~average prime gap
+final double PHI = (1 + Math.sqrt(5.0)) / 2.0;
+final double[] centerRatios = {0.5, 1.0, 2.0};     // A, B, X
+final long[] mult = {1L, 9L, 49L};                 // spread factors
+final double[][] bands = { {0.05,1.5}, {0.02,0.6}, {1.0,3.0} };
 
-long[] mult = {1L, 9L, 49L};                   // A, B, X
-double phi = (1 + Math.sqrt(5.0)) / 2.0;
-
+LongOpenHashSet buckets = new LongOpenHashSet(3L * baseSize);
 for (int v = 0; v < 3; v++) {
+  BigInteger centerX = sqrtN.multiply(BigInteger.valueOf((long)(centerRatios[v] * 1e6)))
+                            .divide(BigInteger.valueOf(1_000_000L));
+  long iCenter = pi.indexOfFloor(centerX);        // π(⌊center⌋)
+  long gap = Math.max(1L, Math.round(Math.log(centerX.doubleValue())));
   for (int j = 0; j < baseSize; j++) {
-    double w = (j * phi) - Math.floor(j * phi);          // Weyl phase
-    long idx = i0 + Math.round((j - baseSize/2.0) * gap * mult[v] + w * gap);
-    BigInteger x = pi.invertIndexSecant(idx, secantIters); // your existing inversion
-    if (!inThetaBand(x, sqrtN, band[v])) continue;         // variant’s band
-    if (isProbablePrime(x, mrIters)) add(x);
+    double w = (j * PHI) - Math.floor(j * PHI);
+    long idx = iCenter + Math.round((j - baseSize/2.0) * gap * mult[v] + w * gap);
+    long bucket = idx / gap;
+    if (!buckets.add(bucket)) continue;           // enforce spread
+    BigInteger x = pi.invertIndexSecant(idx, secantIters);
+    if (!inThetaBand(x, centerX, bands[v])) continue;
+    if (x.signum() > 0 && x.isProbablePrime(32)) add(x);
   }
 }
 ```
 
-Add a **collapse sentinel** so you catch this early:
+# What you should see next run
 
-* If `dedupRate > 0.98` **and** `rangeWidth < baseSize * gap / 5`, log: “variants collapsed—increase localWindow or diversify indices.”
+* **Ratio to √N** should expand to roughly **[0.5, ~2.0–3.0]** (Z-X finally > √N).
+* **Dedup** should drop **below ~60–80%** immediately (often <<50% with the bucket guard).
+* **Total candidates** should jump from **1,852 → tens of thousands** (with baseSize=30k×3).
+* **Runtime** stays ~sub-second to a few seconds (index inversion + MR(32) is cheap).
 
-Why I’m sure this is the cause
+# Extra guardrails (nice-to-have)
 
-* Your “Ratio to √N: [1.000, 1.000]” plus a 10.6k span screams *ultra-tight* windowing.
-* The PR itself exposes `localWindow` in the API and positions multi-variant theta bands, but nothing forces disjointness—so overlapping windows + tiny index span → the exact 530 you saw. ([GitHub][1])
+* If `dedup > 0.95 || ratioMax < 1.05`, print:
+  “**Collapse detected** — increase index spread (mult), remove clamps above √N, or expand localWindow.”
+* Log per-variant coverage: `min/max ratio`, `unique count`, `avg gap`, `collisions`.
 
-If you want, I’ll sketch a tiny segmented-sieve helper for “slice around √N” so the demo prints ~80k uniques at your settings and finishes dramatically faster; but the structural fix is to **spread by π-index** and **scale the window**.
+# TL;DR
 
-Want me to drop a short PR comment on #7 calling this out and proposing the index-space spread patch? ([GitHub][2])
-
-[1]: https://github.com/zfifteen/z-sandbox/pull/7/files "Implement multi-variant Z5D predictor with three tuned variants for enhanced adaptability by Copilot · Pull Request #7 · zfifteen/z-sandbox · GitHub"
-[2]: https://github.com/zfifteen/z-sandbox/pull/7 "Implement multi-variant Z5D predictor with three tuned variants for enhanced adaptability by Copilot · Pull Request #7 · zfifteen/z-sandbox · GitHub"
+You fixed the *speed* and widened to **0.5·√N…√N**, but the **clamp around √N** is still forcing the Z-X band to collapse. Move centers to `{0.5, 1.0, 2.0}·√N`, stride in **π-index space** with a Weyl jitter, kill the global clamp, and bucket de-dup. That will unlock **real** multi-variant coverage and give you the ~90k uniques you expected.

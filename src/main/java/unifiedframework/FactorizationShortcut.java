@@ -319,54 +319,55 @@ public class FactorizationShortcut {
   public static List<BigInteger> multiZ5DPool(
       BigInteger Nmax, int baseSize, PiOracle pi, int secantIters, int localWindow, int mrIters) {
 
-    BigInteger sqrtN = sqrtFloor(Nmax);
-    double lnS = Math.log(sqrtN.doubleValue());
-    long gap = Math.max(1L, Math.round(lnS));
+    final BigInteger sqrtN = sqrtFloor(Nmax);
+    final double PHI = (1 + Math.sqrt(5.0)) / 2.0;
+    final double[] centerRatios = {0.5, 1.0, 2.0}; // A, B, X
+    final long[] mult = {1L, 9L, 49L}; // spread factors
+    final double[][] bands = {{0.05, 1.5}, {0.02, 0.6}, {1.0, 3.0}};
 
-    // Scale localWindow if too small
-    int scaledLocalWindow = Math.max(localWindow, (int) (baseSize * Math.ceil(lnS)));
-
-    double phi = (1 + Math.sqrt(5.0)) / 2.0;
-
-    double[][] thetaBands = {{0.05, 1.5}, {0.02, 0.6}, {1.0, 3.0}};
-    double[] scaleFactors = {0.5, 1.0, 1.5}; // Different scales for i0
-
+    Set<Long> buckets = new HashSet<>(3 * baseSize);
     LinkedHashSet<BigInteger> merged = new LinkedHashSet<>(baseSize * 3);
 
     for (int v = 0; v < 3; v++) {
-      BigDecimal scaledSqrt = new BigDecimal(sqrtN).multiply(new BigDecimal(scaleFactors[v]), MC);
-      BigInteger i0 = pi.pi(scaledSqrt).toBigInteger();
+      BigInteger centerX =
+          new BigDecimal(sqrtN).multiply(new BigDecimal(centerRatios[v]), MC).toBigInteger();
+      long iCenter = pi.pi(new BigDecimal(centerX)).toBigInteger().longValue();
+      long gap = Math.max(1L, Math.round(Math.log(centerX.doubleValue())));
       for (int j = 0; j < baseSize; j++) {
-        double w = (j * phi) - Math.floor(j * phi); // Weyl phase
-        long offset = Math.round((j - baseSize / 2.0) * gap + w * gap);
-        long idx = i0.longValue() + offset;
+        double w = (j * PHI) - Math.floor(j * PHI);
+        long idx = iCenter + Math.round((j - baseSize / 2.0) * gap * mult[v] + w * gap);
         if (idx < 2) continue;
-        BigInteger x0 = scaledSqrt.toBigInteger();
-        BigInteger x1 = x0.add(BigInteger.valueOf(scaledLocalWindow));
-        BigInteger x = invertPiSecant(BigInteger.valueOf(idx), pi, x0, x1, secantIters);
-        if (inThetaBand(x, sqrtN, thetaBands[v][0], thetaBands[v][1])
-            && x.isProbablePrime(mrIters)) {
+        long bucket = idx / gap;
+        if (!buckets.add(bucket)) continue; // enforce spread
+        BigInteger x =
+            invertPiSecant(
+                BigInteger.valueOf(idx),
+                pi,
+                BigInteger.ONE,
+                BigInteger.valueOf(Long.MAX_VALUE),
+                secantIters); // no clamp
+        if (inThetaBand(x, centerX, bands[v][0], bands[v][1]) && x.isProbablePrime(mrIters)) {
           merged.add(x);
         }
       }
     }
 
     // Collapse sentinel
-    int totalBeforeDedup = baseSize * 3;
+    int totalBeforeDedup = buckets.size();
     double dedupRate = 1.0 - (double) merged.size() / totalBeforeDedup;
     BigInteger min = merged.stream().min(BigInteger::compareTo).orElse(BigInteger.ZERO);
     BigInteger max = merged.stream().max(BigInteger::compareTo).orElse(BigInteger.ZERO);
-    BigInteger rangeWidth = max.subtract(min);
-    long expectedGap = (long) (baseSize * gap / 5.0);
-    if (dedupRate > 0.98 && rangeWidth.compareTo(BigInteger.valueOf(expectedGap)) < 0) {
+    double ratioMin = min.doubleValue() / sqrtN.doubleValue();
+    double ratioMax = max.doubleValue() / sqrtN.doubleValue();
+    if (dedupRate > 0.95 || ratioMax < 1.05) {
       System.err.println(
-          "WARNING: Variants collapsed—high dedup ("
+          "WARNING: Collapse detected — dedup "
               + String.format("%.2f%%", dedupRate * 100)
-              + ") and narrow range ("
-              + rangeWidth
-              + " < "
-              + expectedGap
-              + "). Increase localWindow or diversify indices.");
+              + ", ratio ["
+              + String.format("%.3f", ratioMin)
+              + ", "
+              + String.format("%.3f", ratioMax)
+              + "]. Increase index spread, remove clamps, or expand localWindow.");
     }
 
     // Convert to sorted list
@@ -376,7 +377,7 @@ public class FactorizationShortcut {
   }
 
   private static boolean inThetaBand(
-      BigInteger p, BigInteger sqrtN, double thetaMin, double thetaMax) {
+      BigInteger p, BigInteger centerX, double thetaMin, double thetaMax) {
     BigDecimal theta = thetaPrimeInt(new BigDecimal(p), new BigDecimal("0.3"));
     double t = theta.doubleValue();
     return t >= thetaMin && t < thetaMax;
