@@ -303,10 +303,9 @@ public class FactorizationShortcut {
   /**
    * Generates a combined pool of prime candidates using three tuned Z5D variants.
    *
-   * <p>Variants:
-   * - Z5D-A: Baseline for balanced semiprimes (theta band 0.05–1.5, epsilon 0.1)
-   * - Z5D-B: Stretch low-band for skinny factors (theta band 0.02–0.6, epsilon 0.05)
-   * - Z-X: High-offset-band for primes significantly above √N (theta band 1.0–3.0, epsilon 0.2)
+   * <p>Variants: - Z5D-A: Baseline for balanced semiprimes (theta band 0.05–1.5, epsilon 0.1) -
+   * Z5D-B: Stretch low-band for skinny factors (theta band 0.02–0.6, epsilon 0.05) - Z-X:
+   * High-offset-band for primes significantly above √N (theta band 1.0–3.0, epsilon 0.2)
    *
    * @param Nmax The maximum N value (used to compute √Nmax for band calculations)
    * @param baseSize The base size for prime generation per variant (target: 30k per variant)
@@ -317,12 +316,7 @@ public class FactorizationShortcut {
    * @return A merged and distinct list of prime candidates (~80k total)
    */
   public static List<BigInteger> multiZ5DPool(
-      BigInteger Nmax,
-      int baseSize,
-      PiOracle pi,
-      int secantIters,
-      int localWindow,
-      int mrIters) {
+      BigInteger Nmax, int baseSize, PiOracle pi, int secantIters, int localWindow, int mrIters) {
 
     // Generate three variants with different theta bands
     List<BigInteger> variantA =
@@ -403,9 +397,11 @@ public class FactorizationShortcut {
 
     java.util.Random rand = new java.util.Random();
     for (int tries = 0; tries < 10; tries++) {
-      BigInteger x = new BigInteger(n.bitLength(), rand).mod(n.subtract(BigInteger.TWO)).add(BigInteger.TWO);
+      BigInteger x =
+          new BigInteger(n.bitLength(), rand).mod(n.subtract(BigInteger.TWO)).add(BigInteger.TWO);
       BigInteger y = x;
-      BigInteger c = new BigInteger(n.bitLength(), rand).mod(n.subtract(BigInteger.ONE)).add(BigInteger.ONE);
+      BigInteger c =
+          new BigInteger(n.bitLength(), rand).mod(n.subtract(BigInteger.ONE)).add(BigInteger.ONE);
       BigInteger d = BigInteger.ONE;
 
       int steps = 0;

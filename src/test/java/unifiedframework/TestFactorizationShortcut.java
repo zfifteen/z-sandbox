@@ -163,38 +163,39 @@ public class TestFactorizationShortcut {
   @Test
   public void testMultiZ5DPool() {
     System.out.println("Testing multiZ5DPool functionality");
-    
+
     // Use a smaller Nmax for faster testing
     BigInteger Nmax = new BigInteger("10000000000000000"); // 10^16 for better band separation
     int baseSize = 50; // Smaller size for testing (instead of 30k)
-    
+
     // Build the PiOracle
     FactorizationShortcut.PiOracle pi = FactorizationShortcut.buildPiOracle();
-    
+
     System.out.printf("Input Nmax: %s%n", Nmax);
     System.out.printf("Base size per variant: %d%n", baseSize);
     System.out.printf("Expected total candidates: ~%d (with deduplication)%n", baseSize * 3);
-    
+
     // Generate multi-variant pool
     long startTime = System.currentTimeMillis();
-    List<BigInteger> pool = FactorizationShortcut.multiZ5DPool(
-        Nmax,
-        baseSize,
-        pi,
-        20,    // secantIters
-        2048,  // localWindow
-        64     // mrIters
-    );
+    List<BigInteger> pool =
+        FactorizationShortcut.multiZ5DPool(
+            Nmax,
+            baseSize,
+            pi,
+            20, // secantIters
+            2048, // localWindow
+            64 // mrIters
+            );
     long endTime = System.currentTimeMillis();
-    
+
     System.out.printf("Generated pool size: %d%n", pool.size());
     System.out.printf("Generation time: %d ms%n", (endTime - startTime));
-    
+
     // Verify pool properties
     assertNotNull(pool);
     assertTrue(pool.size() > 0, "Pool should contain candidates");
     assertTrue(pool.size() <= baseSize * 3, "Pool should not exceed 3x base size");
-    
+
     // Verify all candidates are prime (probabilistic test)
     int primeCount = 0;
     for (BigInteger p : pool) {
@@ -203,81 +204,87 @@ public class TestFactorizationShortcut {
         primeCount++;
       }
     }
-    System.out.printf("Probable primes: %d / %d (%.2f%%)%n", 
+    System.out.printf(
+        "Probable primes: %d / %d (%.2f%%)%n",
         primeCount, pool.size(), 100.0 * primeCount / pool.size());
-    assertTrue(primeCount > pool.size() * 0.95, 
-        "At least 95% of candidates should be probable primes");
-    
+    assertTrue(
+        primeCount > pool.size() * 0.95, "At least 95% of candidates should be probable primes");
+
     // Verify sorted order
     for (int i = 1; i < pool.size(); i++) {
-      assertTrue(pool.get(i).compareTo(pool.get(i - 1)) > 0, 
-          "Pool should be sorted in ascending order");
+      assertTrue(
+          pool.get(i).compareTo(pool.get(i - 1)) > 0, "Pool should be sorted in ascending order");
     }
     System.out.println("✓ Pool is sorted");
-    
+
     // Verify no duplicates
     Set<BigInteger> uniqueSet = new HashSet<>(pool);
     assertEquals(pool.size(), uniqueSet.size(), "Pool should contain no duplicates");
     System.out.println("✓ Pool contains no duplicates");
-    
+
     // Verify candidates are in reasonable range relative to sqrt(Nmax)
     BigInteger sqrtNmax = FactorizationShortcut.sqrtFloor(Nmax);
     System.out.printf("sqrt(Nmax): %s%n", sqrtNmax);
-    
+
     // Check that candidates cover different bands
     BigInteger minCandidate = pool.get(0);
     BigInteger maxCandidate = pool.get(pool.size() - 1);
     System.out.printf("Candidate range: [%s, %s]%n", minCandidate, maxCandidate);
-    
-    BigDecimal minRatio = new BigDecimal(minCandidate).divide(new BigDecimal(sqrtNmax), 
-        java.math.MathContext.DECIMAL128);
-    BigDecimal maxRatio = new BigDecimal(maxCandidate).divide(new BigDecimal(sqrtNmax), 
-        java.math.MathContext.DECIMAL128);
-    System.out.printf("Ratio to sqrt(Nmax): [%.3f, %.3f]%n", 
-        minRatio.doubleValue(), maxRatio.doubleValue());
-    
+
+    BigDecimal minRatio =
+        new BigDecimal(minCandidate)
+            .divide(new BigDecimal(sqrtNmax), java.math.MathContext.DECIMAL128);
+    BigDecimal maxRatio =
+        new BigDecimal(maxCandidate)
+            .divide(new BigDecimal(sqrtNmax), java.math.MathContext.DECIMAL128);
+    System.out.printf(
+        "Ratio to sqrt(Nmax): [%.3f, %.3f]%n", minRatio.doubleValue(), maxRatio.doubleValue());
+
     // Verify that we have coverage across the bands
     // The bands in multiZ5DPool are: Z5D-A (0.05-1.5), Z5D-B (0.02-0.6), Z-X (1.0-3.0)
     // The algorithm searches around sqrt(Nmax), so candidates will be in the overlapping regions
     // For now, just verify we have some reasonable spread
-    assertTrue(minRatio.doubleValue() > 0.0 && minRatio.doubleValue() <= 2.0, 
+    assertTrue(
+        minRatio.doubleValue() > 0.0 && minRatio.doubleValue() <= 2.0,
         "Minimum candidate should be in reasonable range");
-    assertTrue(maxRatio.doubleValue() >= 0.5 && maxRatio.doubleValue() <= 3.5, 
+    assertTrue(
+        maxRatio.doubleValue() >= 0.5 && maxRatio.doubleValue() <= 3.5,
         "Maximum candidate should be in reasonable range");
-    
+
     System.out.println("✓ Multi-variant Z5D pool test passed");
   }
 
   @Test
   public void testMultiZ5DPoolWithThetaBanding() {
     System.out.println("Testing multiZ5DPool with theta banding for coverage validation");
-    
+
     // Test parameters
     BigInteger Nmax = new BigInteger("100000000000000"); // 10^14
     int baseSize = 200; // 200 primes per variant
-    
+
     // Build the PiOracle
     FactorizationShortcut.PiOracle pi = FactorizationShortcut.buildPiOracle();
-    
+
     System.out.printf("Input Nmax: %s%n", Nmax);
     System.out.printf("sqrt(Nmax): %s%n", FactorizationShortcut.sqrtFloor(Nmax));
     System.out.printf("Base size per variant: %d%n", baseSize);
-    
+
     // Generate multi-variant pool
     long startTime = System.currentTimeMillis();
-    List<BigInteger> pool = FactorizationShortcut.multiZ5DPool(
-        Nmax,
-        baseSize,
-        pi,
-        20,    // secantIters
-        2048,  // localWindow
-        64     // mrIters
-    );
+    List<BigInteger> pool =
+        FactorizationShortcut.multiZ5DPool(
+            Nmax,
+            baseSize,
+            pi,
+            20, // secantIters
+            2048, // localWindow
+            64 // mrIters
+            );
     long endTime = System.currentTimeMillis();
-    
+
     System.out.printf("Generated pool size: %d%n", pool.size());
     System.out.printf("Generation time: %d ms%n", (endTime - startTime));
-    
+
     // Compute theta values for all candidates
     BigDecimal k = new BigDecimal("0.3");
     Map<BigInteger, BigDecimal> thetaMap = new HashMap<>();
@@ -285,57 +292,58 @@ public class TestFactorizationShortcut {
       BigDecimal theta = FactorizationShortcut.thetaPrimeInt(new BigDecimal(p), k);
       thetaMap.put(p, theta);
     }
-    
+
     // Generate test semiprimes to validate coverage
     int numTestSemiprimes = 100;
-    List<BigInteger[]> testSemiprimes = 
+    List<BigInteger[]> testSemiprimes =
         FactorizationShortcut.sampleSemiprimesBalancedLCG(pool, numTestSemiprimes, Nmax, 12345L);
-    
+
     System.out.printf("Testing coverage with %d semiprimes%n", testSemiprimes.size());
-    
+
     // For each semiprime N = p * q, check if theta banding would find p or q
     // Use a larger epsilon for this test since we have a small pool
     BigDecimal eps = new BigDecimal("0.15");
     int coveredCount = 0;
-    
+
     for (BigInteger[] semi : testSemiprimes) {
       BigInteger p = semi[0];
       BigInteger q = semi[1];
       BigInteger N = semi[2];
-      
+
       BigDecimal thetaN = FactorizationShortcut.thetaPrimeInt(new BigDecimal(N), k);
       BigDecimal thetaP = thetaMap.get(p);
       BigDecimal thetaQ = thetaMap.get(q);
-      
+
       if (thetaP != null && thetaQ != null) {
         BigDecimal distP = FactorizationShortcut.circDist(thetaP, thetaN);
         BigDecimal distQ = FactorizationShortcut.circDist(thetaQ, thetaN);
-        
+
         // Check if either p or q is within epsilon of N's theta
         if (distP.compareTo(eps) <= 0 || distQ.compareTo(eps) <= 0) {
           coveredCount++;
         }
       }
     }
-    
+
     double coverage = 100.0 * coveredCount / testSemiprimes.size();
-    System.out.printf("Theta banding coverage: %d / %d (%.2f%%) with epsilon=%.2f%n", 
+    System.out.printf(
+        "Theta banding coverage: %d / %d (%.2f%%) with epsilon=%.2f%n",
         coveredCount, testSemiprimes.size(), coverage, eps.doubleValue());
-    
+
     // Validate coverage is reasonable
     // Note: With a small pool and test set, coverage may be low but should be > 0
-    assertTrue(coverage >= 0.0, 
-        String.format("Coverage should be >= 0%%, got %.2f%%", coverage));
-    System.out.println("Note: Coverage depends on pool size and epsilon. " + 
-        "Larger pools with epsilon=0.05 achieve 98%+ coverage.");
-    
+    assertTrue(coverage >= 0.0, String.format("Coverage should be >= 0%%, got %.2f%%", coverage));
+    System.out.println(
+        "Note: Coverage depends on pool size and epsilon. "
+            + "Larger pools with epsilon=0.05 achieve 98%+ coverage.");
+
     // Display theta distribution
     List<BigDecimal> thetaValues = new ArrayList<>(thetaMap.values());
     thetaValues.sort(null);
-    System.out.printf("Theta value range: [%.4f, %.4f]%n", 
-        thetaValues.get(0).doubleValue(), 
-        thetaValues.get(thetaValues.size() - 1).doubleValue());
-    
+    System.out.printf(
+        "Theta value range: [%.4f, %.4f]%n",
+        thetaValues.get(0).doubleValue(), thetaValues.get(thetaValues.size() - 1).doubleValue());
+
     // Check theta distribution covers [0, 1) reasonably
     int bins = 10;
     int[] thetaHistogram = new int[bins];
@@ -343,13 +351,13 @@ public class TestFactorizationShortcut {
       int bin = Math.min(bins - 1, (int) (theta.doubleValue() * bins));
       thetaHistogram[bin]++;
     }
-    
+
     System.out.println("Theta distribution (10 bins):");
     for (int i = 0; i < bins; i++) {
-      System.out.printf("  [%.1f, %.1f): %d candidates%n", 
-          i * 0.1, (i + 1) * 0.1, thetaHistogram[i]);
+      System.out.printf(
+          "  [%.1f, %.1f): %d candidates%n", i * 0.1, (i + 1) * 0.1, thetaHistogram[i]);
     }
-    
+
     // Verify that we have candidates across the theta space
     int nonEmptyBins = 0;
     for (int count : thetaHistogram) {
@@ -357,9 +365,8 @@ public class TestFactorizationShortcut {
     }
     System.out.printf("Non-empty bins: %d / %d%n", nonEmptyBins, bins);
     // With a small pool, just verify we have some distribution (at least 1 bin)
-    assertTrue(nonEmptyBins >= 1, 
-        "Should have candidates distributed across theta space");
-    
+    assertTrue(nonEmptyBins >= 1, "Should have candidates distributed across theta space");
+
     System.out.println("✓ Multi-variant Z5D pool with theta banding test passed");
   }
 }
