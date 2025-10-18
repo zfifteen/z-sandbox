@@ -951,7 +951,7 @@ def plot_3d_spiral_candidates(N, iterations=100, save_path='plots/plot.png'):
     ax.set_ylabel('Y (Offset)')
     ax.set_zlabel('Iteration (Z)')
     ax.set_title(f'3D Spiral Candidates for N={N}')
-    plt.savefig("golden_spiral_candidates.png")
+    plt.savefig(save_path)
     plt.close()
 
 
