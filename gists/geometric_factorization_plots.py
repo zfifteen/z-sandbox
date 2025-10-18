@@ -1064,7 +1064,7 @@ def run_plot_demo():
     print(f"Using N={N}, p={p}, q={q}")
 
     # 2D Plots
-    plot_unit_circle_mapping(N, p, q, k)
+    plot_unit_circle_mapping(N, p, q, k, save_path='plots/unit_circle_mapping.png')
     plot_theta_vs_logN(save_path='plots/theta_vs_logN.png')
     plot_circular_distance_histogram(save_path='plots/circular_distance_histogram.png')
     plot_golden_spiral_candidates(N, save_path='plots/golden_spiral_candidates.png')
