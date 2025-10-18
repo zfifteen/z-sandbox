@@ -894,7 +894,7 @@ def plot_candidate_filtering(N, k, epsilon, save_path='plots/plot.png'):
     ax2.legend()
 
     plt.tight_layout()
-    plt.savefig("circular_distance_histogram.png")
+    plt.savefig(save_path)
     plt.close()
 
 
