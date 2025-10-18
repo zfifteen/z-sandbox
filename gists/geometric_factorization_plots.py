@@ -779,7 +779,7 @@ def plot_unit_circle_mapping(N, p, q, k, save_path='plots/plot.png'):
 
     ax.set_title(f'Unit Circle Mapping for N={N}, k={k}')
     ax.legend()
-    plt.savefig("unit_circle_mapping.png")
+    plt.savefig(save_path)
     plt.close()
 
 
