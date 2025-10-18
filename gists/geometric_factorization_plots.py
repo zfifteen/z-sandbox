@@ -828,7 +828,7 @@ def plot_circular_distance_histogram(k_list=[0.2, 0.45, 0.8], num_samples=100, s
     ax.set_ylabel('Frequency')
     ax.set_title('Circular Distance Histogram for True Factors')
     ax.legend()
-    plt.savefig("theta_vs_logN.png")
+    plt.savefig(save_path)
     plt.close()
 
 
