@@ -1007,7 +1007,7 @@ def plot_multi_pass_parameter_space(results, save_path='plots/plot.png'):
     ax.set_ylabel('ε')
     ax.set_zlabel('Reduction Ratio')
     ax.set_title('Multi-Pass Parameter Space')
-    plt.savefig("candidate_filtering.png")
+    plt.savefig(save_path)
     plt.close()
 
 
