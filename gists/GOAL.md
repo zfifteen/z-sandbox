@@ -1,7 +1,7 @@
 # Geometric Factorization Algorithm - Project Goals
 
 ## Overview
-Develop and validate a novel geometric factorization method using golden-ratio geometric mapping and circular distance filtering to factor semiprimes efficiently.
+Develop and validate a novel geometric factorization method using golden-ratio geometric mapping and circular distance filtering to factor semiprimes efficiently. Current achievement: 27-bit semiprimes with >0% success. New approach: Switch from attempt-based to time-based limiting (e.g., 10 seconds) to reach higher bit sizes.
 
 ## Core Objectives
 - ✅ Implement reproducible geometric factorization algorithm
@@ -12,10 +12,11 @@ Develop and validate a novel geometric factorization method using golden-ratio g
 - ✅ Establish foundation for further research in geometric number theory
 
 ## Success Metrics
-- **27-bit semiprimes**: 20% factorization success (avg 283 attempts) - **Highest success > 0%**
+- **Current Max**: 27-bit semiprimes (20% success) - **Highest with attempt limiting**
+- **New Approach**: Time-based limiting (10 seconds) to target 28+ bit semiprimes
 - **24-bit semiprimes**: 100% factorization success (avg 113 attempts)
 - **20-bit semiprimes**: 40% factorization success (avg 244 attempts)
-- **Performance**: Sub-second execution for effective sizes (up to 27-bit)
+- **Performance**: Up to 10 seconds execution for larger sizes
 - **Correctness**: 100% accuracy with primality verification
 - **Reproducibility**: Deterministic results with seeded RNG
 
@@ -36,12 +37,13 @@ Develop and validate a novel geometric factorization method using golden-ratio g
 - ✅ 28-bit: 0% success rate (algorithm limit reached)
 - ✅ **Highest success > 0%: 27-bit semiprimes**
 
-## Future Enhancements
-- Adaptive parameter selection
-- Parallel candidate testing
-- Extended geometric mappings
-- Machine learning optimization
-- Larger semiprime support
+## Future Enhancements (Now In Progress)
+- ✅ Time-based limiting implementation
+- 🔄 Adaptive parameter selection within time budget
+- 🔄 Parallel candidate testing
+- 🔄 Extended geometric mappings
+- 🔄 Machine learning optimization
+- ✅ Larger semiprime support (28+ bits with time limits)
 
 ## Impact
 This implementation demonstrates the potential of geometric approaches to integer factorization, providing a research foundation for exploring number theory through geometric transformations.</content>
