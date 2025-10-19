@@ -23,8 +23,8 @@ Comprehensive analysis of the geometric factorization algorithm's scaling bounda
 - **Result**: Minimal impact (347 vs 283 attempts for 25-bit)
 - **Conclusion**: Parameter tuning insufficient
 
-#### 3. High-Precision Arithmetic
-- **Approach**: Decimal (64-160 digits) + SymPy ultra-precision (200+ digits)
+#### 3. High-Precision Arithmetic (Precision Sweep)
+- **Approach**: Systematic precision sweep (50, 80, 120, 160 decimal digits) + SymPy ultra-precision (200+ digits)
 - **Result**: Identical results across all precision levels (Δθ = 0)
 - **Conclusion**: Not a floating-point or computational precision issue
 
