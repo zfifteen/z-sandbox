@@ -1,0 +1,19 @@
+Z5D RSA PRIME GRID ANALYSIS (C Edition)
+===================================
+WARNING: FOR EDUCATIONAL USE ONLY
+Target: Generate 50 RSA-4096 key(s)
+
+  Generating key 1/50... ✓ (0.7s)
+Extracting modulus from key 1... ✓ (1233 digits, 0.002s)
+    ↳ Shortcut attempt failed after 500 divisions (126.22s)
+  Generating key 2/50... ✓ (0.6s)
+Extracting modulus from key 2... ✓ (1233 digits, 0.000s)
+    ↳ Shortcut attempt failed after 500 divisions (129.81s)
+  Generating key 3/50... ✓ (0.6s)
+Extracting modulus from key 3... ✓ (1233 digits, 0.000s)
+    ↳ Shortcut attempt failed after 500 divisions (129.38s)
+  Generating key 4/50... ✓ (0.1s)
+Extracting modulus from key 4... ✓ (1233 digits, 0.000s)
+    ↳ Shortcut attempt failed after 500 divisions (127.41s)
+  Generating key 5/50... ✓ (0.6s)
+Extracting modulus from key 5... 

@@ -1,0 +1,2 @@
+z5d_grid_test: invalid option -- n
+Usage: ./z5d_grid_test [--keys N] [--keep-files]
