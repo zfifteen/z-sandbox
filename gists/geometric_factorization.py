@@ -34,10 +34,45 @@ from typing import Tuple, List, Dict, Optional, Iterator, Any
 from dataclasses import dataclass, field
 from collections import defaultdict
 import sys
+from decimal import Decimal, getcontext, ROUND_HALF_EVEN
+
+# Set high precision for geometric calculations
+getcontext().prec = 100
+getcontext().rounding = ROUND_HALF_EVEN
+
+# Irrational ensemble for enhanced geometric mapping
+ALPHAS = [
+    Decimal("1.6180339887498948482045868343656381177"),  # φ
+    Decimal("2.7182818284590452353602874713526624977"),  # e
+    Decimal("3.1415926535897932384626433832795028842"),  # π
+    Decimal("2.4142135623730950488016887242096980786"),  # silver ratio δ
+]
 
 # Mathematical constants
 PHI = (1 + math.sqrt(5)) / 2  # Golden ratio
 GOLDEN_ANGLE = 2 * math.pi / (PHI ** 2)  # Golden angle ≈ 2.399963...
+
+def theta_mod1_log(x, alpha):
+    """Compute {alpha * log(x)} for ensemble mapping."""
+    if x <= 0:
+        return Decimal(0)
+    log_x = Decimal(x).ln()
+    scaled = alpha * log_x
+    return float(scaled - scaled.to_integral_value())
+
+def circ_dist(a, b):
+    """Circular distance on [0,1)"""
+    d = abs(a - b)
+    return min(d, 1 - d)
+
+def score_candidate_ensemble(N, cand):
+    """Score candidate using ensemble of irrational mappings."""
+    scores = []
+    for alpha in ALPHAS:
+        theta_n = theta_mod1_log(N, alpha)
+        theta_cand = theta_mod1_log(cand, alpha)
+        scores.append(circ_dist(theta_n, theta_cand))
+    return min(scores)  # Best score across ensemble
 
 
 # ============================================================================
@@ -323,34 +358,43 @@ def filter_candidates_geometric(
     N: int,
     candidates: List[int],
     k: float,
-    epsilon: float
+    epsilon: float,
+    use_ensemble: bool = False
 ) -> List[int]:
     """
-    Filter candidates using geometric circular distance.
-    
-    Keeps only candidates p where |θ(p, k) - θ(N, k)| ≤ ε
-    with proper wrap-around on unit circle.
+    Filter candidates using geometric circular distance or ensemble scoring.
     
     Args:
         N: Target semiprime
         candidates: List of candidate factors
         k: Exponent parameter for theta
         epsilon: Tolerance threshold
+        use_ensemble: Use ensemble mapping instead of single theta
         
     Returns:
         Filtered list of candidates
     """
-    theta_N = theta(N, k)
-    filtered = []
-    
-    for p in candidates:
-        theta_p = theta(p, k)
-        dist = circular_distance(theta_p, theta_N)
+    if use_ensemble:
+        # Use ensemble scoring
+        filtered = []
+        for p in candidates:
+            score = score_candidate_ensemble(N, p)
+            if score <= epsilon:  # Lower score is better
+                filtered.append(p)
+        return filtered
+    else:
+        # Original single theta filtering
+        theta_N = theta(N, k)
+        filtered = []
         
-        if dist <= epsilon:
-            filtered.append(p)
-    
-    return filtered
+        for p in candidates:
+            theta_p = theta(p, k)
+            dist = circular_distance(theta_p, theta_N)
+            
+            if dist <= epsilon:
+                filtered.append(p)
+        
+        return filtered
 
 
 # ============================================================================
@@ -363,6 +407,7 @@ class FactorizationParams:
     k_list: List[float] = field(default_factory=lambda: [0.200, 0.450, 0.800])
     eps_list: List[float] = field(default_factory=lambda: [0.02, 0.05, 0.10])
     adaptive_scaling: bool = True
+    use_ensemble: bool = False
     spiral_iters: int = 2000
     search_window: int = 1024
     prime_limit: int = 5000
@@ -490,7 +535,7 @@ def geometric_factor(N: int, params: FactorizationParams) -> FactorizationResult
             
             # Geometric filtering
             filter_start = time.time()
-            filtered = filter_candidates_geometric(N, all_cands, k, epsilon)
+            filtered = filter_candidates_geometric(N, all_cands, k, epsilon, params.use_ensemble)
             filter_time = time.time() - filter_start
             
             post_filter_count = len(filtered)

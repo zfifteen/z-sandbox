@@ -130,8 +130,9 @@ This implementation demonstrates the potential of geometric approaches to intege
 
 
 ## Task Update: Achieve Success Beyond 35 Bits
-- **Approach 1 (Timeouts)**: Increased to 60 seconds for 35-bit - Still 0% success (failed in 0.685s)
-- **Approach 2 (Adaptive Parameters)**: Implemented bit-size scaling for k/ε values - Still 0% success
-- **Result**: Both approaches failed; boundary remains at 34-bit
-- **Conclusion**: Scaling boundary is fundamental geometric limitation, not parameter/timing issue
-- **Next Steps**: Explore alternative geometric mappings or hybrid approaches
+- **Approach 1 (Timeouts)**: Increased to 60 seconds - Failed (time not limiting factor)
+- **Approach 2 (Adaptive Parameters)**: Bit-size scaling for k/ε - Failed (insufficient)
+- **Approach 3 (Ensemble Mapping)**: φ, e, π, silver ratio ensemble - Shows promise in scoring but full factorization still fails
+- **Result**: Boundary remains at 34-bit; ensemble improves candidate scoring but not enough for success
+- **Conclusion**: Geometric limitation persists; need deeper mapping changes
+- **Next Steps**: Try mod-1 log multiplication, renormalized maps, or hybrid arithmetic-geometric filters
