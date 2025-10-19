@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Spiral vs Zeta Density Comparison</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <canvas id="spiralZetaChart" width="800" height="600"></canvas>
+    <script>
+        const ctx = document.getElementById('spiralZetaChart').getContext('2d');
+        const chart = new Chart(ctx, {
+            type: 'scatter',
+            data: {
+                datasets: [
+                    {
+                        label: 'Spiral Candidates (N=91)',
+                        data: [
+                            {x: 0.5, y: 0.866}, {x: 0.809, y: 0.588}
+                        ],
+                        backgroundColor: '#FFD700',
+                        pointRadius: 5
+                    },
+                    {
+                        label: 'Zeta Zeros (scaled)',
+                        data: [
+                            {x: 14.13, y: 0}, {x: 21.02, y: 0}
+                        ],
+                        backgroundColor: '#FF4500',
+                        pointRadius: 5
+                    }
+                ]
+            },
+            options: {
+                scales: {
+                    x: {min: 0, max: 25, title: {display: true, text: 'Real Part / Imaginary Part'}},
+                    y: {min: -1, max: 1, title: {display: true, text: 'Imaginary Part / Density'}}
+                },
+                plugins: {
+                    title: {display: true, text: 'Spiral vs Zeta Density Comparison'}
+                }
+            }
+        });
+    </script>
+</body>
+</html>

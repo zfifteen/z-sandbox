@@ -57,6 +57,13 @@ ALPHAS = [
     Decimal("2.4142135623730950488016887242096980786"),  # silver ratio δ
 ]
 
+# Riemann zeta zeros (first 20 imaginary parts) for tuning
+ZETA_ZEROS_IMAG = [
+    14.134725, 21.022040, 25.010858, 30.424876, 32.935062,
+    37.586178, 40.918719, 43.327073, 48.005151, 49.773832,
+    52.970321, 56.446248, 59.347045, 60.831778, 65.112544,
+    67.079811, 69.546402, 72.067158, 75.704690, 77.144840
+]
 # Mathematical constants
 PHI = (1 + math.sqrt(5)) / 2  # Golden ratio
 GOLDEN_ANGLE = 2 * math.pi / (PHI ** 2)  # Golden angle ≈ 2.399963...
@@ -968,6 +975,84 @@ Examples:
         print("  python geometric_factorization.py --demo      # Run demonstration")
         print("  python geometric_factorization.py --validate  # Run README validation")
         print("="*70)
+
+# ============================================================================
+# Hybrid Factorization with Zeta Tuning
+# ============================================================================
+
+def unified_factorization(N: int, zeta_samples: List[float], k: float = 0.3) -> Tuple[List[int], float]:
+    """
+    Unified factorization combining geometric mapping with zeta-tuned spiral search.
+
+    Uses Riemann zeta zeros to tune k parameter for better spiral candidate generation,
+    implementing the hybrid approach from golden ratio spiral analysis.
+
+    Args:
+        N: Target semiprime to factor
+        zeta_samples: List of imaginary parts of zeta zeros for tuning
+        k: Base k parameter for geometric mapping
+
+    Returns:
+        Tuple of (factors_found, theta_value)
+    """
+    if N <= 1:
+        raise ValueError("N must be > 1")
+
+    # Use zeta zeros for scaling k
+    zeta_mean = sum(zeta_samples) / len(zeta_samples)
+    adjusted_k = k * (zeta_mean / float(mp.log(N)))
+
+    # Compute geometric mapping with adjusted k
+    theta = theta_ultra_precise(N, adjusted_k)
+
+    # Generate spiral candidates with zeta tuning
+    candidates = spiral_candidates_zeta(N, num_candidates=2000, k=adjusted_k,
+                                      zeta_samples=zeta_samples)
+
+    # Filter for actual factors
+    factors = [int(c) for c in candidates if N % c == 0 and c > 1 and c < N]
+
+    return factors, float(theta)
+
+
+def spiral_candidates_zeta(N: int, num_candidates: int, k: float,
+                          zeta_samples: List[float]) -> List[mp.mpf]:
+    """
+    Generate spiral candidates using zeta zero tuning for optimal scaling.
+
+    Args:
+        N: Target number
+        num_candidates: Number of candidates to generate
+        k: Geometric parameter
+        zeta_samples: Zeta zero imaginary parts for tuning
+
+    Returns:
+        List of candidate factors
+    """
+    phi = (1 + mp.sqrt(5)) / 2
+    golden_angle = 2 * mp.pi / (phi ** 2)
+
+    # Use zeta mean for radial scaling
+    zeta_mean = sum(zeta_samples) / len(zeta_samples)
+    scale = 0.5 * (zeta_mean / 10.0)  # Tuned scaling factor
+
+    candidates = []
+    sqrt_N = mp.sqrt(N)
+
+    for i in range(num_candidates):
+        # Zeta-tuned radial growth: slower than exponential for better coverage
+        r = sqrt_N * scale * (1 + mp.log(i + 2)) * (phi ** (i / (5 * k)))
+
+        # Golden angle rotation
+        theta_spiral = i * golden_angle
+
+        # Convert to candidate: round to nearest integer near sqrt(N)
+        candidate = int(mp.nint(sqrt_N + r * mp.cos(theta_spiral)))
+
+        if candidate > 1 and candidate < N:
+            candidates.append(mp.mpf(candidate))
+
+    return list(set(candidates))  # Remove duplicates
 
 
 if __name__ == '__main__':
