@@ -24,9 +24,9 @@ Comprehensive analysis of the geometric factorization algorithm's scaling bounda
 - **Conclusion**: Parameter tuning insufficient
 
 #### 3. High-Precision Arithmetic
-- **Approach**: Decimal-based theta computation (64-160 digits)
-- **Result**: Identical results across precision levels (Δθ = 0)
-- **Conclusion**: Not a floating-point precision issue
+- **Approach**: Decimal (64-160 digits) + SymPy ultra-precision (200+ digits)
+- **Result**: Identical results across all precision levels (Δθ = 0)
+- **Conclusion**: Not a floating-point or computational precision issue
 
 #### 4. Residual Normalization
 - **Approach**: Circular mean subtraction for scale invariance
@@ -71,7 +71,7 @@ The golden-ratio mapping creates a "phase space" where prime factors should clus
 4. **Mapping Limitations**: Single-exponent transformation insufficient for complex prime interactions
 
 ### Computational Artifact vs. Fundamental Limit
-- **Precision**: Ruled out (identical results at all precisions)
+- **Precision**: Ruled out (tested up to 200+ digits with SymPy - identical results)
 - **Parameters**: Ruled out (extensive tuning ineffective)
 - **Time**: Ruled out (failures complete quickly)
 - **Conclusion**: **Fundamental geometric limitation**

@@ -40,6 +40,10 @@ from decimal import Decimal, getcontext, ROUND_HALF_EVEN
 getcontext().prec = 100
 getcontext().rounding = ROUND_HALF_EVEN
 
+# Set SymPy ultra-high precision
+import sympy as sp
+sp.N(sp.pi, 200)  # Set working precision to 200 digits
+
 # Irrational ensemble for enhanced geometric mapping
 ALPHAS = [
     Decimal("1.6180339887498948482045868343656381177"),  # φ
@@ -86,6 +90,22 @@ def theta_recursive(N: int, k: float, depth=1) -> float:
     # θ'(N) = θ(θ(N), k/φ)
     inner = theta(N, k)
     return theta_recursive(int(inner * 2**32), k / PHI, depth - 1)
+
+def theta_ultra_precise(N: int, k: float) -> float:
+    """Ultra-high precision theta using SymPy."""
+    # Convert to high-precision SymPy objects
+    N_sp = sp.Integer(N)
+    phi_sp = sp.GoldenRatio
+    k_sp = sp.Float(k, 200)
+    
+    # Compute {φ × (N/φ)^k} with maximum precision
+    ratio = N_sp / phi_sp
+    powered = sp.Pow(ratio, k_sp)
+    product = phi_sp * powered
+    fractional = product - sp.floor(product)
+    
+    # Return as high-precision float
+    return float(sp.N(fractional, 200))
 
 def theta(N: int, k: float) -> float:
     """
@@ -401,7 +421,10 @@ def filter_candidates_geometric(
         return filtered
     else:
         # Original single theta filtering
-        if params.recursive_theta:
+        if params.ultra_precision:
+            theta_N = theta_ultra_precise(N, k)
+            theta_func = lambda x: theta_ultra_precise(x, k)
+        elif params.recursive_theta:
             theta_N = theta_recursive(N, k, params.recursive_depth)
             theta_func = lambda x: theta_recursive(x, k, params.recursive_depth)
         else:
@@ -433,6 +456,7 @@ class FactorizationParams:
     use_cf_alignment: bool = False
     recursive_theta: bool = False
     recursive_depth: int = 1
+    ultra_precision: bool = False
     spiral_iters: int = 2000
     search_window: int = 1024
     prime_limit: int = 5000
