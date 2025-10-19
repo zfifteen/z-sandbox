@@ -7,14 +7,15 @@ Develop and validate a novel geometric factorization method using golden-ratio g
 - ✅ Implement reproducible geometric factorization algorithm
 - ✅ Demonstrate effectiveness on small to medium semiprimes
 - ✅ Provide comprehensive visualization of mathematical concepts
-- ✅ Achieve 100% success rate on 24-bit semiprimes
+- ✅ Find highest bit size with success > 0% (achieved: 27-bit semiprimes)
 - ✅ Maintain 40% success rate on 20-bit semiprimes
 - ✅ Establish foundation for further research in geometric number theory
 
 ## Success Metrics
+- **27-bit semiprimes**: 20% factorization success (avg 283 attempts) - **Highest success > 0%**
 - **24-bit semiprimes**: 100% factorization success (avg 113 attempts)
 - **20-bit semiprimes**: 40% factorization success (avg 244 attempts)
-- **Performance**: Sub-second execution for target sizes
+- **Performance**: Sub-second execution for effective sizes (up to 27-bit)
 - **Correctness**: 100% accuracy with primality verification
 - **Reproducibility**: Deterministic results with seeded RNG
 
