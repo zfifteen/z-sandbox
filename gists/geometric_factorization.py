@@ -362,6 +362,7 @@ class FactorizationParams:
     """Parameters for geometric factorization."""
     k_list: List[float] = field(default_factory=lambda: [0.200, 0.450, 0.800])
     eps_list: List[float] = field(default_factory=lambda: [0.02, 0.05, 0.10])
+    adaptive_scaling: bool = True
     spiral_iters: int = 2000
     search_window: int = 1024
     prime_limit: int = 5000
@@ -441,9 +442,29 @@ def geometric_factor(N: int, params: FactorizationParams) -> FactorizationResult
                 )
                 return result
     
+    # Adaptive parameter scaling based on N size
+    bit_size = N.bit_length()
+    if params.adaptive_scaling:
+        # Scale k values: more for larger N
+        base_k = [0.200, 0.450, 0.800]
+        if bit_size >= 35:
+            base_k.extend([0.1, 0.3, 0.5, 0.7, 0.9])
+        
+        # Scale ε values with log(N): larger distances for larger N
+        base_eps = [0.02, 0.05, 0.10]
+        if bit_size >= 35:
+            log_scale = math.log(bit_size) / math.log(30)  # Scale factor
+            base_eps = [0.02 * log_scale, 0.05 * log_scale, 0.10 * log_scale, 0.15 * log_scale]
+        
+        k_list = base_k
+        eps_list = base_eps
+    else:
+        k_list = params.k_list
+        eps_list = params.eps_list
+    
     # Multi-pass over k and epsilon values
-    for k_idx, k in enumerate(params.k_list):
-        for eps_idx, epsilon in enumerate(params.eps_list):
+    for k_idx, k in enumerate(k_list):
+        for eps_idx, epsilon in enumerate(eps_list):
             pass_start = time.time()
             
             # Generate prime candidates around sqrt(N)

@@ -130,7 +130,8 @@ This implementation demonstrates the potential of geometric approaches to intege
 
 
 ## Task Update: Achieve Success Beyond 35 Bits
-- **Approach Tested**: Increased timeout to 60 seconds for 35-bit semiprimes
-- **Result**: Still 0% success (failed in 0.685s despite 60s limit)
-- **Conclusion**: Time adjustment alone insufficient; boundary is algorithmic/geometric
-- **Next Steps**: Implement adaptive parameters, precision improvements, or alternative mappings
+- **Approach 1 (Timeouts)**: Increased to 60 seconds for 35-bit - Still 0% success (failed in 0.685s)
+- **Approach 2 (Adaptive Parameters)**: Implemented bit-size scaling for k/ε values - Still 0% success
+- **Result**: Both approaches failed; boundary remains at 34-bit
+- **Conclusion**: Scaling boundary is fundamental geometric limitation, not parameter/timing issue
+- **Next Steps**: Explore alternative geometric mappings or hybrid approaches
