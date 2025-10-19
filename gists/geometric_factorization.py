@@ -366,6 +366,7 @@ class FactorizationParams:
     search_window: int = 1024
     prime_limit: int = 5000
     max_attempts: int = 50000
+    max_time: float = 10.0  # Maximum elapsed time in seconds
     use_spiral: bool = True
     primality_test_rounds: int = 10
 
@@ -378,6 +379,9 @@ class FactorizationResult:
     attempts: int
     candidate_counts: Dict[str, int]
     timings: Dict[str, float]
+    elapsed_time: float = 0.0
+    timeout: bool = False
+    logs: List[Dict[str, Any]] = field(default_factory=list)
     logs: List[Dict[str, Any]]
     
     def summary(self) -> str:
@@ -405,6 +409,7 @@ def geometric_factor(N: int, params: FactorizationParams) -> FactorizationResult
         FactorizationResult with diagnostics
     """
     start_time = time.time()
+    last_log = 0.0
     
     logs = []
     candidate_counts = defaultdict(int)
@@ -492,7 +497,13 @@ def geometric_factor(N: int, params: FactorizationParams) -> FactorizationResult
                 attempts += 1
                 log_entry['candidates_tested'] += 1
                 
-                if attempts > params.max_attempts:
+                # Progress logging
+                elapsed = time.time() - start_time
+                if elapsed - last_log >= 2.0:
+                    print(f"Progress: {attempts} attempts, {elapsed:.1f}s elapsed")
+                    last_log = elapsed
+                
+                if elapsed >= params.max_time:
                     break
                 
                 # Try division
@@ -513,13 +524,16 @@ def geometric_factor(N: int, params: FactorizationParams) -> FactorizationResult
                             'test_time': time.time() - test_start
                         })
                         
+                        elapsed = time.time() - start_time
                         result = FactorizationResult(
                             success=True,
                             factors=(p, q),
                             attempts=attempts,
                             candidate_counts=dict(candidate_counts),
                             timings=timings,
-                            logs=logs
+                            logs=logs,
+                            elapsed_time=elapsed,
+                            timeout=False
                         )
                         return result
             
@@ -527,14 +541,16 @@ def geometric_factor(N: int, params: FactorizationParams) -> FactorizationResult
             log_entry['result'] = 'CONTINUE'
             logs.append(log_entry)
             
-            if attempts > params.max_attempts:
+            if time.time() - start_time >= params.max_time:
                 break
         
-        if attempts > params.max_attempts:
+        if time.time() - start_time >= params.max_time:
             break
     
     # Failed to factor
-    timings['total'] = time.time() - start_time
+    elapsed = time.time() - start_time
+    timings['total'] = elapsed
+    timeout = elapsed >= params.max_time
     
     result = FactorizationResult(
         success=False,
@@ -542,7 +558,9 @@ def geometric_factor(N: int, params: FactorizationParams) -> FactorizationResult
         attempts=attempts,
         candidate_counts=dict(candidate_counts),
         timings=timings,
-        logs=logs
+        logs=logs,
+        elapsed_time=elapsed,
+        timeout=timeout
     )
     return result
 
@@ -591,7 +609,7 @@ def demo_run(bit_sizes: List[int], samples_per_size: int, seed: int) -> Dict[str
             print(f"  True factors: {true_p} × {true_q}")
             
             # Factor it
-            params = FactorizationParams()
+            params = FactorizationParams(max_time=args.max_time)
             result = geometric_factor(N, params)
             
             # Record results
@@ -764,6 +782,8 @@ Examples:
                        help='Factor a specific number')
     parser.add_argument('--seed', type=int, default=42,
                        help='Random seed (default: 42)')
+    parser.add_argument('--max-time', type=float, default=10.0,
+                       help='Maximum time to spend factoring (seconds)')
     
     args = parser.parse_args()
     
@@ -803,7 +823,7 @@ Examples:
     elif args.factor:
         print(f"\nFactoring N = {args.factor}")
         print("-" * 70)
-        params = FactorizationParams()
+        params = FactorizationParams(max_time=args.max_time)
         result = geometric_factor(args.factor, params)
         print(result.summary())
         
