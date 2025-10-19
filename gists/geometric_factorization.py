@@ -79,6 +79,14 @@ def score_candidate_ensemble(N, cand):
 # Core Mathematical Functions
 # ============================================================================
 
+def theta_recursive(N: int, k: float, depth=1) -> float:
+    """Recursive theta for fractal refinement."""
+    if depth <= 0:
+        return theta(N, k)
+    # θ'(N) = θ(θ(N), k/φ)
+    inner = theta(N, k)
+    return theta_recursive(int(inner * 2**32), k / PHI, depth - 1)
+
 def theta(N: int, k: float) -> float:
     """
     Compute geometric mapping θ(N, k) = {φ × {N / φ}^k}
@@ -393,11 +401,16 @@ def filter_candidates_geometric(
         return filtered
     else:
         # Original single theta filtering
-        theta_N = theta(N, k)
-        filtered = []
+        if params.recursive_theta:
+            theta_N = theta_recursive(N, k, params.recursive_depth)
+            theta_func = lambda x: theta_recursive(x, k, params.recursive_depth)
+        else:
+            theta_N = theta(N, k)
+            theta_func = lambda x: theta(x, k)
         
+        filtered = []
         for p in candidates:
-            theta_p = theta(p, k)
+            theta_p = theta_func(p)
             dist = circular_distance(theta_p, theta_N)
             
             if dist <= epsilon:
@@ -418,6 +431,8 @@ class FactorizationParams:
     adaptive_scaling: bool = True
     use_ensemble: bool = False,
     use_cf_alignment: bool = False
+    recursive_theta: bool = False
+    recursive_depth: int = 1
     spiral_iters: int = 2000
     search_window: int = 1024
     prime_limit: int = 5000
