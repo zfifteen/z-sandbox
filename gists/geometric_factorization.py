@@ -35,10 +35,15 @@ from dataclasses import dataclass, field
 from collections import defaultdict
 import sys
 from decimal import Decimal, getcontext, ROUND_HALF_EVEN
+import mpmath as mp
 
 # Set high precision for geometric calculations
 getcontext().prec = 100
 getcontext().rounding = ROUND_HALF_EVEN
+
+# Set mpmath ultra-high precision
+mp.mp.dps = 200  # 200 decimal places
+mp.mp.prec = 200 * 4  # bits of precision
 
 # Set SymPy ultra-high precision
 import sympy as sp
