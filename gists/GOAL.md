@@ -38,7 +38,80 @@ Develop and validate a novel geometric factorization method using golden-ratio g
 - ✅ **Highest success > 0%: 27-bit semiprimes**
 
 ## Future Enhancements (Now In Progress)
-- ✅ Time-based limiting implementation
+## Technical Implementation: Time-Based Limiting
+
+### Overview
+Switch from fixed attempt limits (max_attempts=50000) to elapsed time limits (e.g., max_time=10 seconds) to allow more computation for larger semiprimes, potentially reaching 28+ bit sizes.
+
+### Implementation Steps
+
+#### 1. Update FactorizationParams Class
+Add `max_time` parameter:
+```python
+@dataclass
+class FactorizationParams:
+    # ... existing params ...
+    max_time: float = 10.0  # Maximum elapsed time in seconds
+    # Keep max_attempts as fallback safety net
+```
+
+#### 2. Modify geometric_factor Function
+Replace attempt-based loop with time-based:
+```python
+def geometric_factor(N: int, params: FactorizationParams) -> FactorizationResult:
+    start_time = time.time()
+    attempts = 0
+    
+    # Main loop (replace while attempts < params.max_attempts)
+    while time.time() - start_time < params.max_time:
+        # ... existing logic ...
+        attempts += 1
+        if attempts > params.max_attempts:  # Safety net
+            break
+```
+
+#### 3. Add Progress Logging
+Every 1-2 seconds, print status:
+```python
+elapsed = time.time() - start_time
+if elapsed > last_log + 2.0:
+    print(f"Progress: {attempts} attempts, {elapsed:.1f}s elapsed")
+    last_log = elapsed
+```
+
+#### 4. CLI Integration
+Add --max-time argument:
+```python
+parser.add_argument('--max-time', type=float, default=10.0,
+                   help='Maximum time to spend factoring (seconds)')
+```
+
+#### 5. Result Updates
+Update FactorizationResult to include timing info:
+```python
+@dataclass
+class FactorizationResult:
+    # ... existing fields ...
+    elapsed_time: float = 0.0
+    timeout: bool = False
+```
+
+#### 6. Testing Strategy
+- Test on 27-bit semiprimes with 10s limit (should improve success rate)
+- Compare against attempt-limited runs
+- Profile performance bottlenecks
+- Validate on known cases
+
+### Expected Benefits
+- 28+ bit semiprimes may become factorable
+- Better resource utilization for research
+- More deterministic performance (time vs attempts)
+- Foundation for adaptive parameter tuning
+
+### Risk Mitigation
+- Keep max_attempts as safety net to prevent infinite loops
+- Add timeout flag in results for partial success
+- Profile and optimize slow operations (primality testing)
 - 🔄 Adaptive parameter selection within time budget
 - 🔄 Parallel candidate testing
 - 🔄 Extended geometric mappings
