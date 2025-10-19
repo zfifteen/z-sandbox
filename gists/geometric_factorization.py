@@ -359,7 +359,7 @@ def filter_candidates_geometric(
     candidates: List[int],
     k: float,
     epsilon: float,
-    use_ensemble: bool = False
+    params
 ) -> List[int]:
     """
     Filter candidates using geometric circular distance or ensemble scoring.
@@ -374,12 +374,21 @@ def filter_candidates_geometric(
     Returns:
         Filtered list of candidates
     """
-    if use_ensemble:
+    if params.use_ensemble:
         # Use ensemble scoring
         filtered = []
         for p in candidates:
             score = score_candidate_ensemble(N, p)
             if score <= epsilon:  # Lower score is better
+                filtered.append(p)
+        return filtered
+    elif params.use_cf_alignment:
+        # Use CF alignment with renormalization
+        aligned_alphas = refine_alphas_via_cf(N, max_convergents=8, precision=120)
+        filtered = []
+        for p in candidates:
+            score, _, _ = score_candidate_cf(N, p, aligned_alphas, candidates)
+            if score <= epsilon:
                 filtered.append(p)
         return filtered
     else:
@@ -407,7 +416,8 @@ class FactorizationParams:
     k_list: List[float] = field(default_factory=lambda: [0.200, 0.450, 0.800])
     eps_list: List[float] = field(default_factory=lambda: [0.02, 0.05, 0.10])
     adaptive_scaling: bool = True
-    use_ensemble: bool = False
+    use_ensemble: bool = False,
+    use_cf_alignment: bool = False
     spiral_iters: int = 2000
     search_window: int = 1024
     prime_limit: int = 5000
@@ -535,7 +545,7 @@ def geometric_factor(N: int, params: FactorizationParams) -> FactorizationResult
             
             # Geometric filtering
             filter_start = time.time()
-            filtered = filter_candidates_geometric(N, all_cands, k, epsilon, params.use_ensemble)
+            filtered = filter_candidates_geometric(N, all_cands, k, epsilon, params)
             filter_time = time.time() - filter_start
             
             post_filter_count = len(filtered)
