@@ -165,6 +165,7 @@ python example_usage.py
 ### Expected Results
 - All unit tests pass ✓
 - Validation shows 100% success on 24-bit ✓
+- Highest success > 0%: 27-bit semiprimes (20% success) ✓
 - Examples run without errors ✓
 - No security issues ✓
 

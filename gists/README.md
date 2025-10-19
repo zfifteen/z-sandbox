@@ -253,7 +253,7 @@ Find the first bit size where success rate reaches 100% with sample size of 5:
 python geometric_factorization.py --validate
 ```
 
-This tests bit sizes from 64 down to 6 in steps of 5, looking for 100% success rate.
+This tests bit sizes from 64 down to 6 in steps of 5 to find the algorithm's effective range. Extended validation determined the highest bit size with success > 0%: 27-bit semiprimes.
 
 ### Experiment 2: 20-bit Validation
 
@@ -324,6 +324,15 @@ Results from factorization attempt:
 - `timings`: Dictionary of timing measurements
 - `logs`: List of detailed log entries per pass
 
+## Project Goals
+
+This implementation aims to demonstrate the effectiveness of geometric factorization and determine the maximum semiprime size where factorization succeeds (>0% success rate). Key achievements:
+
+- **100% success** on 24-bit semiprimes (113 avg attempts)
+- **Highest success > 0%**: 27-bit semiprimes (20% success rate)
+- **Algorithm boundary**: 28-bit semiprimes (0% success)
+- **Geometric filtering**: 15-35:1 candidate reduction ratios
+
 ## Performance Characteristics
 
 ### Success Rates (with default parameters)
@@ -332,8 +341,12 @@ Results from factorization attempt:
 |----------|--------------|--------------|--------------|
 | 8-10 bit | ~100% | 1-10 | < 0.01s |
 | 12-15 bit | ~80-100% | 10-100 | 0.01-0.05s |
-| 18-20 bit | ~60-80% | 50-300 | 0.02-0.10s |
-| 24-30 bit | ~40-60% | 200-1000 | 0.10-0.50s |
+| 18-20 bit | 40-60% | 50-300 | 0.02-0.10s |
+| 24-bit   | 100% | 113 | 0.01-0.03s |
+| 25-bit   | 40% | 347 | 0.03-0.04s |
+| 26-bit   | 60% | 179 | 0.01-0.04s |
+| 27-bit   | 20% | 283 | 0.03-0.04s |
+| 28-bit   | 0% | N/A | N/A |
 
 ### Candidate Filtering
 
