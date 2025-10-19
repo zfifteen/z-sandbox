@@ -4,12 +4,12 @@
 This project implements and validates a novel geometric factorization method using golden-ratio geometric mapping and circular distance filtering to factor semiprimes. The implementation includes comprehensive visualization capabilities and extensive validation testing.
 
 ## Key Achievements
-### ✅ 10-Second Benchmark Achievement
-- **Highest confirmed bit size in ≤10 seconds**: 34-bit semiprimes
+### ✅ 30-Second Benchmark Achievement
+- **Highest confirmed bit size in ≤30 seconds**: 34-bit semiprimes
 - **Success rate**: 100% (fast factorization)
-- **Performance**: 32-bit (0.393s), 34-bit (0.081s), 36-bit fails (0.684s)
+- **Performance**: 32-bit (0.393s), 34-bit (0.081s), 35-42-bit fail (~0.7s)
 - **Algorithm speed**: Sub-second factorization of large semiprimes
-- **Time limit observation**: Not restrictive (algorithm succeeds/fails quickly)
+- **Time limit observation**: Not restrictive - 30s allows extensive search but boundary is algorithmic
 
 ### ✅ **Algorithm Implementation**
 - **Core Algorithm**: geometric_factorization.py with reproducible geometric factorization
