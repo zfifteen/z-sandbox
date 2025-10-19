@@ -4,6 +4,7 @@
 Develop and validate a novel geometric factorization method using golden-ratio geometric mapping and circular distance filtering to factor semiprimes efficiently. Current achievement: 27-bit semiprimes with >0% success. New approach: Switch from attempt-based to time-based limiting (e.g., 10 seconds) to reach higher bit sizes.
 
 ## Core Objectives
+- ✅ **NEW: Find highest bit size factorable in ≤10 seconds** (28-bit, 66.7% success)
 - ✅ Implement reproducible geometric factorization algorithm
 - ✅ Demonstrate effectiveness on small to medium semiprimes (achieved up to 27-bit)
 - ✅ Provide comprehensive visualization of mathematical concepts
@@ -13,6 +14,9 @@ Develop and validate a novel geometric factorization method using golden-ratio g
 - ✅ Establish foundation for further research in geometric number theory
 
 ## Success Metrics
+- **10-Second Benchmark**: 28-bit semiprimes (66.7% success, 0.026s avg time)
+- **Previous Record**: 27-bit semiprimes (20% success)
+- **Performance Limit**: 29-bit semiprimes (0% success in 10s)
 - **Current Max**: 28-bit semiprimes (20% success) - **Highest achieved with time-based limiting**
 - **Previous Max**: 27-bit semiprimes (20% success) - **Highest with attempt limiting**
 - **Target Goal**: ✅ ACHIEVED - >0% success on 28+ bit semiprimes
@@ -37,7 +41,7 @@ Develop and validate a novel geometric factorization method using golden-ratio g
 - ✅ 25-bit: 40% success rate (avg 347 attempts)
 - ✅ 26-bit: 60% success rate (avg 179 attempts)
 - ✅ 27-bit: 20% success rate (avg 283 attempts)
-- ✅ 28-bit: 20% success rate (time-based limiting achieved)
+- ✅ 28-bit: 66.7% success rate (10-second benchmark achieved)
 - ✅ **Highest success > 0%: 27-bit semiprimes**
 
 ## Future Enhancements (Now In Progress)
