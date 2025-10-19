@@ -23,7 +23,14 @@ def test_bit_size(bit_size, num_tests=5, max_time=10.0):
         print(f"  Sample {i+1}: N={N} ({p}×{q})")
 
         # Factor with time limit
-        params = FactorizationParams(max_time=max_time)
+        params = FactorizationParams(
+    max_time=max_time, 
+    max_attempts=10000000, 
+    search_window=4096, 
+    spiral_iters=5000,
+    k_list=[0.1, 0.2, 0.3, 0.4, 0.45, 0.5, 0.6, 0.7, 0.8, 0.9],
+    eps_list=[0.01, 0.02, 0.05, 0.1, 0.15]
+)
         start_time = time.time()
         result = geometric_factor(N, params)
         elapsed = time.time() - start_time
