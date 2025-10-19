@@ -1,0 +1,8 @@
+{
+  "servers": {
+    "unified-framework Docs": {
+      "type": "sse",
+      "url": "https://gitmcp.io/zfifteen/unified-framework"
+    }
+  }
+}
