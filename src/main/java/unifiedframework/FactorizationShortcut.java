@@ -326,7 +326,9 @@ public class FactorizationShortcut {
     // Optics bench params
     final int P = 5; // prisms
     final int M = baseSize / 2; // orders per prism
-    final double[] alphas = {Math.sqrt(2), Math.sqrt(3), (1 + Math.sqrt(5)) / 2, Math.E}; // irrationals for phase
+    final double[] alphas = {
+      Math.sqrt(2), Math.sqrt(3), (1 + Math.sqrt(5)) / 2, Math.E
+    }; // irrationals for phase
     final double[] epsilons = {1.0 / 233, -1.0 / 259, 1.0 / 283, -1.0 / 307}; // dispersion
 
     // Base ray: k0 where pi(k0) ≈ sqrt(N), J0 = avg gap
@@ -350,14 +352,20 @@ public class FactorizationShortcut {
         if (k < 2) continue;
 
         // Invert pi to get p estimate
-        BigInteger xApprox = invertPiSecant(BigInteger.valueOf(k), pi,
-            BigInteger.ONE, BigInteger.valueOf(Long.MAX_VALUE), secantIters);
+        BigInteger xApprox =
+            invertPiSecant(
+                BigInteger.valueOf(k),
+                pi,
+                BigInteger.ONE,
+                BigInteger.valueOf(Long.MAX_VALUE),
+                secantIters);
         BigInteger cand = findPrimeNear(xApprox, localWindow, mrIters);
         if (cand.signum() <= 0) continue;
 
         // Aperture: keep within ratio band
         BigDecimal ratio = new BigDecimal(cand).divide(sqrtNBD, MC);
-        if (ratio.compareTo(new BigDecimal("0.3")) < 0 || ratio.compareTo(new BigDecimal("3.0")) > 0) continue;
+        if (ratio.compareTo(new BigDecimal("0.3")) < 0
+            || ratio.compareTo(new BigDecimal("3.0")) > 0) continue;
 
         // Caustic: count predictions
         caustic.put(cand, caustic.getOrDefault(cand, 0) + 1);
