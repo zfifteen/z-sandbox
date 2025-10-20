@@ -52,6 +52,10 @@ Comprehensive analysis of the geometric factorization algorithm's scaling bounda
 - **Approach**: θ'(N) = θ(θ(N), k/φ) for fractal-like properties
 - **Result**: Increased computation time but failed factorization
 - **Conclusion**: Self-similarity doesn't rescue alignment
+#### 9. Multi-stage geometric factorization
+- **Approach**: Progressive filtering with increasing k and decreasing epsilon
+- **Result**: Successfully factored 40-bit unbalanced semiprime N=1099511641871 as (1031, 1066451641) using stages [(5, 0.05), (10, 0.002), (15, 0.0001)]
+- **Conclusion**: Breaks the 34-bit boundary for unbalanced cases, with ~47% candidate reduction
 
 ## Root Cause Analysis
 
