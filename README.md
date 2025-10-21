@@ -21,6 +21,7 @@ A comprehensive Java framework for testing and benchmarking integer factorizatio
 - [Benchmarks & Metrics](#benchmarks--metrics)
 - [Tests](#tests)
 - [Continuous Integration](#continuous-integration)
+- [Documentation](#documentation)
 - [Design Notes](#design-notes)
 - [Limits & Caveats](#limits--caveats)
 - [Roadmap](#roadmap)
@@ -196,6 +197,58 @@ GitHub Actions workflow (`.github/workflows/ci.yml`) runs:
 - Integration tests
 - Performance logging
 - Artifact uploads for trend analysis
+
+## Documentation
+
+This section provides links to detailed documentation in the `docs/` folder, organized by category.
+
+### GVA (Geodesic Validation Assault) Research
+- [GVA Mathematical Framework](docs/GVA_Mathematical_Framework.md): Formal mathematical foundations and algorithm overview for GVA factorization.
+- [GVA Method Explanation](docs/GVA_Method_Explanation.md): Detailed explanation with examples, insights, and Z-normalized metrics for GVA performance.
+- [GVA 128-bit Validation Report](docs/GVA_128bit_Validation_Report.md): Empirical validation results for 128-bit semiprime factorization using GVA.
+- [Victory 128-bit Report](docs/victory_128bit_report.md): Summary of 128-bit GVA achievements and milestones.
+- [Victory 64-bit Report](docs/victory_64bit_report.md): Report on 64-bit GVA factorization success.
+
+### Breakthrough and Victory Reports
+- [Victory Declaration](docs/victory_declaration.md): Official declaration of factorization victories across bit scales.
+- [Victory Final Report](docs/victory_final_report.md): Comprehensive final report on all victory milestones.
+- [40-bit Victory](docs/40bit_victory.md): Specific report on 40-bit factorization breakthrough.
+- [Boundary Breakthrough Report](docs/boundary_breakthrough_report.md): Analysis of dissolving factorization boundaries with dynamic curvature.
+- [Paradigm Shift Report](docs/paradigm_shift_report.md): Investigation into curved geometry revolution for factorization.
+
+### Analysis and Metrics
+- [Balanced Analysis Report](docs/balanced_analysis_report.md): Statistical analysis of balanced semiprime factorization.
+- [Curved Space Analysis](docs/curved_space_analysis.md): Testing boundary solutions in curved geometric spaces.
+- [40-bit Detailed Metrics](docs/40bit_detailed_metrics.md): Detailed metrics and test results for 40-bit manifold assaults.
+- [Research Update 60-bit](docs/research_update_60bit.md): Updates on 60-bit unbalanced semiprime factorization.
+
+### Validation and Resolution
+- [Validation Summary](docs/VALIDATION_SUMMARY.md): Comprehensive summary of validation processes and results.
+- [PR25 Contradiction Resolution](docs/PR25_Contradiction_Resolution.md): Resolution of contradictions in pull request #25.
+- [Resolution Complete](docs/RESOLUTION_COMPLETE.md): Final overview of resolved issues and contradictions.
+
+### Frameworks and Goals
+- [GOAL.md](docs/GOAL.md): Project goals, directives, and mathematical foundations.
+- [Final Framework Report](docs/final_framework_report.md): Report on the complete curved manifold framework.
+- [Final Revolution Report](docs/final_revolution_report.md): Summary of the Copernican revolution in geometric factorization.
+
+### Z5D and BigDecimal
+- [Z5D Documentation](docs/z5d_documentation.md): Documentation for Z5D prime predictor and enhancements.
+- [Z5D Integration Report](docs/z5d_integration_report.md): Report on Z5D integration and paradigm shifts.
+- [BigDecimal Upgrade](docs/BIGDECIMAL_UPGRADE.md): Upgrades and enhancements for BigDecimal support.
+
+### Security and Testing
+- [Security](docs/SECURITY.md): Security considerations and measures.
+- [Test RSA](docs/test-RSA.md): RSA challenge testing documentation.
+
+### Miscellaneous
+- [GROK.md](docs/GROK.md): AI-assisted research notes and insights.
+- [Literature Assessment](docs/LITERATURE_ASSESSMENT.md): Assessment of relevant literature.
+- [Multi Z5D Variants](docs/MultiZ5DVariants.md): Exploration of multiple Z5D predictor variants.
+- [256-bit Test Setup Documentation](docs/256bit_test_setup_documentation.md): Setup guide for 256-bit GVA testing.
+- [Reproducibility Steps](docs/reproducibility_steps.md): Steps for reproducing benchmark results.
+
+---
 
 ---
 
