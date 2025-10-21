@@ -267,3 +267,9 @@ Leverages mathematical properties for efficient factorization candidate generati
 
 [MIT License](LICENSE)
 
+
+## 128-bit Scaling Progress
+
+- Implemented manifold_128bit.py with adaptive k, higher dimensions, and precomputed embeddings.
+- Test suite test_gva_128.py for 100 samples.
+- Milestone: VERIFIED until >0% success rate achieved.
