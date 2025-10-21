@@ -32,7 +32,7 @@ def test_gva_256bit():
     total_time = 0
     false_positives = 0
 
-    print("Testing 256-bit GVA on 10 balanced semiprimes with 10 attempts...")
+    print("Testing 256-bit GVA on 10 balanced semiprimes with 1000 attempts...")
 
     for i in range(num_tests):
         N, true_p, true_q = test_set[i]
