@@ -113,53 +113,49 @@ class RiemannianAStar:
 
 def inverse_embed_5torus(point_5d, N, k):
     """
-    Enhanced inverse 5-torus embedding: recover prime candidate from 5D point.
-    Uses systematic search around √N with embedding distance validation.
+    Enhanced inverse 5-torus embedding using backward iteration.
+    Reverse the θ' transformations to recover prime candidate.
+
+    Based on: coord_i = θ'(coord_{i-1}, k), so coord_{i-1} = inverse_θ'(coord_i)
+    where inverse_θ'(x) = φ * (x / φ)^{1/k}
     """
-    sqrt_N = int(math.sqrt(N))
-    search_range = 20000  # Wider search for 40-bit scale
+    try:
+        # Start from the last coordinate and work backwards
+        current = mp.mpf(point_5d[4])  # coord5
 
-    # Systematic search around √N for factors
-    for offset in range(-search_range, search_range + 1):
-        p = sqrt_N + offset
-        if p < 2 or p >= N:
-            continue
+        # Apply inverse θ' for dimensions 4, 3, 2, 1
+        for i in range(4, 0, -1):
+            alpha = PHI ** (i+1)
+            # inverse_θ'(current) = α * (current / α)^{1/k}
+            ratio = current / alpha
+            if ratio <= 0:
+                return None
+            inv_power = mp.power(ratio, 1/k)
+            current = alpha * inv_power
 
-        if N % p == 0:
-            q = N // p
-            if is_prime_basic(p) and is_prime_basic(q):
-                # Validate by checking embedding distance
-                p_embed = embed_5torus(p, k)
-                dist = riemannian_distance_5d(p_embed, point_5d)
-                if dist < 0.05:  # Tighter threshold for 40-bit precision
-                    return p
+        # current is now coord1, but we need the original n
+        # coord1 = θ'(n/c, k) where c = e²
+        # So inverse: n/c = inverse_θ'(coord1)
+        c = mp.exp(2)  # e²
+        alpha = PHI ** 1  # φ^1 = φ
+        ratio = current / alpha
+        if ratio <= 0:
+            return None
+        n_over_c = alpha * mp.power(ratio, 1/k)
+        n_recovered = n_over_c * c
 
-    # Fallback: try to match fractional parts more accurately
-    # Solve for p such that embed_5torus(p, k) ≈ point_5d
-    for i in range(5):
-        frac_target = point_5d[i]
-        alpha = PHI ** (i+1)
+        # Round to nearest integer and validate
+        p_candidate = int(mp.nint(n_recovered))
 
-        # Try different p values and find best fractional part match
-        best_p = None
-        best_match = float('inf')
+        # Check if it's a valid factor
+        if p_candidate > 1 and N % p_candidate == 0:
+            q_candidate = N // p_candidate
+            if is_prime_basic(p_candidate) and is_prime_basic(q_candidate):
+                return p_candidate
 
-        for test_p in range(max(2, sqrt_N - 1000), min(sqrt_N + 1000, N)):
-            if N % test_p == 0 and is_prime_basic(test_p):
-                # Compute what embedding would give
-                ratio = (test_p / alpha) ** k
-                computed_frac = float(mp.frac(alpha * ratio))
-
-                match_quality = min(abs(computed_frac - frac_target),
-                                   abs(computed_frac - frac_target + 1),
-                                   abs(computed_frac - frac_target - 1))
-
-                if match_quality < best_match:
-                    best_match = match_quality
-                    best_p = test_p
-
-        if best_p and best_match < 0.01:  # Good match
-            return best_p
+    except:
+        # If any computation fails (e.g., negative powers), return None
+        return None
 
     return None
 
