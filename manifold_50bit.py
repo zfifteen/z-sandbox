@@ -30,7 +30,7 @@ def embed_7torus_geodesic(n, k=k_default, dims=7):
 def riemannian_distance_7d(a, b, N):
     """
     Riemannian distance on 7-torus with domain-specific curvature.
-    κ(n) = 4 · ln(n+1) / e² ≈ 18.7 for 50-bit
+    κ(n) = 4 · ln(n+1) / e² ≈ 18.7 for N=1125907423042007 (50-bit test case)
     """
     kappa = mpf(4) * log(mpf(N) + 1) / exp(2)
     total = mpf(0)
@@ -78,19 +78,23 @@ def gva_factorize_50bit(N, k=k_default, dims=7, radius=50000):
     emb_N = embed_7torus_geodesic(N, k, dims)
     sqrtN = int(sqrt(mpf(N)))
 
-    for offset in range(-radius, radius + 1):
-        p = sqrtN + offset
-        if p <= 1 or p >= N:
-            continue
-        if N % p != 0:
-            continue
-
-        emb_p = embed_7torus_geodesic(p, k, dims)
-        dist = riemannian_distance_7d(emb_N, emb_p, N)
-
-        if dist < 0.8:  # Geodesic validation threshold
+    # Bidirectional search: check sqrtN, sqrtN+1, sqrtN-1, sqrtN+2, sqrtN-2, ...
+    for d in range(0, radius + 1):
+        for sign in (1, -1) if d != 0 else (1,):
+            offset = d * sign
+            p = sqrtN + offset
+            if p <= 1 or p >= N:
+                continue
+            if N % p != 0:
+                continue
             q = N // p
-            if is_prime_mr(p) and is_prime_mr(q):
+            if not (is_prime_mr(p) and is_prime_mr(q)):
+                continue
+
+            emb_p = embed_7torus_geodesic(p, k, dims)
+            dist = riemannian_distance_7d(emb_N, emb_p, N)
+
+            if dist < 0.8:  # Geodesic validation threshold from 40-bit calibration (see report)
                 return p, q, dist
 
     return None, None, None
