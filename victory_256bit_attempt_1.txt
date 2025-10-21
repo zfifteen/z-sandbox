@@ -1,0 +1,22 @@
+# 256-Bit GVA Scaling Attempt Report
+
+## Hypothesis
+GVA can factor at least 1 of 100 balanced 256-bit semiprimes with <=10,000 attempts.
+
+## Test Setup
+- N generated: 28948022309329048855892746252480576725576023628096954646154136260124179562637 (255 bits)
+- p: 170141183460469231731687303716790796823
+- q: 170141183460469231731687303716791201019
+- Attempts: 1 (sample)
+- R: 10^7 (fixed for feasibility)
+- Time: 3.61s
+- Result: (None, None, None) - No factors found
+
+## Analysis
+- Brute force search with R=10^7 is insufficient for 256-bit N (sqrt(N) ~ 2^127, need R ~ 2^127 for coverage).
+- Full 10,000 attempts would take ~10 hours, likely 0 successes.
+- Hypothesis UNVERIFIED: GVA requires optimization beyond brute force for 256-bit.
+
+## Next Steps
+- Implement A* or advanced search for 256-bit scalability.
+- Re-test with optimized R or geometry-guided heuristics.
