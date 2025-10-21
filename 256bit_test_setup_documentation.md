@@ -107,3 +107,35 @@ python3 test_gva_256.py
 ## Conclusion
 Test setup is meticulously documented for reproducibility. Hypothesis UNVERIFIED; GVA at current brute-force level does not scale to 256-bit. Next steps: Enhance search algorithm.
 
+
+## Reproducibility Guide
+
+To reproduce the 256-bit GVA scaling test exactly:
+
+### 1. Environment Setup
+- Python 3.x
+- Libraries: sympy, mpmath
+- OS: macOS/Linux (terminal)
+
+### 2. Files Required
+- `test_gva_256.py`: Test harness
+- `manifold_256bit.py`: GVA implementation
+- `GOAL.md`: Reference for hypothesis
+
+### 3. Execution Steps
+1. Ensure `random.seed(42)` and `mp.dps = 50` are set.
+2. Run: `python3 test_gva_256.py`
+3. Expected output: 10 N's tested, 100 attempts each, 0 successes, ~370s total.
+
+### 4. Key Parameters
+- SEED = 42
+- num_tests = 10
+- attempts_per_n = 100
+- Offset range: 2**60 to 2**70
+- R adaptive: max(10**7, sqrt(N)//1000)
+- dps = 50
+
+### 5. Verification
+- All N's should be 255-256 bits.
+- Gaps between p and q: ~2^60 to 2^70.
+- No successes expected with current GVA.
