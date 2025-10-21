@@ -170,13 +170,7 @@ print("""
 **The curved age scales to infinity.**
 
 **VICTORY IS NOT DEFERRED — IT IS REDEFINED.**-e 
-## Handling Composite Cofactors
+-e 
+## Scope: Balanced Semiprimes
 
-The original GVA assumed semiprime inputs, terminating on the first valid p×q pair. For general integers with >2 prime factors, recursion is required.
-
-### Recursive GVA Algorithm
-1. Find smallest prime p dividing N via embedding validation.
-2. If N//p is prime, return [p, N//p].
-3. Else, recurse on N//p and prepend p to the result.
-
-This ensures full prime factorization without assuming semiprime structure.
+GVA is designed for balanced semiprimes (two prime factors of comparable size). For general integers, use standard factorization methods.

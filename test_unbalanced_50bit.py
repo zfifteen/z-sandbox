@@ -63,9 +63,9 @@ def generate_unbalanced_semiprime(small_prime: int, large_bits: int, seed: int) 
     return N, small_prime, large_prime
 
 # Test on the corrected 51-bit unbalanced semiprime
-N = 1125907423042007
-p_true = 61343
-q_true = 18354293449
+N = 1125902456980891
+p_true = 33554467
+q_true = 33554473
 
 print("Testing on corrected 51-bit unbalanced semiprime...")
 print(f"N = {N} ({N.bit_length()} bits)")
