@@ -10,7 +10,7 @@ import sympy
 from manifold_128bit import gva_factorize_128bit, adaptive_threshold, check_balance
 
 def generate_balanced_128bit_semiprime(seed):
-    """Generate N = p * q with p, q ~2^32, balanced."""
+    """Generate N = p * q with p, q ~2^63, balanced."""
     random.seed(seed)
     base = 2**63
     offset = random.randint(0, 10**6)
