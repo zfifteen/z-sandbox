@@ -102,3 +102,17 @@ This is not a setback but a clarification: the old flat-space model is fundament
 ---
 
 *This report marks the transition from coordinate changes to topological rethinking. The boundary is not a wall—it's a gateway to new geometric understanding.*
+## Local Curvature Hypothesis and Results
+
+### Hypothesis: Dynamic Local Curvature
+The boundary persists because global curvature is insufficient—local "bumps" in prime density require dynamic adjustment. Points in dense θ' regions (high enhancement) should be "closer" in curved space, contracting distances to allow true factors to pass ε thresholds.
+
+### Implementation
+- **Local Curvature Factor**: enhancement / 1000 (negative for contraction in dense regions)
+- **Global + Local**: Total warping = base_dist * (1 + global_curvature + local_curvature)
+- **Test k**: Used k=0.3 (mean enhancement 4.66%) for all candidates
+
+### Results
+- **Effect Size**: Global stretch ~0.0004, local contract ~0.0047, net ~0.995 (insufficient)
+- **Outcome**: Still failed on 34-bit boundary; effect too small to overcome distortion
+- **Analysis**: Uniform k=0.3 doesn't capture per-candidate local variations; stronger scaling or per-candidate k needed
