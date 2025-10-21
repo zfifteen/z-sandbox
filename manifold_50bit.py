@@ -41,7 +41,7 @@ def riemannian_distance_7d(a, b, N):
     return float(sqrt(total))
 
 
-def gva_factorize_50bit(N, k=k_default, dims=7, radius=50000):
+def gva_factorize_full(N, k=k_default, dims=7, radius=50000):
     """
     Geodesic Validation Assault: 50-bit factorization
     Validate candidates via embedding distance, no inverse needed
@@ -61,7 +61,7 @@ def gva_factorize_50bit(N, k=k_default, dims=7, radius=50000):
             if N % p != 0:
                 continue
             q = N // p
-            if False:
+            if not (sympy.isprime(p) and sympy.isprime(q)):
                 continue
 
             emb_p = embed_7torus_geodesic(p, k, dims)
@@ -87,7 +87,7 @@ if __name__ == "__main__":
     # Geodesic Validation Assault
     import time
     start = time.time()
-    result = gva_factorize_50bit(N)
+    result = gva_factorize_full(N)
     end = time.time()
 
     if result[0]:

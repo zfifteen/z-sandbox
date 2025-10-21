@@ -76,11 +76,11 @@ print(f"Verification: p * q = {p_true * q_true} == N? {p_true * q_true == N}")
 # Test GVA from manifold_50bit.py
 import sys
 sys.path.append('.')
-from manifold_50bit import gva_factorize_50bit
+from manifold_50bit import gva_factorize_full
 
 print("\nTesting Geodesic Validation Assault...")
 start_time = time.time()
-result = gva_factorize_50bit(N)
+result = gva_factorize_full(N)
 elapsed = time.time() - start_time
 
 if result[0]:
@@ -107,7 +107,7 @@ for i in range(num_tests):
     print(f"\nTest {i+1}: N={N_test} ({N_test.bit_length()} bits), p={p_test} ({p_test.bit_length()} bits), q={q_test} ({q_test.bit_length()} bits)")
     
     start_time = time.time()
-    result_test = gva_factorize_50bit(N_test)
+    result_test = gva_factorize_full(N_test)
     elapsed = time.time() - start_time
     
     if result_test[0]:
@@ -121,4 +121,12 @@ for i in range(num_tests):
     else:
         print(f"  FAILED: Time {elapsed:.3f}s")
 
-print(f"\nRandom Test Summary: {successes}/{num_tests} successes")
+print(f"\nRandom Test Summary: {successes}/{num_tests} successes")-e 
+# Unit test for 3-prime factorization
+N_3prime = 547 * 61343 * 33554467
+expected_3prime = sorted([547, 61343, 33554467])
+result_3prime = gva_factorize_full(N_3prime)
+print(f'Unit test: N={N_3prime}')
+print(f'Expected: {expected_3prime}')
+print(f'Got: {sorted(result_3prime)}')
+print(f'Pass: {sorted(result_3prime) == expected_3prime}') 
