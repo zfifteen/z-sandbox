@@ -235,7 +235,7 @@ public class BenchLadder {
     }
 
     CandidateBuilder builder;
-    switch (builderName) {
+switch (builderName) {
       case "ZNeighborhood":
         builder = new ZNeighborhood();
         break;
@@ -245,12 +245,16 @@ public class BenchLadder {
       case "HybridGcd":
         builder = new HybridGcd();
         break;
+      case "MetaSelection":
+        builder = new MetaSelection();
+        break;
+      case "GVA":
+        builder = new GVAFactorizer(new MathContext(200));
         break;
       default:
         builder = new ZNeighborhood();
         break;
     }
-
     if (factorMode) {
       if (factorN.isProbablePrime(100)) {
         System.out.println("The number " + factorN + " is probably prime.");
