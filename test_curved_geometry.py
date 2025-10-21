@@ -113,7 +113,7 @@ def riemannian_dist(a, b, N, k=None):
     warped_dist = base_dist * (1 + global_curvature + local_curvature)
     return min(max(warped_dist, 0), 1)
 
-def curved_geometric_factorize(N, stages, use_curved=True):
+def curved_geometric_factorize(N, stages, use_curved=True, use_adaptive_epsilon=False):
     from z5d_predictor import get_factor_candidates
     candidate_tuples = get_factor_candidates(N)  # Now (cand, k, weight) tuples
 

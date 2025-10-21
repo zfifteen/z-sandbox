@@ -158,3 +158,43 @@ if __name__ == "__main__":
             print(f"True p {true_p} found at position {candidates.index((cand, k, w))}, k={k}, weight={w:.3f}")
         elif cand == true_q:
             print(f"True q {true_q} found (but > √N, excluded)")
+
+def geodesic_superpose(N, k_set):
+    """
+    Superpose multiple geodesic paths from different k starting points.
+    Returns combined factor candidates.
+    """
+    path_candidates = set()
+
+    for k in k_set:
+        # Get Z5D prediction for this k
+        pred = z5d_predict(k)
+
+        # Search outward for candidates
+        candidates = z5d_search_candidates(k, max_offset=100)
+
+        # Add to combined set
+        path_candidates.update(candidates)
+
+        # Check if prediction itself is a factor
+        if N % pred == 0:
+            q = N // pred
+            return pred, q  # Direct hit
+
+    return list(path_candidates)
+
+def adaptive_epsilon(N, k, base_epsilon=0.12):
+    """
+    Adaptive ε threshold based on local curvature.
+    Shrinks threshold in high-density regions.
+    """
+    enhancement = theta_prime(N, k)
+    curvature_factor = 1 + enhancement / 100  # Scale based on density
+    return base_epsilon / curvature_factor
+
+def get_superposed_candidates(N, k_set=[10, 20, 30, 40, 50]):
+    """
+    Get candidates using multi-scale geodesic superposition.
+    """
+    superposed = geodesic_superpose(N, k_set)
+    return superposed
