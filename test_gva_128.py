@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """
 Unit tests for 128-bit GVA: Test 100 balanced semiprimes for correctness and performance.
+
+Note on Bit Targeting:
+- Uses base = 2**63 to generate primes p,q ≈ 2**64 each
+- Product N = p × q ≈ 2**128 (true 128-bit semiprime)
+- This creates balanced semiprimes where p ≈ q ≈ sqrt(N)
 """
 
 import time
@@ -9,9 +14,9 @@ import sympy
 from manifold_128bit import gva_factorize_128bit, adaptive_threshold, check_balance
 
 def generate_balanced_128bit_semiprime(seed):
-    """Generate N = p * q with p, q ~2^32, balanced."""
+    """Generate N = p * q with p, q ~2^64, balanced (true 128-bit semiprime)."""
     random.seed(seed)
-    base = 2**63
+    base = 2**63  # Each prime ~64 bits, product ~128 bits
     offset = random.randint(0, 10**6)
     p = sympy.nextprime(base + offset)
     q = sympy.nextprime(base + offset + random.randint(1, 10**5))  # Close to p
