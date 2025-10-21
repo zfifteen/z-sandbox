@@ -13,9 +13,9 @@ def generate_balanced_128bit_semiprime(seed):
     """Generate N = p * q with p, q ~2^63, balanced."""
     random.seed(seed)
     base = 2**63
-    offset = random.randint(0, 10**6)
+    offset = random.randint(0, 10**9)
     p = sympy.nextprime(base + offset)
-    q = sympy.nextprime(base + offset + random.randint(1, 10**5))  # Close to p
+    q = sympy.nextprime(base + offset + random.randint(1, 10**6))  # Close to p
     N = p * q
     return N, p, q
 
