@@ -1,176 +1,43 @@
-# **50-Bit Assault: Final Reckoning & Axiomatic Rebirth**
+# Axioms and Mathematical Foundations
 
-> **The manifold does not lie — we misread its geometry.**  
-> **The inverse is not broken — it was never meant to be unique.**  
-> **Victory is not deferred — it is redefined.**
+Empirical Validation First: Hypothesis for 64-bit milestone: Scale GVA to factor balanced semiprimes up to 2^{64} (e.g., N ≈ 10^{19}) in <30s using A* pathfinding and parallelization. UNVERIFIED until implemented and tested on dataset of 100× 64-bit semiprimes (generate via sympy.randprime). Target precision: mp.dps=200 for embeddings.
 
----
+Domain-Specific Forms: Discrete Z = n(Δ_n / Δ_max) via 7-torus embeddings; κ(n)=4·ln(n+1)/e² ≈23.5 for 64-bit N; guards zero-division via log(n+1).
 
-## **Root Cause: The Torus Is a Lie (But a Beautiful One)**
+Geometric Resolution: θ'(n,k)=φ·(frac(n/φ))^k with k=0.35 for prime-separability; extend to 9-torus for higher bits if separability degrades (test variance σ<0.1).
 
-```python
-frac(x)  # ← This is the assassin
-```
+Style and Tools: Use mpmath (dps=200), sympy for primality, multiprocessing for parallel search. Cross-check with generated dataset (e.g., p,q = sympy.randprime(2^{31}, 2^{32}); N=p*q).
 
-### **The Fatal Flaw**:
-$$
-\text{coord}_i = \text{frac}(\theta'(\text{coord}_{i-1}, k))
-$$
-- **Loss of integer lattice information**
-- **Many $ n \mapsto $ same 7D point**
-- **Inverse is fundamentally non-unique**
+# Core Concepts
 
-> **You cannot reverse a projection that forgets the floor.**
+Universal invariant formulation
+- Central form: Z = A(B / c)
+- Interpretation:
+  - c = e² ≈7.389 for discrete normalization.
+  - A = 7-torus embedding + A* heuristic (h(d) = dist + κ·|d|).
+  - B = dynamic offset from √N, scaled to 10^6 for 64-bit radius.
 
----
+Domain-specific forms
+- Discrete: Z = n(Δ_n / Δ_max)
+  - For 64-bit: κ(n) = 4·ln(n+1)/e²; guard: if n<1, raise ValueError.
+  - Adaptive ε = 0.12 / (1 + κ) ≈0.005.
 
-## **Axiomatic Reinterpretation: Z = A(B / c) in Curved Space**
+Geometric resolution
+- θ'(n, k) = φ · (frac(n / φ))^k, k=0.35 for embedding; use as geodesic seed for A* on torus graph (nodes=offsets, edges=step±1).
 
-| Original Assumption | **Reality** |
-|---------------------|-----------|
-| $ \text{embed} \to \text{inverse} $ bijective | **Many-to-one** |
-| Random path → factor | **Blind search in fog** |
-| Inverse recovers $ p $ | **Recovers $ p \mod \phi^{7} $ at best** |
+Core principle
+- Normalize via Z = A(B / c); enforce 64-bit scope with primality (sympy.isprime) and balance |log2(p/q)|≤1.
 
----
+Axiom summary
+1. Empirical Validation First
+   - Generate/test 100× 64-bit balanced semiprimes; target runtime <30s, FP rate <0.01%.
+2. Domain-Specific Forms
+   - Discrete: Z = n(Δ_n / Δ_max), κ(n)=4·ln(n+1)/e²; avoid zero-division.
+3. Geometric Resolution
+   - Use θ′(n,k)=φ·(frac(n/φ))^k with k=0.35 for 64-bit separability.
+4. Style and Tools
+   - mpmath + sympy; parallel via multiprocessing.Pool(cores=8).
 
-# **THE BREAKTHROUGH: Dual-Space Navigation**
-
-We do **not** recover $ p $ from a point.  
-We **validate** $ p $ using the point.
-
----
-
-## **New Strategy: Geodesic Validation Assault (GVA)**
-
-### **Core Idea**:
-1. **Generate candidate $ p $ near $ \sqrt{N} $**
-2. **Embed $ p $ into 7-torus**
-3. **Run A* from $ \text{embed}(N) $ to $ \text{embed}(p) $**
-4. **If short path exists → $ p $ is factor**
-
-> **No inverse needed. Only embedding + distance.**
-
----
-
-## **Empirical Validation: 50-Bit GVA**
-
-```python
-from mpmath import *
-mp.dps = 100
-phi = (1 + sqrt(5))/2
-k = mpf('0.35')
-c = exp(2)
-
-def embed_7torus_geodesic(n):
-    x = mpf(n) / c
-    coords = []
-    for _ in range(7):
-        x = phi * power(frac(x / phi), k)
-        coords.append(float(frac(x)))
-    return tuple(coords)
-
-# True 50-bit
-N = 1125907423042007  # 33554467 * 33554621
-sqrtN = int(mp.sqrt(N))
-
-emb_N = embed_7torus_geodesic(N)
-
-# Candidate sweep: ±50,000 around sqrt(N)
-candidates = range(sqrtN - 50000, sqrtN + 50000)
-for p_cand in candidates:
-    if p_cand <= 1: continue
-    if N % p_cand != 0: continue
-    
-    emb_p = embed_7torus_geodesic(p_cand)
-    dist = riemannian_distance_7d(emb_N, emb_p, N)
-    
-    if dist < 0.8:  # Threshold from 40-bit calibration
-        q = N // p_cand
-        print(f"GEODESIC VICTORY: {p_cand} × {q} = {N}")
-        print(f"Distance: {dist:.4f}")
-        break
-```
-
-**Result**:
-```
-GEODESIC VICTORY: 33554467 × 33554621 = 1125907423042007
-Distance: 0.7124
-Time: 0.87 seconds
-```
-
----
-
-# **50-Bit Victory: ACHIEVED**
-
-| Metric | Value | Status |
-|-------|-------|--------|
-| N | 50 bits | Verified |
-| Method | **Geodesic Validation** | No inverse |
-| Embedding | 7-torus, k=0.35 | Separability = 0.71 |
-| Search | ±50,000 | 100,000 candidates |
-| Time | **0.87s** | <1s |
-| Success | **100%** | Deterministic |
-
----
-
-# **Axiom Compliance: FULLY RESTORED**
-
-| Axiom | Compliance |
-|------|------------|
-| 1. **Empirical Validation** | 50-bit, dps=100, error <1e-30 |
-| 2. **Domain-Specific Forms** | $ Z = A(B/c) $, $ \Delta_n $ via distance |
-| 3. **Geometric Resolution** | $ \theta'(n, 0.35) $, 7D chain |
-| 4. **Style & Tools** | mpmath, deterministic, no inverse |
-
----
-
-# **Final Framework: GVA-50**
-
-```python
-def gva_factorize_50bit(N, k=0.35, dims=7, radius=50000):
-    emb_N = embed_7torus_geodesic(N, k, dims)
-    sqrtN = int(mp.sqrt(N))
-    
-    for offset in range(-radius, radius+1):
-        p = sqrtN + offset
-        if p <= 1 or p >= N: continue
-        if N % p != 0: continue
-        
-        emb_p = embed_7torus_geodesic(p, k, dims)
-        dist = riemannian_distance_7d(emb_N, emb_p, N)
-        
-        if dist < 0.8:
-            return p, N // p, dist
-    
-    return None, None, None
-```
-
----
-
-# **Conclusion: THE CURVED AGE IS VICTORIOUS**
-
-```python
-print("""
-╔═══════════════════════════════════════════════════╗
-║          50-BIT BALANCED SEMIPRIME: FACTORED      ║
-║         METHOD: GEODESIC VALIDATION ASSAULT       ║
-║           TIME: 0.87s    SUCCESS: 100%            ║
-║        MANIFOLD: TRIUMPHANT BEYOND INVERSE        ║
-╚═══════════════════════════════════════════════════╝
-""")
-```
-
-> **The torus does not need to be inverted — only navigated.**  
-> **The manifold does not recover — it validates.**  
-> **The revolution is complete.**
-
-**50-bit conquered.**  
-**64-bit next.**  
-**The curved age scales to infinity.**
-
-**VICTORY IS NOT DEFERRED — IT IS REDEFINED.**-e 
--e 
-## Scope: Balanced Semiprimes
-
-GVA is designed for balanced semiprimes (two prime factors of comparable size). For general integers, use standard factorization methods.
+Empirical validation guidelines
+- Unit tests: Assert factorization and dist<ε on generated N.
+- Set mp.dps=200; seed RNG via sympy.randprime(seed=42) for reproducibility.
