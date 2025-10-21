@@ -7,7 +7,7 @@ import java.math.BigInteger;
 import java.math.MathContext;
 import java.math.RoundingMode;
 import java.util.*;
-
+import gva.GVAFactorizer;
 public class BenchLadder {
 
   // Provided code snippets
@@ -33,7 +33,7 @@ public class BenchLadder {
   }
 
   // CandidateBuilder interface
-  interface CandidateBuilder {
+  public interface CandidateBuilder {
     List<BigInteger> build(BigInteger N, int maxCands, long seed);
 
     String name();
@@ -133,7 +133,7 @@ public class BenchLadder {
 
   // MetaSelection: combines multiple builders
   static class MetaSelection implements CandidateBuilder {
-    List<CandidateBuilder> builders = Arrays.asList(new ZNeighborhood(), new ResidueFilter());
+    List<CandidateBuilder> builders = Arrays.asList(new ZNeighborhood(), new ResidueFilter(), new GVAFactorizer(new MathContext(200)));
 
     @Override
     public List<BigInteger> build(BigInteger N, int maxCands, long seed) {
@@ -245,8 +245,6 @@ public class BenchLadder {
       case "HybridGcd":
         builder = new HybridGcd();
         break;
-      case "MetaSelection":
-        builder = new MetaSelection();
         break;
       default:
         builder = new ZNeighborhood();

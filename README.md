@@ -129,6 +129,20 @@ CandidateBuilder builder = new MetaSelection();
 List<BigInteger> candidates = builder.build(N, 10000, seed);
 ```
 
+### GVA (Geodesic Validation Assault)
+Geometric factorization using torus embeddings and Riemannian distance with curvature.
+Validates factors via proximity in high-dimensional manifold space.
+
+```java
+CandidateBuilder builder = new GVA();
+List<BigInteger> candidates = builder.build(N, 10000, seed);
+```Combines multiple builders for optimal coverage.
+
+```java
+CandidateBuilder builder = new MetaSelection();
+List<BigInteger> candidates = builder.build(N, 10000, seed);
+```
+
 ---
 
 ## BigDecimal / Ultra-High Scale
