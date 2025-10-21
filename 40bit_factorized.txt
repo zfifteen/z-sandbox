@@ -1,0 +1,12 @@
+40-Bit Factorization Results
+==================================================
+Case 1: 40-bit primary assault
+N = 437576657677
+True factors: 570001 × 767677
+Result: FAILED
+------------------------------
+Case 2: 40-bit secondary assault
+N = 583509123737
+True factors: 559859 × 1042243
+Result: FAILED
+------------------------------
