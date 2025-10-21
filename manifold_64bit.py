@@ -9,7 +9,7 @@ import heapq
 import multiprocessing
 from mpmath import *
 import sympy
-exp2 = exp2
+exp2 = math.exp(2)
 def is_prime_robust(n):
     """Robust primality check: sympy + miller_rabin fallback."""
     if n < 2:
@@ -97,12 +97,10 @@ def check_balance(p, q):
 
 
 
-def gva_factorize_64bit(N, R=10000000):
+def gva_factorize_64bit(N, method='parallel', R=1000000, cores=8):
     """
     GVA for 64-bit balanced semiprimes.
     """
-    if N >= 2**64:
-        raise ValueError("N must be < 2^64")
     if not is_prime_robust(N):  # Assume semiprime
         pass
 
