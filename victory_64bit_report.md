@@ -22,8 +22,8 @@ Attempted to scale GVA from 50-bit to 64-bit balanced semiprimes. Implemented ad
 
 ### Performance Metrics
 - Method: Brute force (parallel failed due to pickling)
-- Radius: 10^6
-- Time: 0.22s (too slow for <30s target)
+- Radius: 10^7
+- Time: 2.28s (too slow for <30s target)
 - Success: 0/1
 
 ## Issues Identified
@@ -46,4 +46,4 @@ Example: Generate p = sympy.nextprime(2**31 + 42), q = sympy.nextprime(p + 100),
 5. Re-benchmark on 100 samples.
 
 ## Conclusion
-64-bit scaling attempted but blocked by primality issues. GVA framework promising, but needs robustness for large N. Milestone deferred until fixes.
+64-bit scaling attempted but blocked by primality issues. GVA framework promising, but needs robustness for large N. Milestone deferred; needs further debugging on dist calculation or embedding precision.

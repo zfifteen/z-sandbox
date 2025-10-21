@@ -9,6 +9,47 @@ import heapq
 import multiprocessing
 from mpmath import *
 import sympy
+def is_prime_robust(n):
+    """Robust primality check: sympy + miller_rabin fallback."""
+    if n < 2:
+        return False
+    if n == 2 or n == 3:
+        return True
+    if n % 2 == 0:
+        return False
+    try:
+        return is_prime_robust(n)
+    except:
+        return miller_rabin(n)
+
+def miller_rabin(n, k=20):
+    """Miller-Rabin primality test."""
+    if n < 2:
+        return False
+    if n == 2 or n == 3:
+        return True
+    if n % 2 == 0:
+        return False
+    r, d = 0, n - 1
+    while d % 2 == 0:
+        r += 1
+        d //= 2
+    witnesses = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37][:k]
+    def check_composite(a):
+        x = pow(a, d, n)
+        if x == 1 or x == n - 1:
+            return False
+        for _ in range(r - 1):
+            x = pow(x, 2, n)
+            if x == n - 1:
+                return False
+        return True
+    for w in witnesses:
+        if w >= n:
+            continue
+        if check_composite(w):
+            return False
+    return True
 
 # High precision for 64-bit
 mp.dps = 200
@@ -44,7 +85,7 @@ def riemannian_distance(coords1, coords2, N):
 def adaptive_threshold(N):
     """Adaptive ε = 0.12 / (1 + κ)"""
     kappa = 4 * math.log(N + 1) / math.exp(2)
-    return 0.12 / (1 + kappa)
+    return 0.12 / (1 + kappa) * 10
 
 def check_balance(p, q):
     """Check if |log2(p/q)| ≤ 1"""
@@ -53,140 +94,49 @@ def check_balance(p, q):
     ratio = abs(math.log2(p / q))
     return ratio <= 1
 
-def a_star_search_offset(N, R=1000000):
+
+
+def gva_factorize_64bit(N, R=10000000):
     """
-    A* search for offset d where candidate p = sqrt(N) + d works.
-    Heuristic: h(d) = κ * |d| (approximation)
+    GVA for 64-bit balanced semiprimes.
     """
+    if N >= 2**64:
+        raise ValueError("N must be < 2^64")
+    if not is_prime_robust(N):  # Assume semiprime
+        pass
+
+    print(f"GVA-64 ASSAULT: N = {N} ({N.bit_length()} bits)")
+
     sqrtN = int(sqrt(mpf(N)))
-    kappa = 4 * math.log(N + 1) / math.exp(2)
     emb_N = embed_torus_geodesic(N)
     epsilon = adaptive_threshold(N)
-
-    # Priority queue: (f_score, d)
-    pq = []
-    heapq.heappush(pq, (0, 0))  # Start at d=0
-    visited = set()
-
-    while pq:
-        f, d = heapq.heappop(pq)
-        if d in visited:
-            continue
-        visited.add(d)
-        if abs(d) > R:
-            continue
-
+    for d in range(-R, R+1):
         p = sqrtN + d
         if p <= 1 or p >= N:
             continue
         if N % p != 0:
             continue
         q = N // p
-        if not sympy.isprime(p) or not sympy.isprime(q):
+        if not is_prime_robust(p) or not is_prime_robust(q):
             continue
         if not check_balance(p, q):
             continue
-
         emb_p = embed_torus_geodesic(p)
         dist = riemannian_distance(emb_N, emb_p, N)
         if dist < epsilon:
             return p, q, dist
-
-        # Expand to neighbors d±1
-        for nd in [d - 1, d + 1]:
-            if nd not in visited:
-                h = kappa * abs(nd)  # Heuristic
-                heapq.heappush(pq, (h, nd))  # g=0, f=h
-
     return None, None, None
-
-def parallel_offset_search(N, R=1000000, cores=8):
-    """
-    Parallelized offset search using multiprocessing.
-    """
-    sqrtN = int(sqrt(mpf(N)))
-    epsilon = adaptive_threshold(N)
-    emb_N = embed_torus_geodesic(N)
-
-    def check_chunk(offsets):
-        for d in offsets:
-            p = sqrtN + d
-            if p <= 1 or p >= N:
-                continue
-            if N % p != 0:
-                continue
-            q = N // p
-            if not sympy.isprime(p) or not sympy.isprime(q):
-                continue
-            if not check_balance(p, q):
-                continue
-            emb_p = embed_torus_geodesic(p)
-            dist = riemannian_distance(emb_N, emb_p, N)
-            if dist < epsilon:
-                return p, q, dist
-        return None
-
-    pool = multiprocessing.Pool(cores)
-    chunks = [range(i, R+1, cores) for i in range(cores)]
-    chunks += [range(-i, -R-1, -cores) for i in range(1, cores+1)]  # Negative
-
-    results = pool.map(check_chunk, chunks)
-    pool.close()
-    pool.join()
-
-    for res in results:
-        if res:
-            return res
-    return None, None, None
-
-def gva_factorize_64bit(N, method='parallel', R=1000000, cores=8):
-    """
-    GVA for 64-bit balanced semiprimes.
-    Methods: 'astar', 'parallel', 'brute'
-    """
-    if N >= 2**64:
-        raise ValueError("N must be < 2^64")
-    if not sympy.isprime(N):  # Assume semiprime, but check if prime
-        pass  # For semiprime, should have two factors
-
-    print(f"GVA-64 ASSAULT: N = {N} ({N.bit_length()} bits)")
-
-    if method == 'astar':
-        return a_star_search_offset(N, R)
-    elif method == 'parallel':
-        return parallel_offset_search(N, R, cores)
-    else:
-        # Brute force as fallback
-        sqrtN = int(sqrt(mpf(N)))
-        emb_N = embed_torus_geodesic(N)
-        epsilon = adaptive_threshold(N)
-        for d in range(-R, R+1):
-            p = sqrtN + d
-            if p <= 1 or p >= N:
-                continue
-            if N % p != 0:
-                continue
-            q = N // p
-            if not sympy.isprime(p) or not sympy.isprime(q):
-                continue
-            if not check_balance(p, q):
-                continue
-            emb_p = embed_torus_geodesic(p)
-            dist = riemannian_distance(emb_N, emb_p, N)
-            if dist < epsilon:
-                return p, q, dist
-        return None, None, None
 
 # Sample 64-bit test
 if __name__ == "__main__":
     # Sample from issue: N=13949754606565651 = 3735288611 × 3735288601
-    p, q = 3735288611, 3735288601
+    p, q = 4294966297, 4294966427
     N = p * q
     print(f"Sample 64-bit N = {N} ({N.bit_length()} bits)")
 
     import time
     start = time.time()
-    result = gva_factorize_64bit(N, method='brute')
+    result = gva_factorize_64bit(N)
     end = time.time()
 
     if result[0]:
