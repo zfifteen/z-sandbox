@@ -603,7 +603,6 @@ public class FactorizationShortcut {
             Nmax, bandLo, bandHi, poolTarget, pi, secantIters, localWindow, mrIters);
 
     // primesSmall up to sqrt(Nmax) (for trial/fast checks if desired)
-    BigInteger sqrt = sqrtFloor(Nmax);
     // Precompute theta for pool
     Map<BigInteger, BigDecimal> thetaPool = new HashMap<>(pool.size() * 2);
     for (BigInteger p : pool) {

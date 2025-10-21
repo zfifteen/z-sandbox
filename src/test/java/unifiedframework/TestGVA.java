@@ -26,10 +26,8 @@ public class TestGVA {
   @Test
   public void test64BitBenchmark() {
     // Generate a 64-bit semiprime
-    BigInteger p =
-        new BigInteger(32, java.util.Random.from(java.util.concurrent.ThreadLocalRandom.current()));
-    BigInteger q =
-        new BigInteger(32, java.util.Random.from(java.util.concurrent.ThreadLocalRandom.current()));
+    BigInteger p = new BigInteger(32, java.util.concurrent.ThreadLocalRandom.current());
+    BigInteger q = new BigInteger(32, java.util.concurrent.ThreadLocalRandom.current());
     BigInteger N = p.multiply(q);
 
     List<BigInteger> factors = gva.build(N, 10, 42);

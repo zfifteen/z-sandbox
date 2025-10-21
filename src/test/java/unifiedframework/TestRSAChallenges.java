@@ -57,9 +57,7 @@ public class TestRSAChallenges {
         // ---- Integrity gate (catches wrong N instantly) ----
         BigInteger prod = expectedP.multiply(expectedQ);
         if (!prod.equals(N)) {
-          String sP = expectedP.toString(), sQ = expectedQ.toString();
           String sN = N.toString(), sProd = prod.toString();
-
           // show first differing index
           int diff = -1, L = Math.min(sN.length(), sProd.length());
           for (int i = 0; i < L; i++)

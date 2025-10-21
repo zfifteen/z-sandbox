@@ -26,8 +26,6 @@ public class Z5dPredictor {
   // Mathematical constants from z_framework_params.h
   private static final double Z5D_E_SQUARED = 7.38905609893065; /* e^2 */
   private static final double Z5D_E_FOURTH = 54.59815003314424; /* e^4 */
-  private static final double Z5D_GOLDEN_PHI = 1.61803398874989; /* Golden ratio φ */
-  private static final double Z5D_PI = 3.14159265358979; /* π */
 
   // Default calibration parameters from params.py
   private static final double Z5D_DEFAULT_C = -0.00247;
@@ -51,7 +49,6 @@ public class Z5dPredictor {
   // BigDecimal support for ultra-high scales
   private static final int BIGDECIMAL_PRECISION = 100; // Significant digits
   private static final MathContext MC = new MathContext(BIGDECIMAL_PRECISION, RoundingMode.HALF_UP);
-  private static final double DOUBLE_MAX_SAFE_SCALE = 1e305; // Above this, use BigDecimal
 
   // Error codes
   public static final int Z5D_SUCCESS = 0;

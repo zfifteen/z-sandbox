@@ -395,15 +395,14 @@ public class TestZ5dPredictor {
       csvWriter.write(csvHeader);
 
       for (double scale : scales) {
-        System.out.printf("\nTesting scale: %.0e (%s)%n", scale, formatScale(scale));
-
-        // Warm-up to stabilize memory and JIT
-        System.out.println("Warming up...");
-        long warmupStart = System.nanoTime();
-        for (int w = 0; w < 10; w++) {
-          Z5dPredictor.z5dPrime(scale, 0, 0, 0, true);
-        }
-        System.gc(); // Suggest GC to stabilize memory
+        java.util.List<Double> times = scaleTimes.get(scale);
+        double totalTime = times.stream().mapToDouble(Double::doubleValue).sum();
+        double avgTime = totalTime / predictionsPerScale;
+        double predsPerSec = predictionsPerScale / (totalTime / 1000.0);
+        System.out.printf(
+            "%-10s %-10d %-12.2f %-12.4f %-12.0f%n",
+            formatScale(scale), predictionsPerScale, totalTime, avgTime, predsPerSec);
+      }        System.gc(); // Suggest GC to stabilize memory
         long warmupEnd = System.nanoTime();
         double warmupMs = (warmupEnd - warmupStart) / 1_000_000.0;
         totalWarmupMs += warmupMs;
@@ -473,7 +472,6 @@ public class TestZ5dPredictor {
 
       double minTime = allTimesArray[0];
       double maxTime = allTimesArray[allTimesArray.length - 1];
-      double meanTime = allTimesMs.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
       double medianTime =
           allTimesArray.length % 2 == 0
               ? (allTimesArray[allTimesArray.length / 2 - 1]
@@ -510,20 +508,16 @@ public class TestZ5dPredictor {
           "%-10s %-10s %-12s %-12s %-12s%n",
           "Scale", "Count", "Total Time", "Avg Time (ms)", "Pred/sec");
       System.out.println("-".repeat(60));
-
-      for (double scale : scales) {
-        java.util.List<Double> times = scaleTimes.get(scale);
-        double totalTime = scaleTotalTimes.get(scale);
+        double predsPerSec = predictionsPerScale / (totalTime / 1000.0);
         double avgTime = totalTime / predictionsPerScale;
         double predsPerSec = predictionsPerScale / (totalTime / 1000.0);
-
         System.out.printf(
             "%-10s %-10d %-12.2f %-12.4f %-12.0f%n",
             formatScale(scale), predictionsPerScale, totalTime, avgTime, predsPerSec);
       }
 
-      System.out.println("\n" + "=".repeat(60));
-      System.out.printf("Detailed timestamped logs saved to: %s%n", csvFileName);
+
+      System.out.println("n" + "=".repeat(60));
       System.out.println("=".repeat(60));
 
       csvWriter.flush();
@@ -570,8 +564,8 @@ public class TestZ5dPredictor {
   public void testMaxFiniteScale() {
     System.out.println("=== FINDING MAX FINITE SCALE LIMIT ===");
     int maxExp = 0;
-    int maxFiniteExp = 0;
     boolean overflowSeen = false;
+    int maxFiniteExp = 0;
     for (int exp = 1; exp <= 10000; exp++) { // Upper bound way beyond double limit
       try {
         double k = Math.pow(10, exp);

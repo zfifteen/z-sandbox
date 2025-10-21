@@ -1,4 +1,4 @@
-### Explanation of the GVA Method
+## Explanation of the GVA Method
 
 The GVA method, or Geodesic Validation Assault, is an experimental factorization technique for semiprimes that leverages geometric embeddings on a high-dimensional torus manifold to guide the search for factors. By mapping numbers to points on the manifold using iterative geodesic paths influenced by constants like the golden ratio (phi) and e² (c), it computes Riemannian distances incorporating curvature (κ) derived from N's logarithm. Candidates near sqrt(N) are validated if their distance to N's embedding falls below an adaptive threshold (ε), combined with primality and balance checks (|log2(p/q)| ≤ 1). The method's value lies in its potential to transform brute-force searches into geometry-guided ones, revealing hidden efficiencies in factorization—high success rates indicate well-tuned embeddings, while low rates expose calibration issues, making it promising for cryptographic research despite current implementation flaws.
 
