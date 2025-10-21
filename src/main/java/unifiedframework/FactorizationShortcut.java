@@ -7,7 +7,6 @@ import java.math.MathContext;
 import java.math.RoundingMode;
 import java.util.*;
 import java.util.LinkedHashSet;
-import java.util.stream.Collectors;
 
 /**
  * Factorization Shortcut Demo (BigInteger/BigDecimal-safe, Z5D-only)
@@ -380,12 +379,7 @@ public class FactorizationShortcut {
     return result;
   }
 
-  private static boolean inThetaBand(
-      BigInteger p, BigInteger centerX, double thetaMin, double thetaMax) {
-    BigDecimal theta = thetaPrimeInt(new BigDecimal(p), new BigDecimal("0.3"));
-    double t = theta.doubleValue();
-    return t >= thetaMin && t < thetaMax;
-  }
+  
 
   // ======== E) Heuristic banding (BigInteger) ========
 
@@ -612,12 +606,6 @@ public class FactorizationShortcut {
 
     // primesSmall up to sqrt(Nmax) (for trial/fast checks if desired)
     BigInteger sqrt = sqrtFloor(Nmax);
-    final BigInteger finalSqrt = sqrt;
-    List<BigInteger> primesSmall =
-        pool.stream()
-            .filter(p -> p.multiply(p).compareTo(finalSqrt) <= 0)
-            .collect(Collectors.toList());
-
     // Precompute theta for pool
     Map<BigInteger, BigDecimal> thetaPool = new HashMap<>(pool.size() * 2);
     for (BigInteger p : pool) {
