@@ -9,6 +9,7 @@ import heapq
 import multiprocessing
 from mpmath import *
 import sympy
+exp2 = exp2
 def is_prime_robust(n):
     """Robust primality check: sympy + miller_rabin fallback."""
     if n < 2:
@@ -84,7 +85,7 @@ def riemannian_distance(coords1, coords2, N):
 
 def adaptive_threshold(N):
     """Adaptive ε = 0.12 / (1 + κ)"""
-    kappa = 4 * math.log(N + 1) / math.exp(2)
+    kappa = 4 * math.log(N + 1) / exp2
     return 0.12 / (1 + kappa) * 10
 
 def check_balance(p, q):

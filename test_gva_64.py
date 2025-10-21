@@ -30,6 +30,7 @@ def test_gva_64bit():
     for i in range(num_tests):
         N, true_p, true_q = generate_balanced_64bit_semiprime(i)
 
+        adaptive_R = min(int(N**0.5), 10**7)
         start_time = time.time()
         result = gva_factorize_64bit(N, method='parallel', R=1000000, cores=4)  # Use 4 cores for test
         end_time = time.time()
