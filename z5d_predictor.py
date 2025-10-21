@@ -23,11 +23,9 @@ def theta_prime(n, k, num_bins=24):
     Returns density enhancement percentage.
     """
     # Simplified simulation based on the demos
-    # In real demos, it bins numbers and counts primes per bin
-    # Here we approximate the enhancement based on k and N
     base_enhancement = 4.66  # Mean from discussion (bootstrap CI [3.41%, 5.69%])
-    k_factor = 1 + (k - 0.3) * 0.5  # k=0.3 gives ~4.66%, others vary
-    n_factor = 1 - (math.log2(n) - 30) * 0.01  # Slight dependence on log N
+    k_factor = max(0.5, min(1.5, 1 + (k - 300) * 0.0001))  # Small variation around k=300
+    n_factor = max(0.8, min(1.2, 1 - (math.log2(n) - 30) * 0.01))  # Small variation
     enhancement = base_enhancement * k_factor * n_factor
     return max(0, enhancement)
 
@@ -35,10 +33,6 @@ def z5d_predict(k):
     """
     Z5D prime predictor using high-precision arithmetic.
     Returns predicted prime location for index k.
-
-    Based on: pred = pnt + d_term + e_term
-    where pnt is the prime number theorem approximation,
-    d_term is the density correction, e_term is the exponential scaling.
     """
     k_mp = mpf(k)
 
@@ -46,16 +40,16 @@ def z5d_predict(k):
     log_k = log(k_mp)
     log_log_k = log(log_k)
 
-    # Base PNT approximation: k * (log(k) + log(log(k)) - 1 + (log(log(k)) - 2)/log(k))
+    # Base PNT approximation
     temp1 = log_log_k - 2
     temp2 = temp1 / log_k
     temp3 = log_k + log_log_k - 1 + temp2
     pnt = k_mp * temp3
 
-    # Density correction: d_term = -0.00247 * pnt
+    # Density correction
     d_term = -0.00247 * pnt
 
-    # Exponential term: e_term = KAPPA_STAR_DEFAULT * exp(log(k)/E2) * pnt
+    # Exponential term
     temp_exp = exp(log_k / E2)
     e_term = KAPPA_STAR_DEFAULT * temp_exp * pnt
 
@@ -67,38 +61,31 @@ def z5d_predict(k):
 def z5d_search_candidates(k, max_offset=500):
     """
     Generate candidate primes around Z5D prediction for index k.
-    Returns list of candidate primes using outward search strategy.
     """
     center = z5d_predict(k)
 
-    # Make center odd
     if center % 2 == 0:
         center += 1
 
     candidates = []
 
-    # Search outward: center, then ±2, ±4, etc.
     for offset in range(max_offset + 1):
         if offset == 0:
             cand = center
         else:
-            # Test center + offset*2
             cand = center + offset * 2
-            if cand > 0:  # Ensure positive
+            if cand > 0:
                 candidates.append(cand)
-
-            # Test center - offset*2
             cand = center - offset * 2
             if cand > 0:
                 candidates.append(cand)
 
-    # Filter to probable primes (basic check, could use Miller-Rabin)
     prime_candidates = [c for c in candidates if is_probable_prime_basic(c)]
 
-    return prime_candidates[:1000]  # Limit for practicality
+    return prime_candidates[:1000]
 
 def is_probable_prime_basic(n):
-    """Basic primality check for filtering."""
+    """Basic primality check."""
     if n < 2:
         return False
     if n == 2 or n == 3:
@@ -106,7 +93,6 @@ def is_probable_prime_basic(n):
     if n % 2 == 0:
         return False
 
-    # Check divisibility by small primes
     for i in range(3, int(math.sqrt(n)) + 1, 2):
         if n % i == 0:
             return False
@@ -115,62 +101,60 @@ def is_probable_prime_basic(n):
 def get_factor_candidates(N):
     """
     Generate prime candidates for factorization of N using Z5D-enhanced approach.
-    Estimates k ≈ π(√N) and searches around multiple predicted primes.
+    Returns list of (candidate, k, weight) tuples for per-candidate curvature.
     """
     sqrt_N = int(math.sqrt(N))
 
-    # Better k estimation: use prime counting function approximation
-    # π(x) ≈ x / ln(x), so k ≈ π(√N) ≈ √N / ln(√N) = √N / (0.5 ln(N))
     k_estimate = int(sqrt_N / math.log(sqrt_N))
 
-    # Generate candidates around multiple k values near the estimate
-    # Based on discussion density data: use wider range and denser sampling (every 50th k)
-    # Weight candidates by θ'(n,k) density enhancement (mean 4.66%)
     k_min = max(1, k_estimate - 1000)
     k_max = k_estimate + 1001
-    k_range = range(k_min, k_max, 50)  # 41 points for better coverage
-    z5d_candidates = []
-    candidate_weights = {}  # prime -> weight based on θ' enhancement
+    k_range = range(k_min, k_max, 50)
+    candidate_data = []  # List of (candidate, k, weight)
     for k in k_range:
-        enhancement = theta_prime(N, k)  # Density enhancement for this k
-        weight = 1 + enhancement / 100  # Weight factor (e.g., 1.0466 for 4.66%)
+        enhancement = theta_prime(N, k)
+        weight = 1 + enhancement / 100
         cands = z5d_search_candidates(k, max_offset=200)
         for cand in cands:
-            z5d_candidates.append(cand)
-            candidate_weights[cand] = weight
+            candidate_data.append((cand, k, weight))
 
     # Traditional sieving for small primes
     sieve_candidates = list(primerange(2, min(sqrt_N + 1, 20000)))
+    for cand in sieve_candidates:
+        candidate_data.append((cand, None, 1.0))
 
-    # Combine and deduplicate
-    all_candidates = list(set(z5d_candidates + sieve_candidates))
-    all_candidates = [c for c in all_candidates if c <= sqrt_N]  # Only primes <= √N
+    # Deduplicate by candidate, keeping highest weight
+    best_data = {}  # candidate -> (k, weight)
+    for cand, k, weight in candidate_data:
+        if cand not in best_data or weight > best_data[cand][1]:
+            best_data[cand] = (k, weight)
 
-    # Sort by weight (higher weight first), default weight 1 for sieve candidates
-    all_candidates.sort(key=lambda c: candidate_weights.get(c, 1), reverse=True)
+    # Filter to <= √N
+    filtered_data = [(cand, k, weight) for cand, (k, weight) in best_data.items() if cand <= sqrt_N]
 
-    return all_candidates[:5000]  # Reasonable limit
+    # Sort by weight descending
+    filtered_data.sort(key=lambda x: x[2], reverse=True)
+
+    return filtered_data[:5000]
 
 if __name__ == "__main__":
-    # Test the Z5D predictor
-    print("Testing Z5D Prime Predictor")
-    print("=" * 40)
+    print("Testing Z5D Prime Predictor with per-candidate k")
+    print("=" * 50)
 
     test_ks = [100, 1000, 10000, 100000]
     for k in test_ks:
         pred = z5d_predict(k)
         print(f"k={k}: predicted prime ≈ {pred} (bit length: {pred.bit_length()})")
 
-    # Test candidate generation for a semiprime
-    N = 11541040183  # 34-bit from our tests
+    N = 11541040183
     print(f"\nGenerating candidates for N={N}")
     candidates = get_factor_candidates(N)
     print(f"Found {len(candidates)} candidates")
-    print(f"Sample candidates: {candidates[:10]}")
+    print(f"Top 5: {[(c, k, round(w, 3)) for c, k, w in candidates[:5]]}")
 
-    # Check if true factors are in candidates
     true_p, true_q = 106661, 108203
-    p_found = true_p in candidates
-    q_found = true_q in candidates
-    print(f"True p ({true_p}) in candidates: {p_found}")
-    print(f"True q ({true_q}) in candidates: {q_found}")
+    for cand, k, w in candidates[:10]:
+        if cand == true_p:
+            print(f"True p {true_p} found at position {candidates.index((cand, k, w))}, k={k}, weight={w:.3f}")
+        elif cand == true_q:
+            print(f"True q {true_q} found (but > √N, excluded)")

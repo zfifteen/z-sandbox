@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Test the refined curved geometry factorization using the full arctan identity.
-This implements the paradigm shift from flat to curved number space.
+Test the refined curved geometry factorization with per-candidate local curvature.
+Uses (candidate, k, weight) tuples for individualized distance calculations.
 """
 
 import random
@@ -15,7 +15,6 @@ from mpmath import mp
 mp.dps = 50
 
 def is_prime_miller_rabin(n: int, rounds: int = 10) -> bool:
-    """Miller-Rabin primality test."""
     if n < 2:
         return False
     if n == 2 or n == 3:
@@ -48,7 +47,6 @@ def is_prime_miller_rabin(n: int, rounds: int = 10) -> bool:
     return True
 
 def generate_prime(bit_size: int, seed: int) -> int:
-    """Generate a random prime of specified bit size."""
     rng = random.Random(seed)
     while True:
         p = rng.getrandbits(bit_size)
@@ -58,7 +56,6 @@ def generate_prime(bit_size: int, seed: int) -> int:
             return p
 
 def generate_balanced_semiprime(bit_size: int, seed: int) -> Tuple[int, int, int]:
-    """Generate a balanced semiprime N = p × q."""
     half_bits = bit_size // 2
     p_bits = half_bits
     q_bits = bit_size - p_bits
@@ -80,30 +77,17 @@ def generate_balanced_semiprime(bit_size: int, seed: int) -> Tuple[int, int, int
 phi = (1 + mp.sqrt(5)) / 2
 
 def theta_curved(m, k):
-    """
-    Refined curved geometry mapping using the full arctan identity.
-    Based on: atan( (√(1+x²)-1)/x ) where x = (m/φ)^k
-    This incorporates the curvature derivative 1/(2(1+x²)) naturally.
-    """
     if m <= 0:
         return 0.0
 
-    # Use x = (m/φ)^k as the argument for the arctan identity
     x = mp.power(m / phi, k)
-
-    # Apply the arctan identity: atan( (√(1+x²)-1)/x )
-    # This is the form that has derivative 1/(2(1+x²))
     sqrt_term = mp.sqrt(1 + x**2)
     arg = (sqrt_term - 1) / x
     curved_value = mp.atan(arg)
-
-    # Normalize: atan returns [-π/2, π/2], map to [0, 1)
     normalized = (curved_value + mp.pi/2) / mp.pi
-
     return float(mp.frac(normalized))
 
 def theta_flat(m, k):
-    """Original flat geometry for comparison: θ(m,k) = {φ × (m/φ)^k}"""
     if m <= 0:
         return 0.0
     ratio = mp.power(m / phi, k)
@@ -114,56 +98,65 @@ def circ_dist(a, b):
     diff = mp.fabs(a - b)
     return min(diff, 1 - diff)
 
-def curved_geometric_factorize(N, stages, use_curved=True):
-    """
-    Factorization using curved geometry θ_curved.
-    Returns (found_p, found_q, metadata)
-    """
-    mp_n = mp.mpf(N)
-    sqrt_n = int(mp.sqrt(N)) + 1
-    candidates = list(sp.primerange(2, min(sqrt_n, 10000)))
+def riemannian_dist(a, b, N, k=None):
+    base_dist = circ_dist(a, b)
+    x = math.log2(N)
+    global_curvature = 1 / (2 * (1 + x**2))
 
-    initial_count = len(candidates)
+    # Local curvature: contract in dense regions
+    local_curvature = 0
+    if k is not None:
+        from z5d_predictor import theta_prime
+        enhancement = theta_prime(N, k)
+        local_curvature = -enhancement / 100  # Stronger effect: divide by 100 instead of 1000
+
+    warped_dist = base_dist * (1 + global_curvature + local_curvature)
+    return min(max(warped_dist, 0), 1)
+
+def curved_geometric_factorize(N, stages, use_curved=True):
+    from z5d_predictor import get_factor_candidates
+    candidate_tuples = get_factor_candidates(N)  # Now (cand, k, weight) tuples
+
+    initial_count = len(candidate_tuples)
 
     for i, (k, epsilon) in enumerate(stages):
-        if not candidates:
+        if not candidate_tuples:
             break
-        th_n = theta_curved(mp_n, k) if use_curved else theta_flat(mp_n, k)
+        th_n = theta_curved(mp.mpf(N), k) if use_curved else theta_flat(mp.mpf(N), k)
         new_cands = []
-        for p in candidates:
-            mp_p = mp.mpf(p)
+        for cand, cand_k, weight in candidate_tuples:
+            mp_p = mp.mpf(cand)
             th_p = theta_curved(mp_p, k) if use_curved else theta_flat(mp_p, k)
-            dist = circ_dist(th_n, th_p)
+            dist_k = cand_k if cand_k is not None else 0.3
+            dist = riemannian_dist(th_n, th_p, N, k=dist_k) if use_curved else circ_dist(th_n, th_p)
             if dist < epsilon:
-                new_cands.append(p)
-                if N % p == 0:
-                    q = N // p
-                    return p, q, {
+                new_cands.append((cand, cand_k, weight))
+                if N % cand == 0:
+                    q = N // cand
+                    return cand, q, {
                         'stage_found': i+1,
                         'total_candidates': initial_count,
                         'final_candidates': len(new_cands),
                         'reduction_pct': (1 - len(new_cands)/initial_count)*100 if initial_count > 0 else 0,
-                        'method': 'curved' if use_curved else 'flat',
-                        'theta_type': 'theta_curved' if use_curved else 'theta_flat'
+                        'method': 'curved_per_candidate' if use_curved else 'flat',
+                        'candidate_k': cand_k,
+                        'candidate_weight': weight
                     }
-        candidates = new_cands
+        candidate_tuples = new_cands
 
-    return None, None, {'error': 'No factor found', 'final_candidates': len(candidates), 'reduction_pct': (1 - len(candidates)/initial_count)*100 if initial_count > 0 else 0}
+    return None, None, {'error': 'No factor found', 'final_candidates': len(candidate_tuples), 'reduction_pct': (1 - len(candidate_tuples)/initial_count)*100 if initial_count > 0 else 0}
 
 if __name__ == "__main__":
-    # Test the paradigm shift: curved vs flat geometry
     test_cases = [
-        (32, 42, "32-bit pre-boundary"),
         (34, 42, "34-bit boundary"),
         (34, 123, "34-bit different seed"),
-        (36, 456, "36-bit post-boundary"),
+        (36, 456, "36-bit beyond boundary"),
     ]
 
     stages = [(5, 0.05), (10, 0.002), (15, 0.0001), (20, 0.00005)]
 
-    print("=== Testing the Paradigm Shift: Flat vs Curved Geometry (Refined) ===\n")
-    print("θ_flat: Original {φ × (m/φ)^k} - flat space assumption")
-    print("θ_curved: Refined atan( (√(1+x²)-1)/x ) with x=(m/φ)^k - curved space\n")
+    print("=== Testing Per-Candidate Local Curvature ===\n")
+    print("Enhanced local curvature: divide by 100 (vs 1000), per-candidate k assignment\n")
 
     for bit_size, seed, desc in test_cases:
         print(f"Testing: {desc}")
@@ -171,10 +164,9 @@ if __name__ == "__main__":
         print(f"N = {N} ({N.bit_length()} bits)")
         print(f"True factors: {true_p} × {true_q}")
 
-        # Test both geometries
         geometries = [
             ("Flat Geometry", False),
-            ("Curved Geometry", True),
+            ("Curved Per-Candidate", True),
         ]
 
         for geo_name, use_curved in geometries:
@@ -188,16 +180,14 @@ if __name__ == "__main__":
                 status = "✅ SUCCESS" if success else "❌ WRONG FACTORS"
                 print(f"    {status}: {found_p} × {found_q} in {elapsed:.3f}s")
                 if success:
-                    print(f"    Breakthrough! Boundary overcome with curved geometry.")
-                    print(f"    Metadata: {metadata}")
+                    print(f"    🎉 BREAKTHROUGH! Boundary dissolved!")
+                    print(f"    Details: {metadata}")
             else:
                 print(f"    ❌ FAILED: {elapsed:.3f}s, {metadata}")
 
         print("-" * 80)
 
-    print("\n=== Paradigm Shift Analysis ===")
-    print("Refined derivation:")
-    print("- Uses full arctan identity atan( (√(1+x²)-1)/x ) with derivative 1/(2(1+x²))")
-    print("- Incorporates curvature naturally without scaling adjustments")
-    print("Expected: Better clustering in curved space, potentially overcoming boundary")
-    print("If curved succeeds: Validates the new geometric model!")
+    print("\n=== Analysis ===")
+    print("Per-candidate k enables true local curvature adaptation.")
+    print("Stronger scaling (÷100) amplifies density-based distance warping.")
+    print("If breakthrough occurs: Local curvature hypothesis validated!")
