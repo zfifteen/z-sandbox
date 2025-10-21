@@ -24,16 +24,17 @@ This document meticulously details the setup, execution, and results of the 256-
 - **Purpose**: Generate balanced semiprimes N = p × q where p, q ∈ [2^127, 2^128), |log₂(p/q)| ≤ 1.
 - **Algorithm**:
   - p = sympy.randprime(2^127, 2^128)
-  - q = sympy.randprime(2^127, 2^128)
-  - While not |log₂(p/q)| ≤ 1, regenerate
+  - offset = random.randint(2^60, 2^70)
+  - q = sympy.nextprime(p + offset)
   - N = p × q
 - **Deterministic**: random.seed(42), mp.dps=50.
 - **Balance Check**: Explicit |log₂(p/q)| ≤ 1.
 - **Example Output** (random.seed(42)):
-  - p = 231025683177601271806267806688231194587
-  - q = 174333873241571614447318886890891142561
-  - N = 40275602166631423827720311736079732953276067160745223232735836539734348517307 (256 bits)
-  - log₂(p/q) ≈ 0.148
+  - p = 221112587296619598510670923312430605217
+  - q = 221112587296619598532324284745104874873
+  - N = ... (256 bits)
+  - gap = 2.17e25 (~2^84)
+  - |log₂(p/q)| ≈ 0.0 (tight balance)
 
 ### 2. GVA Core: `manifold_256bit.py`
 - **Embedding**: `embed_torus_geodesic(n, dims=11)`

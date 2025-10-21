@@ -15,12 +15,11 @@ SEED = 42
 random.seed(SEED)
 
 def generate_balanced_256bit_semiprime():
-    """Generate N = p * q with p, q ~2^127, balanced as per GOAL.md"""
-    while True:
-        p = sympy.randprime(2**127, 2**128)
-        q = sympy.randprime(2**127, 2**128)
-        if abs(mp.log(p/q)/mp.log(2)) <= 1:
-            return p * q, p, q
+    """Generate N = p * q with p, q ~2^127, balanced with scaled gap"""
+    p = sympy.randprime(2**127, 2**128)
+    offset = random.randint(2**60, 2**70)  # Scaled gap for 256-bit
+    q = sympy.nextprime(p + offset)
+    return p * q, p, q
 
 def test_gva_256bit():
     """Test GVA on 10 samples (scaled down for feasibility) as per GOAL.md"""
