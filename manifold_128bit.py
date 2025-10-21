@@ -19,7 +19,7 @@ def is_prime_robust(n):
     if n % 2 == 0:
         return False
     try:
-        return is_prime_robust(n)
+        return sympy.isprime(n)
     except:
         return miller_rabin(n)
 
@@ -52,7 +52,7 @@ def miller_rabin(n, k=20):
             return False
     return True
 
-# High precision for 64-bit
+# High precision for 128-bit
 mp.dps = 400
 
 phi = (1 + sqrt(5)) / 2
@@ -99,7 +99,7 @@ def check_balance(p, q):
 
 def gva_factorize_128bit(N, method='parallel', R=1000000, cores=8):
     """
-    GVA for 64-bit balanced semiprimes.
+    GVA for 128-bit balanced semiprimes.
     """
     if not is_prime_robust(N):  # Assume semiprime
         pass
@@ -127,13 +127,13 @@ def gva_factorize_128bit(N, method='parallel', R=1000000, cores=8):
             return p, q, dist
     return None, None, None
 
-# Sample 64-bit test
+# Sample 128-bit test
 if __name__ == "__main__":
     # Sample from issue: N=13949754606565651 = 3735288611 × 3735288601
     p = int(sympy.nextprime(2**64))
     q = int(sympy.nextprime(p + 1000000))
     N = p * q
-    print(f"Sample 64-bit N = {N} ({N.bit_length()} bits)")
+    print(f"Sample 128-bit N = {N} ({N.bit_length()} bits)")
 
     import time
     start = time.time()

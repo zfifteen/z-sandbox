@@ -1,9 +1,7 @@
 # 64-Bit Geodesic Validation Assault: Milestone Report
 
 ## Executive Summary
-Attempted to scale GVA from 50-bit to 128-bit balanced semiprimes. Implemented adaptive threshold, balance checks, A* pathfinding, and parallelization. Benchmark on sample N=13952380970113423211 failed to factorize, indicating issues with primality detection or search radius. 128-bit milestone VERIFIED; achieved 12% success rate on 100 samples.
-
-## Implementation Details
+Attempted to scale GVA from 50-bit to 128-bit balanced semiprimes. Implemented adaptive threshold, balance checks, A* pathfinding, and parallelization. Benchmark on sample N=13952380970113423211 failed to factorize, indicating issues with primality detection or search radius. 128-bit milestone UNVERIFIED; requires debugging.
 - **Adaptive Threshold**: ε = 5.0 (placeholder; formula 0.12/(1+κ) yielded ε≈0.005, too strict for dist≈0.05).
 - **Balance Check**: |log2(p/q)| ≤ 1 enforced.
 - **A* Pathfinding**: Heuristic h(d) = κ*|d|; priority queue with heapq.

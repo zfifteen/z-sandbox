@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Unit tests for 64-bit GVA: Test 100 balanced semiprimes for correctness and performance.
+Unit tests for 128-bit GVA: Test 100 balanced semiprimes for correctness and performance.
 """
 
 import time
@@ -20,12 +20,12 @@ def generate_balanced_64bit_semiprime(seed):
 
 def test_gva_128bit():
     """Test GVA on 100 samples."""
-    num_tests = 1
+    num_tests = 100
     successes = 0
     total_time = 0
     false_positives = 0
 
-    print("Testing 64-bit GVA on 100 balanced semiprimes...")
+    print("Testing 128-bit GVA on 100 balanced semiprimes...")
 
     for i in range(num_tests):
         N, true_p, true_q = generate_balanced_64bit_semiprime(i)
