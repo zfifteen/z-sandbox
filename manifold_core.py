@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Manifold Core: 5-Torus Embedding and Riemannian A* Pathfinder
-For 40-bit factorization assault.
+For 40-bit factorization assault - CORRECTED VERSION
 """
 
 import math
@@ -19,42 +19,57 @@ def fractional_part(x):
 
 def embed_5torus(N, k):
     """
-    Embed N into 5-torus using PHI powers.
-    Returns 5D point on torus.
+    Embed N into 5-torus using iterative θ' transformations.
+    Corrected to match universal invariant formulation Z = A(B / c)
     """
     N_mp = mp.mpf(N)
     k_mp = mp.mpf(k)
+    c = mp.exp(2)  # e² invariant
+    phi = (1 + mp.sqrt(5)) / 2
 
+    x = N_mp / c  # Start with normalized B/c
     embedding = []
-    for i in range(5):
-        phi_power = mp.power(PHI, i+1)
-        ratio = mp.power(N_mp / phi_power, k_mp)
-        coord = phi_power * ratio
-        frac_coord = fractional_part(coord)
-        embedding.append(frac_coord)
+    for _ in range(5):
+        x_mod = mp.fmod(x, phi)
+        ratio = x_mod / phi
+        if ratio <= 0:
+            ratio = mp.mpf('1e-50')  # Guard against zero
+        x = phi * mp.power(ratio, k_mp)
+        embedding.append(float(mp.frac(x)))
 
     return tuple(embedding)
 
-def riemannian_distance_5d(point1, point2):
+def curvature(N):
     """
-    Riemannian distance on 5-torus between two 5D points.
-    Uses curved metric: sum of circular distances with curvature warping.
+    Calculate curvature κ(n) = d(n) · ln(n+1) / e²
+    where d(n) ≈ 4 for semiprimes
+    """
+    N_mp = mp.mpf(N)
+    d_n = 4  # Approximate divisor count for semiprimes
+    return mp.mpf(d_n) * mp.log(N_mp + 1) / mp.exp(2)
+
+def riemannian_distance_5d(point1, point2, N=None):
+    """
+    Riemannian distance on 5-torus with proper curvature κ(n).
+    Uses domain-specific discrete form with Δ_n/Δ_max weighting.
     """
     if len(point1) != 5 or len(point2) != 5:
         raise ValueError("Points must be 5D")
 
+    kappa = curvature(mp.mpf(N)) if N else mp.mpf(0.1)  # Default if N not provided
+
     total_dist = 0
-    for i in range(5):
+    for i, (c1, c2) in enumerate(zip(point1, point2)):
         # Circular distance
-        diff = abs(point1[i] - point2[i])
+        diff = abs(c1 - c2)
         circ_dist = min(diff, 1 - diff)
 
-        # Add curvature warping (simplified)
-        curvature_factor = 1 / (1 + i)  # Decreasing influence by dimension
-        warped_dist = circ_dist * (1 + curvature_factor * 0.1)
+        # Curvature warping: circ_dist * (1 + κ * circ_dist)
+        # This creates stronger warping for larger distances
+        warped_dist = circ_dist * (1 + kappa * circ_dist)
         total_dist += warped_dist ** 2
 
-    return math.sqrt(total_dist)
+    return float(mp.sqrt(mp.mpf(total_dist)))
 
 class RiemannianAStar:
     """A* pathfinder using Riemannian distance as cost."""
@@ -113,51 +128,46 @@ class RiemannianAStar:
 
 def inverse_embed_5torus(point_5d, N, k):
     """
-    Enhanced inverse 5-torus embedding using backward iteration.
-    Reverse the θ' transformations to recover prime candidate.
-
-    Based on: coord_i = θ'(coord_{i-1}, k), so coord_{i-1} = inverse_θ'(coord_i)
-    where inverse_θ'(x) = φ * (x / φ)^{1/k}
+    Corrected inverse 5-torus embedding using backward θ' iteration.
+    Stable implementation with proper guards.
     """
     try:
-        # Start from the last coordinate and work backwards
-        current = mp.mpf(point_5d[4])  # coord5
+        k_mp = mp.mpf(k)
+        inv_k = 1 / k_mp
+        c = mp.exp(2)  # e²
+        phi = (1 + mp.sqrt(5)) / 2
 
-        # Apply inverse θ' for dimensions 4, 3, 2, 1
+        # Start from coord5 and work backwards
+        x = mp.mpf(point_5d[4])
+
+        # Reverse iterations: coord5 → coord4 → ... → coord1
         for i in range(4, 0, -1):
-            alpha = PHI ** (i+1)
-            # inverse_θ'(current) = α * (current / α)^{1/k}
-            ratio = current / alpha
+            alpha = mp.power(phi, i+1)
+            ratio = x / alpha
             if ratio <= 0:
                 return None
-            inv_power = mp.power(ratio, 1/k)
-            current = alpha * inv_power
+            base = mp.power(ratio, inv_k)
+            x = alpha * base
 
-        # current is now coord1, but we need the original n
-        # coord1 = θ'(n/c, k) where c = e²
-        # So inverse: n/c = inverse_θ'(coord1)
-        c = mp.exp(2)  # e²
-        alpha = PHI ** 1  # φ^1 = φ
-        ratio = current / alpha
+        # Now x = coord1 → recover n/c
+        alpha = phi  # φ^1
+        ratio = x / alpha
         if ratio <= 0:
             return None
-        n_over_c = alpha * mp.power(ratio, 1/k)
+        n_over_c = alpha * mp.power(ratio, inv_k)
         n_recovered = n_over_c * c
 
-        # Round to nearest integer and validate
+        # Round and validate
         p_candidate = int(mp.nint(n_recovered))
-
-        # Check if it's a valid factor
-        if p_candidate > 1 and N % p_candidate == 0:
+        if p_candidate <= 1 or p_candidate >= N:
+            return None
+        if N % p_candidate == 0:
             q_candidate = N // p_candidate
             if is_prime_basic(p_candidate) and is_prime_basic(q_candidate):
                 return p_candidate
-
-    except:
-        # If any computation fails (e.g., negative powers), return None
         return None
-
-    return None
+    except:
+        return None
 
 def is_prime_basic(n):
     """Basic primality check."""
@@ -185,17 +195,17 @@ def recover_factors_from_path(path, N, k):
                 return p, q
     return None, None
 
-def manifold_factorize(N, k0=0.3, max_attempts=100):
+def manifold_factorize(N, k0=0.3, max_attempts=100, use_direct=False):
     """
     Attempt factorization using 5-torus embedding and Riemannian A*.
-    Now includes inverse embedding for factor recovery.
+    Now includes corrected inverse embedding for factor recovery.
     """
     print(f"Manifold factorization for N={N}")
 
     # Embed N
     N_embedding = embed_5torus(N, k0)
 
-    astar = RiemannianAStar(riemannian_distance_5d)
+    astar = RiemannianAStar(lambda a, b: riemannian_distance_5d(a, b, N))
 
     # Try to reach factor embeddings (simplified: use known factor for testing)
     for attempt in range(max_attempts):
