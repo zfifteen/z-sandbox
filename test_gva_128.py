@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
 Unit tests for 128-bit GVA: Test 100 balanced semiprimes for correctness and performance.
+Target precision: < 1e-16 (mpmath with dps=400 in manifold_128bit.py)
 """
 
 import time
