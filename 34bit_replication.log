@@ -1,0 +1,14 @@
+34-bit Breakthrough Replication Results
+========================================
+Test 1: SUCCESS - 0.056s - 74.2%
+Test 2: FAILED - 0.386s - 0.0%
+Test 3: SUCCESS - 0.048s - 81.4%
+Test 4: SUCCESS - 0.051s - 76.5%
+Test 5: FAILED - 0.416s - 0.0%
+Test 6: FAILED - 0.403s - 0.0%
+Test 7: FAILED - 0.398s - 0.0%
+Test 8: SUCCESS - 0.052s - 76.5%
+Test 9: FAILED - 0.396s - 0.0%
+Test 10: SUCCESS - 0.040s - 91.1%
+
+Overall: 5/10 successes

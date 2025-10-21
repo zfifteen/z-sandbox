@@ -1,0 +1,16 @@
+Curvature Scale Optimization Results
+========================================
+Test Case: N=11541040183
+True Factors: 106661×108203
+
+Scale 50: SUCCESS - 74.2% - 0.056s
+Scale 75: SUCCESS - 74.2% - 0.054s
+Scale 100: SUCCESS - 74.2% - 0.055s
+Scale 125: SUCCESS - 74.2% - 0.068s
+Scale 150: SUCCESS - 74.2% - 0.054s
+Scale 200: SUCCESS - 74.2% - 0.054s
+Scale 300: SUCCESS - 74.2% - 0.054s
+Scale 500: SUCCESS - 74.2% - 0.053s
+Scale 1000: SUCCESS - 74.2% - 0.055s
+
+Best: Scale 50 - 74.2% reduction
