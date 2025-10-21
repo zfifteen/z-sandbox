@@ -58,13 +58,13 @@ mp.dps = 400
 phi = (1 + sqrt(5)) / 2
 c = exp(2)
 
-def embed_torus_geodesic(n, dims=9):
+def embed_torus_geodesic(n, dims=11):
     """
     Torus geodesic embedding for GVA.
     Z = A(B / c) with c = e², iterative θ'(n, k)
     """
     x = mpf(n) / c
-    k = 0.3 / math.log2(math.log2(float(n) + 1))
+    k = 0.5 / math.log2(math.log2(float(n) + 1))
     coords = []
     for _ in range(dims):
         x = phi * power(frac(x / phi), k)
@@ -77,19 +77,20 @@ def riemannian_distance(coords1, coords2, N):
     κ(n) = 4 · ln(n+1) / e²
     """
     kappa = 4 * math.log(N + 1) / exp2
-    total = 0.0
-    for c1, c2 in zip(coords1, coords2):
-        d = min(abs(c1 - c2), 1 - abs(c1 - c2))
-        total += (d * (1 + kappa * d))**2
-    return sqrt(total)
-
-def adaptive_threshold(N):
-    """Adaptive ε = 0.12 / (1 + κ)"""
-    kappa = 4 * math.log(N + 1) / exp2
-    return 0.12 / (1 + kappa) * 10
-
-def check_balance(p, q):
-    """Check if |log2(p/q)| ≤ 1"""
+        for d in range(-R, R+1):
+            p = sqrtN + d
+            if p <= 1 or p >= N or N % p != 0:
+                continue
+            q = N // p
+            if not is_prime_robust(p) or not is_prime_robust(q) or not check_balance(p, q):
+                continue
+            emb_p = embed_torus_geodesic(p)
+            emb_q = embed_torus_geodesic(q)
+            dist_p = riemannian_distance(emb_N, emb_p, N)
+            dist_q = riemannian_distance(emb_N, emb_q, N)
+            if float(dist_p) < epsilon or float(dist_q) < epsilon:
+                return p, q, min(dist_p, dist_q)
+        return None, None, None                    return result
     if p == 0 or q == 0:
         return False
     ratio = abs(math.log2(p / q))
@@ -97,7 +98,7 @@ def check_balance(p, q):
 
 
 
-def gva_factorize_128bit(N, method='parallel', R=1000000, cores=8):
+def gva_factorize_128bit(N, R=1000000):
     """
     GVA for 128-bit balanced semiprimes.
     """
@@ -108,26 +109,20 @@ def gva_factorize_128bit(N, method='parallel', R=1000000, cores=8):
     epsilon = adaptive_threshold(N)
     emb_N = embed_torus_geodesic(N)
     kappa = 4 * math.log(N + 1) / exp2    sqrtN = int(mpf(N).sqrt())
-    R = max(10000000, sqrtN // 1000)
-    print(f"GVA-128 ASSAULT: N = {N} ({N.bit_length()} bits)")
-    for d in range(-R, R+1):
-        p = sqrtN + d
-        if p <= 1 or p >= N:
-            continue
-        if N % p != 0:
-            continue
-        q = N // p
-        if not is_prime_robust(p) or not is_prime_robust(q):
-            continue
-        if not check_balance(p, q):
-            continue
-        emb_p = embed_torus_geodesic(p)
-        dist = riemannian_distance(emb_N, emb_p, N)
-        if float(dist) < epsilon:
-            return p, q, dist
-    return None, None, None
-
-# Sample 128-bit test
+        for d in range(-R, R+1):
+            p = sqrtN + d
+            if p <= 1 or p >= N or N % p != 0:
+                continue
+            q = N // p
+            if not is_prime_robust(p) or not is_prime_robust(q) or not check_balance(p, q):
+                continue
+            emb_p = embed_torus_geodesic(p)
+            emb_q = embed_torus_geodesic(q)
+            dist_p = riemannian_distance(emb_N, emb_p, N)
+            dist_q = riemannian_distance(emb_N, emb_q, N)
+            if float(dist_p) < epsilon or float(dist_q) < epsilon:
+                return p, q, min(dist_p, dist_q)
+        return None, None, None                    return result
 if __name__ == "__main__":
     # Sample from issue: N=13949754606565651 = 3735288611 × 3735288601
     p = int(sympy.nextprime(2**64))
@@ -143,7 +138,3 @@ if __name__ == "__main__":
     if result[0]:
         print(f"GEODESIC VICTORY: {result[0]} × {result[1]} = {N}")
         print(f"Distance: {result[2]:.4f}")
-    else:
-        print("No victory found")
-
-    print(f"Time: {end - start:.2f}s")

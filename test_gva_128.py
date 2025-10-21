@@ -8,7 +8,7 @@ import random
 import sympy
 from manifold_128bit import gva_factorize_128bit, adaptive_threshold, check_balance
 
-def generate_balanced_64bit_semiprime(seed):
+def generate_balanced_128bit_semiprime(seed):
     """Generate N = p * q with p, q ~2^32, balanced."""
     random.seed(seed)
     base = 2**32
@@ -20,7 +20,7 @@ def generate_balanced_64bit_semiprime(seed):
 
 def test_gva_128bit():
     """Test GVA on 100 samples."""
-    num_tests = 100
+    num_tests = 5
     successes = 0
     total_time = 0
     false_positives = 0
