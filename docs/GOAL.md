@@ -1,13 +1,13 @@
-# Axioms and Mathematical Foundations
+## Axioms and Mathematical Foundations
 
 Adhere to core axioms: Empirical validation first with reproducible tests (mpmath, precision <1e-16); domain-specific forms; geometric resolution. Label hypotheses UNVERIFIED until validated.
 
-# Core Concepts
+## Core Concepts
 
-Revise plan to integrate universal invariant Z = A(B / c), with c as domain invariant (e.g., e² for discrete factoring). Normalize factorization searches via Z; apply discrete form Z = n(Δ_n / Δ_max) for neighborhood scaling, κ(n) = d(n) · ln(n+1) / e² for curvature-guided skips (UNVERIFIED hypothesis: κ reduces search by modeling prime density). Use θ'(n, k) = φ · ((n mod φ) / φ)^k (k ≈ 0.3) for geometric resolution of candidates near √N.
+Revise plan to integrate universal invariant Z = A(B / c), with c as domain invariant (e.g., e² for discrete factoring). Normalize factorization searches via Z; apply discrete form Z = n(Δ_n / Δ_max) for neighborhood scaling, κ(n) = 4 · ln(n+1) / e² for curvature-guided skips (UNVERIFIED hypothesis: κ reduces search by modeling prime density). Use θ'(n, k) = φ · ((n mod φ) / φ)^k (k ≈ 0.3) for geometric resolution of candidates near √N.
 
 Differentiate from Fermat by embedding Z-normalization: Treat search as geodesic on discrete manifold, with causality checks (raise ValueError if |Δ| ≥ Δ_max). Cross-check with zeta_zeros.csv or semiprime datasets.
-
+Note: Z-Normalization guard (Z >=1) is a post-factorization validation step, not part of the search algorithm.
 ## Phase 1: Baseline Analysis and Similarity Audit (1-2 days)
 
 Profile ZNeighborhood with Z-normalization. For N, set c = e², B = √N - floor(√N), A = frame transform (e.g., identity). Compute Z = A(B / c); map to δ via Z-scaling.
@@ -16,17 +16,17 @@ Implement baseline Fermat with Z-checks:
 
 Use code_execution for proto (Python 3.12.3, import math, mpmath, sympy):
 
-# Axioms and Mathematical Foundations
+## Axioms and Mathematical Foundations
 
 Adhere to core axioms: Empirical validation first with reproducible tests (mpmath, precision <1e-16); domain-specific forms; geometric resolution. Label hypotheses UNVERIFIED until validated.
 
-# Core Concepts
+## Core Concepts
 
-Revise plan to integrate universal invariant Z = A(B / c), with c as domain invariant (e.g., e² for discrete factoring). Normalize factorization searches via Z; apply discrete form Z = n(Δ_n / Δ_max) for neighborhood scaling, κ(n) = d(n) · ln(n+1) / e² for curvature-guided skips (UNVERIFIED hypothesis: κ reduces search by modeling prime density). Use θ'(n, k) = φ · ((n mod φ) / φ)^k (k ≈ 0.3) for geometric resolution of candidates near √N.
+Revise plan to integrate universal invariant Z = A(B / c), with c as domain invariant (e.g., e² for discrete factoring). Normalize factorization searches via Z; apply discrete form Z = n(Δ_n / Δ_max) for neighborhood scaling, κ(n) = 4 · ln(n+1) / e² for curvature-guided skips (UNVERIFIED hypothesis: κ reduces search by modeling prime density). Use θ'(n, k) = φ · ((n mod φ) / φ)^k (k ≈ 0.3) for geometric resolution of candidates near √N.
 
 Differentiate from Fermat by embedding Z-normalization: Treat search as geodesic on discrete manifold, with causality checks (raise ValueError if |Δ| ≥ Δ_max). Cross-check with zeta_zeros.csv or semiprime datasets. Empirical baseline (via tool): For N=5959, factors (59,101) in 0.00013s, 3 iters—validates setup.
-
-## Phase 1: Baseline Analysis and Similarity Audit (1-2 days)
+Note: Z-Normalization guard (Z >=1) is a post-factorization validation step, not part of the search algorithm.
+## Phase 1 Continued
 
 Profile ZNeighborhood with Z-normalization. For N, set c = e², B = √N - floor(√N), A = frame transform (e.g., identity). Compute Z = A(B / c); map to δ via Z-scaling.
 
