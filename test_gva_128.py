@@ -11,7 +11,7 @@ from manifold_128bit import gva_factorize_128bit, adaptive_threshold, check_bala
 def generate_balanced_128bit_semiprime(seed):
     """Generate N = p * q with p, q ~2^32, balanced."""
     random.seed(seed)
-    base = 2**32
+    base = 2**63
     offset = random.randint(0, 10**6)
     p = sympy.nextprime(base + offset)
     q = sympy.nextprime(base + offset + random.randint(1, 10**5))  # Close to p
@@ -20,7 +20,7 @@ def generate_balanced_128bit_semiprime(seed):
 
 def test_gva_128bit():
     """Test GVA on 100 samples."""
-    num_tests = 5
+    num_tests = 100
     successes = 0
     total_time = 0
     false_positives = 0
@@ -28,7 +28,7 @@ def test_gva_128bit():
     print("Testing 128-bit GVA on 100 balanced semiprimes...")
 
     for i in range(num_tests):
-        N, true_p, true_q = generate_balanced_64bit_semiprime(i)
+        N, true_p, true_q = generate_balanced_128bit_semiprime(i)
 
         adaptive_R = min(int(N**0.5), 10**7)
         start_time = time.time()
