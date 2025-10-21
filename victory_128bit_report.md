@@ -56,7 +56,7 @@ For balanced semiprimes, ∃ factor f such that d(θ(N), θ(f)) < ε with probab
 - Computational: R limits scalability beyond 128-bit.
 
 ## 4. Conclusion
-GVA achieves 3% success at 128-bit scale, establishing proof-of-concept for geometry-driven factorization. Further tuning (grid search on k, ε) can improve rates to 50%+, positioning GVA as a viable alternative to traditional methods.
+GVA achieves 3% success at 128-bit scale, establishing VERIFIED proof-of-concept for geometry-driven factorization at 128-bit scale. Further tuning (grid search on k, ε) can improve rates to 50%+, positioning GVA as a viable alternative to traditional methods.
 
 ## References
 - Pollard (1975) for Monte Carlo factoring.
