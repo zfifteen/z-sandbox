@@ -1,5 +1,6 @@
 package tools;
 
+import gva.GVAFactorizer;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -7,7 +8,7 @@ import java.math.BigInteger;
 import java.math.MathContext;
 import java.math.RoundingMode;
 import java.util.*;
-import gva.GVAFactorizer;
+
 public class BenchLadder {
 
   // Provided code snippets
@@ -133,7 +134,9 @@ public class BenchLadder {
 
   // MetaSelection: combines multiple builders
   static class MetaSelection implements CandidateBuilder {
-    List<CandidateBuilder> builders = Arrays.asList(new ZNeighborhood(), new ResidueFilter(), new GVAFactorizer(new MathContext(200)));
+    List<CandidateBuilder> builders =
+        Arrays.asList(
+            new ZNeighborhood(), new ResidueFilter(), new GVAFactorizer(new MathContext(200)));
 
     @Override
     public List<BigInteger> build(BigInteger N, int maxCands, long seed) {
@@ -235,7 +238,7 @@ public class BenchLadder {
     }
 
     CandidateBuilder builder;
-switch (builderName) {
+    switch (builderName) {
       case "ZNeighborhood":
         builder = new ZNeighborhood();
         break;

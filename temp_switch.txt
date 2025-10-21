@@ -1,0 +1,20 @@
+switch (builderName) {
+      case "ZNeighborhood":
+        builder = new ZNeighborhood();
+        break;
+      case "ResidueFilter":
+        builder = new ResidueFilter();
+        break;
+      case "HybridGcd":
+        builder = new HybridGcd();
+        break;
+      case "MetaSelection":
+        builder = new MetaSelection();
+        break;
+      case "GVA":
+        builder = new GVAFactorizer(new MathContext(200));
+        break;
+      default:
+        builder = new ZNeighborhood();
+        break;
+    }

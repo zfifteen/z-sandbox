@@ -379,8 +379,6 @@ public class FactorizationShortcut {
     return result;
   }
 
-  
-
   // ======== E) Heuristic banding (BigInteger) ========
 
   /** Return candidate primes whose θ′ are within eps of θ′(N). */
