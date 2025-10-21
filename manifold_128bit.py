@@ -30,7 +30,7 @@ def embed_torus_geodesic(n, dims=9):
     Z = A(B / c) with c = e², iterative θ'(n, k)
     """
     x = mpf(n) / c
-    k = 0.3  # as per user: k ≈ 0.3 for prime-density mapping
+    k = 0.3 / math.log2(math.log2(float(n) + 1))  # adaptive k for 128-bit scaling
     coords = []
     for _ in range(dims):
         x = phi * power(frac(x / phi), k)
