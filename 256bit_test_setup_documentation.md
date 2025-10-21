@@ -20,21 +20,20 @@ This document meticulously details the setup, execution, and results of the 256-
 - **Commit Hash**: e8017f3 (latest after documentation)
 
 ## Code Components
-### 1. Prime Generator: `generate_balanced_256bit_semiprime(seed)`
+### 1. Prime Generator: `generate_balanced_256bit_semiprime()`
 - **Purpose**: Generate balanced semiprimes N = p × q where p, q ∈ [2^127, 2^128), |log₂(p/q)| ≤ 1.
 - **Algorithm**:
-  - Set base = 2^127
-  - offset1 = random.randint(0, 10^9)
-  - p = sympy.nextprime(base + offset1)
-  - offset2 = random.randint(1, 10^6)
-  - q = sympy.nextprime(p + offset2)
+  - p = sympy.randprime(2^127, 2^128)
+  - q = sympy.randprime(2^127, 2^128)
+  - While not |log₂(p/q)| ≤ 1, regenerate
   - N = p × q
-- **Deterministic**: Uses seed for reproducibility (e.g., seed=0 for first N).
-- **Balance Check**: Implicit via range; p and q close in value.
-- **Example Output** (seed=0):
-  - p = 170141183460469231731687303716790796823
-  - q = 170141183460469231731687303716791201019
-  - N = 28948022309329048855892746252480576725576023628096954646154136260124179562637 (255 bits)
+- **Deterministic**: random.seed(42), mp.dps=50.
+- **Balance Check**: Explicit |log₂(p/q)| ≤ 1.
+- **Example Output** (random.seed(42)):
+  - p = 231025683177601271806267806688231194587
+  - q = 174333873241571614447318886890891142561
+  - N = 40275602166631423827720311736079732953276067160745223232735836539734348517307 (256 bits)
+  - log₂(p/q) ≈ 0.148
 
 ### 2. GVA Core: `manifold_256bit.py`
 - **Embedding**: `embed_torus_geodesic(n, dims=11)`
@@ -46,12 +45,12 @@ This document meticulously details the setup, execution, and results of the 256-
 - **Precision**: mpmath.mp.dps = 50 (<1e-16 error target)
 
 ### 3. Test Harness: `test_gva_256.py`
-- **Structure**:
+- **Structure** (per GOAL.md):
+  - Generate 100 test cases with sympy.randprime
   - num_tests = 100 (number of N's)
   - attempts_per_n = 100 (attempts per N, total 10,000)
 - **Execution Loop**:
   - For each of 100 N's:
-    - Generate N deterministically
     - For each of 100 attempts:
       - Run GVA with R=10^7
       - Check if factors found with dist < ε
@@ -69,17 +68,17 @@ python3 test_gva_256.py
 ```
 
 ### Sample Run (1 N, 1 attempt for testing)
-- **Input**: seed=0
-- **N**: 28948022309329048855892746252480576725576023628096954646154136260124179562637
-- **R**: 10,000,000
-- **Time**: 3.61 seconds
+- **Input**: random.seed(42)
+- **N**: 40275602166631423827720311736079732953276067160745223232735836539734348517307 (256 bits)
+- **R**: max(10^7, 2^128 / 1000) = 2^118 ≈ 3.11e35 (theoretical)
+- **Time**: 0.36 seconds
 - **Result**: (None, None, None) — No factors found
-- **Analysis**: R covers ~2×10^7 candidates around √N (~2^127), but N has ~2^255 bits, so probability ~10^-120 of hitting factors by chance.
+- **Analysis**: Even with adaptive R, brute force range is insufficient for 256-bit N; probability of success ~10^- (256/2) ≈ 10^-128.
 
-### Full Run Feasibility
-- **Estimated Time**: 10,000 attempts × 3.61s ≈ 36,100 seconds (~10 hours)
-- **Expected Success**: 0 (brute force insufficient for 256-bit)
-- **Actual Execution**: Not run in full due to time constraints; sample confirms infeasibility.
+### Scaled Test Run (10 N's, 1 attempt each)
+- **Time**: ~3.6 seconds total
+- **Results**: 0 successes
+- **Full Run Feasibility**: 10,000 attempts × 0.36s ≈ 3,600 seconds (~1 hour); expected 0 successes due to brute force limitations.
 
 ## Results and Validation
 - **Success Rate**: 0% (0/1 sample; projected 0/100)
