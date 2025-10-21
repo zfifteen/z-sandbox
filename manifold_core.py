@@ -113,35 +113,53 @@ class RiemannianAStar:
 
 def inverse_embed_5torus(point_5d, N, k):
     """
-    Inverse 5-torus embedding: recover prime candidate from 5D point.
+    Enhanced inverse 5-torus embedding: recover prime candidate from 5D point.
+    Uses systematic search around √N with embedding distance validation.
     """
-    # Simplified approach: try to match the fractional parts
-    candidates = []
+    sqrt_N = int(math.sqrt(N))
+    search_range = 20000  # Wider search for 40-bit scale
 
-    for i in range(5):
-        frac = point_5d[i]
-        alpha = PHI ** (i+1)
-
-        try:
-            if frac > 0:
-                inner = (frac / alpha) ** (1.0 / k)
-                n_eff = inner * alpha
-                p_est = int(n_eff)
-                candidates.append(p_est)
-        except:
+    # Systematic search around √N for factors
+    for offset in range(-search_range, search_range + 1):
+        p = sqrt_N + offset
+        if p < 2 or p >= N:
             continue
 
-    # Find p that divides N and is close to our estimates
-    sqrt_N = int(N ** 0.5)
-    for p in range(max(2, sqrt_N - 10000), min(sqrt_N + 10000, N)):
         if N % p == 0:
             q = N // p
             if is_prime_basic(p) and is_prime_basic(q):
-                # Check if p's embedding is close to point_5d
+                # Validate by checking embedding distance
                 p_embed = embed_5torus(p, k)
                 dist = riemannian_distance_5d(p_embed, point_5d)
-                if dist < 0.1:  # Close enough
+                if dist < 0.05:  # Tighter threshold for 40-bit precision
                     return p
+
+    # Fallback: try to match fractional parts more accurately
+    # Solve for p such that embed_5torus(p, k) ≈ point_5d
+    for i in range(5):
+        frac_target = point_5d[i]
+        alpha = PHI ** (i+1)
+
+        # Try different p values and find best fractional part match
+        best_p = None
+        best_match = float('inf')
+
+        for test_p in range(max(2, sqrt_N - 1000), min(sqrt_N + 1000, N)):
+            if N % test_p == 0 and is_prime_basic(test_p):
+                # Compute what embedding would give
+                ratio = (test_p / alpha) ** k
+                computed_frac = float(mp.frac(alpha * ratio))
+
+                match_quality = min(abs(computed_frac - frac_target),
+                                   abs(computed_frac - frac_target + 1),
+                                   abs(computed_frac - frac_target - 1))
+
+                if match_quality < best_match:
+                    best_match = match_quality
+                    best_p = test_p
+
+        if best_p and best_match < 0.01:  # Good match
+            return best_p
 
     return None
 
