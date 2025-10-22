@@ -28,16 +28,19 @@ from python.manifold_elliptic import (
 
 
 def demo_ellipse_property():
-    """Demonstrate the ellipse property in log-space."""
+    """Demonstrate the log-sum relation and product geometry."""
     print("\n" + "="*70)
-    print("DEMO 1: Ellipse Property in Log-Space")
+    print("DEMO 1: Log-Sum Relation and Product Geometry")
     print("="*70)
     
     print("\nThe fundamental insight: For semiprime N = p × q,")
-    print("  log(N) = log(p) + log(q)")
-    print("\nThis means in log-space, N is the 'sum' of two foci at log(p) and log(q)")
-    print("\nEllipse property: Points on an ellipse have constant sum of distances")
-    print("to the two foci: d₁ + d₂ = 2a (semi-major axis)")
+    print("  N = p × q  (product relationship, defines hyperbola in (p,q) plane)")
+    print("  log(N) = log(p) + log(q)  (log-sum identity)")
+    print("\nIn log-coordinates (log p, log q), valid factors lie on the LINE:")
+    print("  x + y = log(N)")
+    print("\nNote: Product geometry suggests Cassini ovals (constant product of")
+    print("distances), not ellipses (constant sum). This model uses a heuristic")
+    print("approximation for computational tractability.")
     
     test_cases = [
         (11, 13, "Small balanced"),

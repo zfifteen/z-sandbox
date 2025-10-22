@@ -23,9 +23,9 @@ from python.manifold_elliptic import (
 
 
 def test_ellipse_property_basic():
-    """Test 1: Verify ellipse property for known factors."""
+    """Test 1: Verify log-sum relation for known factors."""
     print("\n" + "="*60)
-    print("Test 1: Ellipse Property Verification")
+    print("Test 1: Log-Sum Relation Verification")
     print("="*60)
     
     test_cases = [
@@ -45,16 +45,16 @@ def test_ellipse_property_basic():
         print(f"  Distance q to center: {result['distance_q_to_center']:.6f}")
         print(f"  Sum of distances: {result['sum_of_distances']:.6f}")
         
-        # Verify the ellipse property holds
+        # Verify the log-sum relation holds
         assert result['log_sum_error'] < 1e-10, "log(N) should equal log(p) + log(q)"
         
         # For balanced semiprimes, distances should be similar
         if abs(np.log(p) - np.log(q)) < 0.5:
-            print(f"  ✓ Balanced semiprime - distances are similar")
+            print(f"  ✓ Balanced semiprime - log distances are similar")
         else:
             print(f"  ⚠ Unbalanced semiprime")
     
-    print("\n✓ Test 1 PASSED: Ellipse property verified")
+    print("\n✓ Test 1 PASSED: Log-sum relation verified (log(p) + log(q) = log(N))")
     return True
 
 
@@ -329,139 +329,3 @@ def run_all_tests():
 if __name__ == "__main__":
     success = run_all_tests()
     sys.exit(0 if success else 1)
-
-
-
-def test_explicit_delta_mapping():
-    """Test 8: Test explicit δ ↦ (p,q) mapping."""
-✓ Test 10 PASSED: Baseline comparison done")" + "="*60)
-    print("Test 8: Explicit Delta Mapping")
-    print("="*60)
-    
-    test_cases = [
-        (11, 13),      # balanced
-        (17, 51),      # 3x
-        (101, 1001),   # 10x
-        (1009, 100909), # 100x
-    ]
-    
-    for p, q in test_cases:
-        N = p * q
-        log_N = np.log(N)
-        true_delta = np.log(p) - np.log(q)
-        
-        # Test forward mapping
-        log_p_est = (log_N + true_delta) / 2
-        log_q_est = (log_N - true_delta) / 2
-        
-        p_est = int(np.round(np.exp(log_p_est)))
-        q_est = int(np.round(np.exp(log_q_est)))
-        
-        print(f"
-N = {N} = {p} × {q}")
-        print(f"  True δ = log(p) - log(q) = {true_delta:.6f}")
-        print(f"  Estimated p: {p_est} (true: {p})")
-        print(f"  Estimated q: {q_est} (true: {q})")
-        
-        # Check accuracy
-        p_error = abs(p_est - p) / p
-        q_error = abs(q_est - q) / q
-        
-        print(f"  p error: {p_error:.2e}")
-        print(f"  q error: {q_error:.2e}")
-        
-        # For exact reconstruction, errors should be small
-        assert p_error < 0.01, "p estimation should be accurate"
-        assert q_error < 0.01, "q estimation should be accurate"
-    
-✓ Test 10 PASSED: Baseline comparison done")✓ Test 8 PASSED: Explicit delta mapping works")
-    return True
-
-
-def test_adversarial_cases():
-    """Test 9: Test on adversarial cases."""
-✓ Test 10 PASSED: Baseline comparison done")" + "="*60)
-    print("Test 9: Adversarial Cases")
-    print("="*60)
-    
-    # Test cases: primes, squares, smooth composites
-    test_N = [
-        7,  # prime
-        9,  # square
-        15, # 3×5
-        21, # 3×7
-        25, # square
-        49, # square
-    ]
-    
-    for N in test_N:
-        print(f"
-Testing N = {N}")
-        
-        try:
-            coords, seeds = embedTorusGeodesic_with_elliptic_refinement(N, k=0.3, dims=17)
-            print(f"  Generated {len(seeds)} seeds")
-            
-            if len(seeds) > 0:
-                top_seed = seeds[0]
-                p, q = top_seed['p'], top_seed['q']
-                product = p * q
-                print(f"  Top candidate: {p} × {q} = {product}")
-                if product == N:
-                    print("  ✓ Correct factorization found")
-                else:
-                    print("  ⚠ Incorrect (expected for adversarial cases)")
-            else:
-                print("  No seeds generated")
-                
-        except Exception as e:
-            print(f"  Error: {e}")
-    
-✓ Test 10 PASSED: Baseline comparison done")✓ Test 9 PASSED: Adversarial cases handled")
-    return True
-
-
-def test_fermat_baseline():
-    """Test 10: Compare against Fermat factorization baseline."""
-✓ Test 10 PASSED: Baseline comparison done")" + "="*60)
-    print("Test 10: Fermat Baseline Comparison")
-    print("="*60)
-    
-    def fermat_factorize(N):
-        """Simple Fermat factorization."""
-        x = int(np.ceil(np.sqrt(N)))
-        while x**2 - N != 0:
-            y2 = x**2 - N
-            y = int(np.sqrt(y2))
-            if y**2 == y2:
-                p = x - y
-                q = x + y
-                return p, q
-            x += 1
-        return None, None
-    
-    test_N = [143, 323, 10403]
-    
-    for N in test_N:
-        print(f"
-N = {N}")
-        
-        # Fermat
-        p_fermat, q_fermat = fermat_factorize(N)
-        if p_fermat:
-            print(f"  Fermat: {p_fermat} × {q_fermat}")
-        else:
-            print("  Fermat failed")
-        
-        # Elliptic billiard
-        coords, seeds = embedTorusGeodesic_with_elliptic_refinement(N, k=0.3, dims=17)
-        if len(seeds) > 0:
-            p_eb, q_eb = seeds[0]['p'], seeds[0]['q']
-            print(f"  Elliptic: {p_eb} × {q_eb} = {p_eb * q_eb}")
-        
-        # Compare
-        if p_fermat and len(seeds) > 0:
-            eb_product = p_eb * q_eb
-            if eb_product == N:
-    print("\n✓ Test 10 PASSED: Baseline comparison done")
-    return True

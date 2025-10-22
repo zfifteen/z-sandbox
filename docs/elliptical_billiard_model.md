@@ -73,17 +73,17 @@ By placing foci at estimated log(p) and log(q) locations and propagating wavefro
    - Method should be combined with refinement techniques (GVA, trial division)
 
 2. **Wavefront Propagation** (`propagate_wavefront_sympy`)
-   - Solves an eikonal equation for geodesic distances on the manifold
-   - Models wave propagation on the curved manifold
-   - Uses Fast Marching Method for numerical solution
+   - Uses simplified 1D harmonic oscillator model as heuristic
+   - Models wave patterns on the manifold (not full ND solution)
+   - Returns analytical cos(k·t) pattern
    
-   **PDE Details**: The implementation uses an eikonal-based approach:
-   - PDE: |∇u| = 1/f (geodesic distance)
-   - Numerical solution: Fast Marching Method (FMM)
-   - **Complexity**: O(M log M) for M grid points
-   - **Limitation**: Numerical approximation; full analytical solutions are not available for complex geometries
+   **PDE Details**: The implementation uses a simplified radial approximation:
+   - PDE: ∂²u/∂t² + k²u = 0 (1D harmonic oscillator)
+   - Analytical solution: u(t) = cos(k·t) where k = 2π/semi_major_axis
+   - **Complexity**: O(1) per evaluation (closed form, but NOT a full ND eikonal solution)
+   - **Limitation**: Simplified 1D model; full ND eikonal would require Fast Marching (O(M log M))
    
-   The wave number scales with log(N), so evaluation cost scales with N's bit-length.
+   The wave number k scales with log(N), so the parameter depends on N's magnitude.
 
 3. **Peak Detection** (`detect_convergence_peaks`)
    - Analyzes wavefront solution to find convergence peaks

@@ -2,7 +2,7 @@
 
 ## What is it?
 
-A novel approach to integer factorization based on **wavefront propagation on a curved manifold**. It models the factorization problem N = p × q as an ellipse in log-space, where factors emerge as convergence points of self-interfering wavefronts.
+A novel approach to integer factorization based on **wavefront propagation on a curved manifold**. It models the factorization problem N = p × q using a hyperbola/Cassini-oval inspired heuristic, where the product relationship (not log-sum) guides factor search. Factors emerge as approximate convergence points of wavefront patterns on a curved torus embedding.
 
 ## Quick Start
 
@@ -48,24 +48,27 @@ python3 python/examples/elliptic_integration_example.py
 
 For semiprime N = p × q:
 ```
-log(N) = log(p) + log(q)
+N = p × q  (product relationship)
+log(N) = log(p) + log(q)  (log-sum identity)
 ```
 
-In log-space, N is the "sum" of two foci at log(p) and log(q).
+In log-coordinates (x,y) = (log p, log q), valid factors lie on the **line** x + y = log(N), not an ellipse.
 
-### Ellipse Property
+The product relationship p × q = N defines a **rectangular hyperbola** in the (p,q) plane, or equivalently, a **Cassini oval** (constant product of distances to foci) in transformed coordinates.
 
-Points on an ellipse have constant sum of distances to foci:
-```
-d(point, focus₁) + d(point, focus₂) = 2a  (constant)
-```
+### Geometric Model
+
+This implementation uses a **heuristic approximation** inspired by hyperbola/Cassini geometry:
+- Respects the multiplicative structure (product, not sum)
+- Generates approximate seed candidates, not exact factors
+- Requires downstream refinement (GVA, trial division)
 
 ### Wavefront Convergence
 
-1. Embed N in 17-dimensional torus with elliptical geometry
-2. Propagate wavefront using Helmholtz equation: ∇²u + k²u = 0
-3. Detect convergence peaks (self-interference patterns)
-4. Extract factor candidates from peaks
+1. Embed N in 17-dimensional torus with product-respecting metric
+2. Propagate wavefront using simplified harmonic model
+3. Detect convergence peaks (heuristic guidance)
+4. Extract approximate factor seed candidates from peaks
 
 ## API Reference
 
@@ -97,9 +100,9 @@ d(point, focus₁) + d(point, focus₂) = 2a  (constant)
 ### Test Case: N = 143 (11 × 13)
 
 ```
-Ellipse property: ✓ Verified (log-space relationship holds)
-Generated 10 candidate seeds
-Top candidates:
+Log-sum relation: ✓ Verified (log(11) + log(13) = log(143))
+Generated 10 approximate seed candidates
+Top seeds (for refinement):
   1. 15 × 9 = 135   (error: 5.6%, confidence: 1.500)
   2. 13 × 10 = 130  (error: 9.1%, confidence: 1.155)
   3. 12 × 11 = 132  (error: 7.7%, confidence: 1.155)
@@ -146,11 +149,11 @@ for seed in seeds[:10]:
 ## Performance
 
 - **Embedding**: O(dims) = O(17) operations
-- **Wavefront**: O(1) analytical solution
+- **Wavefront**: O(1) per evaluation (simplified 1D harmonic model, not full ND solution)
 - **Peak detection**: O(peaks) = O(20) samples
 - **Extraction**: O(peaks) = O(10) candidates
 
-Total: Very fast - milliseconds for small N
+Total: Very fast - milliseconds for small N (note: complexity for full ND eikonal would be O(M log M) with Fast Marching)
 
 ## Files
 
@@ -187,10 +190,11 @@ docs/
 
 This implementation is based on modeling factorization as a **wave propagation problem on a curved manifold**, where:
 
-- Factor locations emerge as **convergence points** of wavefronts
-- Self-interference patterns reveal **geometric structure**
-- Ellipse property captures **log-space relationships**
-- 17-dimensional torus avoids **symmetry artifacts**
+- Factor locations emerge as **approximate convergence regions** of wavefront patterns
+- Heuristic patterns reveal **geometric structure** of the product relationship
+- Log-sum identity (log p + log q = log N) defines a **line** in log-coordinates
+- Product structure (p × q = N) defines a **hyperbola** in integer space
+- 17-dimensional torus provides embedding space (prime dimension avoids symmetry artifacts)
 
 ## Citation
 
