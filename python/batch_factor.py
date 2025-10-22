@@ -172,12 +172,13 @@ def main():
     
     targets = load_targets(targets_file)
     
-    # Run batch factorization
-    # For production runs, use longer timeout
+    # Run batch factorization with configurable parameters
+    # Default: 300s (5 minutes) per target for comprehensive testing
+    # For quick tests, use timeout_per_target=120
     results = run_batch_factorization(
         targets, 
-        timeout_per_target=300,  # 5 minutes per target
-        max_targets=10  # Process first 10 targets for comprehensive test
+        timeout_per_target=300,
+        max_targets=10
     )
     
     # Print summary

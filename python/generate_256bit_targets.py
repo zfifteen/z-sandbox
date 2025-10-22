@@ -193,10 +193,10 @@ def verify_targets(targets):
         assert sympy.isprime(p), f"Target {target['id']}: p is not prime"
         assert sympy.isprime(q), f"Target {target['id']}: q is not prime"
         
-        # Verify bit lengths
-        assert 255 <= N.bit_length() <= 257, f"Target {target['id']}: N is not 256-bit"
-        assert 126 <= p.bit_length() <= 129, f"Target {target['id']}: p is not 128-bit"
-        assert 126 <= q.bit_length() <= 129, f"Target {target['id']}: q is not 128-bit"
+        # Verify bit lengths (match generation constraints)
+        assert 254 <= N.bit_length() <= 256, f"Target {target['id']}: N is not 256-bit"
+        assert 127 <= p.bit_length() <= 128, f"Target {target['id']}: p is not 128-bit"
+        assert 127 <= q.bit_length() <= 128, f"Target {target['id']}: q is not 128-bit"
     
     print(f"✓ All {len(targets)} targets verified")
 

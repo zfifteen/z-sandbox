@@ -8,6 +8,7 @@ import time
 import math
 import sympy
 import subprocess
+import shutil
 from typing import Optional, Tuple, List
 
 def verify_factors(N: int, p: int, q: int) -> bool:
@@ -205,9 +206,8 @@ def try_ecm_gmp(N: int, timeout_seconds: float = 3600,
         (p, q) if factors found, None otherwise
     """
     try:
-        # Check if ecm is available
-        result = subprocess.run(['which', 'ecm'], capture_output=True, text=True, timeout=5)
-        if result.returncode != 0:
+        # Check if ecm is available (cross-platform)
+        if shutil.which('ecm') is None:
             return None
         
         # Run ECM
