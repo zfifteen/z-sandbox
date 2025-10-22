@@ -15,27 +15,9 @@ public class GVAExperiments {
     private static final Random RNG = new Random(42);
 
     public static void main(String[] args) {
-        System.out.println("=== GVA EMPIRICAL VALIDATION ===\n");
-
-        System.out.println("Experiment 1: Distance Correlation");
-        measureDistanceCorrelation();
-
-        System.out.println("\nExperiment 2: Scaling Behavior");
-        measureScaling();
-
-        System.out.println("\nExperiment 3: Candidate Efficiency");
-        measureCandidateEfficiency();
-
-        System.out.println("\nExperiment 4: Dimensionality Effect");
+        System.out.println("=== GVA Dimensionality Experiment ===\n");
         measureDimensionalityEffect();
-
-        System.out.println("\nExperiment 5: Known Challenge Cases");
-        testKnownSemiprimes();
-
-        System.out.println("\nExperiment 6: 256-bit Semiprime Factorization");
-        test256BitSemiprimes();
     }
-
     /**
      * Experiment 1: Distance Correlation Test
      * Measures if factors are geometrically closer than non-factors in embedding space.
@@ -157,7 +139,7 @@ public class GVAExperiments {
 
             // GVA approach
             long startGVA = System.nanoTime();
-            Optional<BigInteger[]> resultGVA = GVAFactorizer.factorize(N, 1000);
+            Optional<BigInteger[]> resultGVA = GVAFactorizer.factorize(N, 1000, 7);
             long timeGVA = System.nanoTime() - startGVA;
 
             // Brute force baseline (trial division from sqrt(N) down)
@@ -185,17 +167,17 @@ public class GVAExperiments {
      * Tests effect of different embedding dimensions on factorization success.
      */
     public static void measureDimensionalityEffect() {
-        int[] dimOptions = {3, 5, 7, 9, 11};
+        int[] dimOptions = {5, 7, 9, 11, 13, 15, 17, 21};
 
         // Fixed test case
-        BigInteger p = BigInteger.probablePrime(20, RNG);
-        BigInteger q = BigInteger.probablePrime(20, RNG);
+        BigInteger p = BigInteger.probablePrime(64, RNG);
+        BigInteger q = BigInteger.probablePrime(64, RNG);
         BigInteger N = p.multiply(q);
 
         for (int dims : dimOptions) {
             int successes = 0;
             double totalSeparation = 0;
-            int trials = 10;
+            int trials = 5;
 
             for (int t = 0; t < trials; t++) {
                 BigDecimal k = Embedding.adaptiveK(new BigDecimal(N));
@@ -209,7 +191,7 @@ public class GVAExperiments {
                 // Non-factor distances
                 double nonFactorSum = 0;
                 for (int i = 0; i < 3; i++) {
-                    BigInteger nonFactor = BigInteger.probablePrime(20, RNG);
+                    BigInteger nonFactor = BigInteger.probablePrime(64, RNG);
                     List<BigDecimal[]> curve_nf = Embedding.embedTorusGeodesic(new BigDecimal(nonFactor), k, dims);
                     BigDecimal[] emb_nf = curve_nf.get(0);
                     BigDecimal dist = RiemannianDistance.calculate(emb_N, emb_nf, new BigDecimal(N));
@@ -220,7 +202,7 @@ public class GVAExperiments {
                 totalSeparation += ratio;
 
                 // Try factorization
-                Optional<BigInteger[]> result = GVAFactorizer.factorize(N, 100);
+                Optional<BigInteger[]> result = GVAFactorizer.factorize(N, 100, dims);
                 if (result.isPresent()) successes++;
             }
 
@@ -248,7 +230,7 @@ public class GVAExperiments {
         for (String nStr : challenges) {
             BigInteger N = new BigInteger(nStr);
             long start = System.nanoTime();
-            Optional<BigInteger[]> result = GVAFactorizer.factorize(N, 10000);
+            Optional<BigInteger[]> result = GVAFactorizer.factorize(N, 10000, 5);
             long elapsed = (System.nanoTime() - start) / 1_000_000;
 
             if (result.isPresent()) {
@@ -267,7 +249,7 @@ public class GVAExperiments {
      * Tests the refined Z5D seeding on large 256-bit balanced semiprimes.
      */
     private static void test256BitSemiprimes() {
-        int trials = 5; // Adjust for time
+        int trials = 20; // Adjust for time
         int successes = 0;
         long totalTime = 0;
 
@@ -280,7 +262,7 @@ public class GVAExperiments {
             System.out.printf("Trial %d: N has %d bits\n", t+1, N.bitLength());
 
             long start = System.nanoTime();
-            Optional<BigInteger[]> result = GVAFactorizer.factorize(N, 10000); // Increased attempts
+            Optional<BigInteger[]> result = GVAFactorizer.factorize(N, 10000, 5); // Increased attempts
             long elapsed = (System.nanoTime() - start) / 1_000_000; // ms
             totalTime += elapsed;
 

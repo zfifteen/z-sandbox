@@ -37,7 +37,7 @@ public class GVAFactorizerDemo {
         System.out.println("Testing " + label + " N: " + N);
         System.out.println("Bit length: " + N.bitLength());
         long start = System.nanoTime();
-        Optional<BigInteger[]> result = GVAFactorizer.factorize(N, maxAttempts);
+        Optional<BigInteger[]> result = GVAFactorizer.factorize(N, maxAttempts, 11);
         BigInteger[] factors = result.orElse(null);
         long end = System.nanoTime();
         double timeMs = (end - start) / 1e6;

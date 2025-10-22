@@ -5,6 +5,8 @@ import java.math.BigInteger;
 import java.math.MathContext;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -116,23 +118,23 @@ public class GVAFactorizer {
      * Factorize balanced semiprime N using GVA.
      * Returns Optional containing factors if found.
      */
-    public static Optional<BigInteger[]> factorize(BigInteger N, int maxAttempts) {
+    public static Optional<BigInteger[]> factorize(BigInteger N, int maxAttempts, int dims) {
         if (N == null || N.compareTo(BigInteger.ONE) <= 0) return Optional.empty();
         BigDecimal N_bd = new BigDecimal(N);
-        int dims = getDimsForBitSize(N.bitLength());
+        int torusDims = dims;
 
         // Embed N
         BigDecimal k = Embedding.adaptiveK(N_bd);
-        List<BigDecimal[]> curve_N = Embedding.embedTorusGeodesic(N_bd, k, dims);
+        List<BigDecimal[]> curve_N = Embedding.embedTorusGeodesic(N_bd, k, torusDims);
         BigDecimal[] emb_N = curve_N.get(0);
 
         List<BigInteger> candidates;
-        if (N.bitLength() < 100) {
+        if (false) {
             // For smaller N, use brute force around sqrt(N) with safe limits
             BigDecimal sqrtN = sqrt(N_bd, MC);
-            BigInteger start = sqrtN.toBigInteger().subtract(BigInteger.valueOf(1000));
+            BigInteger start = sqrtN.toBigInteger().subtract(BigInteger.valueOf(10000));
             if (start.compareTo(BigInteger.TWO) < 0) start = BigInteger.TWO;
-            BigInteger end = start.add(BigInteger.valueOf(2000));
+            BigInteger end = start.add(BigInteger.valueOf(20000));
             candidates = new java.util.ArrayList<>();
             for (BigInteger candidate = start; candidate.compareTo(end) <= 0; candidate = candidate.add(BigInteger.ONE)) {
                 if (isPrime(candidate)) {
@@ -158,9 +160,9 @@ public class GVAFactorizer {
             if (!isBalanced(p, q)) continue;
 
             // Embed factors and check distance
-            List<BigDecimal[]> curve_p = Embedding.embedTorusGeodesic(new BigDecimal(p), k, dims);
+            List<BigDecimal[]> curve_p = Embedding.embedTorusGeodesic(new BigDecimal(p), k, torusDims);
             BigDecimal[] emb_p = curve_p.get(0);
-            List<BigDecimal[]> curve_q = Embedding.embedTorusGeodesic(new BigDecimal(q), k, dims);
+            List<BigDecimal[]> curve_q = Embedding.embedTorusGeodesic(new BigDecimal(q), k, torusDims);
             BigDecimal[] emb_q = curve_q.get(0);
             BigDecimal dist_p = RiemannianDistance.calculate(emb_N, emb_p, N_bd);
             BigDecimal dist_q = RiemannianDistance.calculate(emb_N, emb_q, N_bd);

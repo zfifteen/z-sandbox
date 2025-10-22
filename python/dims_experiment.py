@@ -1,8 +1,7 @@
-# DEPRECATED: This Python prototype has been superseded by the Java BigDecimal implementation in unifiedframework.* classes.
+# Dimensionality Experiment for GVA
 #!/usr/bin/env python3
 """
-128-Bit Balanced Semiprime Factorization via Geodesic Validation Assault (GVA)
-Scaled with A* pathfinding, adaptive threshold, parallelization.
+Dimensionality Experiment for GVA on 128-bit semiprimes.
 """
 
 import math
@@ -18,49 +17,31 @@ phi = (1 + sqrt(5)) / 2
 c = math.exp(2)
 
 def adaptive_threshold(N):
-    """
-    Adaptive threshold for GVA based on curvature.
-    ε = 0.2 / (1 + κ)
-    """
     kappa = 4 * math.log(N + 1) / c
     return 0.2 / (1 + kappa)
 
 def embed_torus_geodesic(n, dims):
-    """
-    Torus geodesic embedding for GVA.
-    Z = A(B / c) with c = e², iterative θ'(n, k)
-    """
     x = mpf(n) / c
-    k = 0.3 / math.log2(math.log2(float(n) + 1))  # adaptive k for 128-bit scaling
+    k = 0.3 / math.log2(math.log2(float(n) + 1))
     coords = []
     for _ in range(dims):
         x = phi * power(frac(x / phi), k)
         coords.append(frac(x))
     return tuple(coords)
 
-def riemannian_distance(coords1, coords2, N):
-    """
-    Riemannian distance on torus with domain-specific curvature.
-    κ(n) = 4 · ln(n+1) / e²
-    """
+def riemannian_distance(coords1, coords2, N, kappa_variant):
     kappa = 4 * math.log(N + 1) / c
     deltas = [min(abs(c1 - c2), 1 - abs(c1 - c2)) for c1, c2 in zip(coords1, coords2)]
     dist_sq = sum((delta * (1 + kappa * delta))**2 for delta in deltas)
     return math.sqrt(dist_sq)
 
 def check_balance(p, q):
-    """
-    Check if p and q are balanced: |ln(p/q)| <= ln(2)
-    """
     if p == 0 or q == 0:
         return False
     ratio = abs(math.log2(p / q))
     return ratio <= 1
 
-def gva_factorize_128bit(N, dims, R=1000000):
-    """
-    GVA for 128-bit balanced semiprimes.
-    """
+def gva_factorize_128bit(N, dims, kappa_variant, R=1000000):
     epsilon = adaptive_threshold(N)
     emb_N = embed_torus_geodesic(N, dims)
     sqrtN = int(mpf(N).sqrt())
@@ -73,8 +54,8 @@ def gva_factorize_128bit(N, dims, R=1000000):
             continue
         emb_p = embed_torus_geodesic(p, dims)
         emb_q = embed_torus_geodesic(q, dims)
-        dist_p = riemannian_distance(emb_N, emb_p, N)
-        dist_q = riemannian_distance(emb_N, emb_q, N)
+        dist_p = riemannian_distance(emb_N, emb_p, N, kappa_variant)
+        dist_q = riemannian_distance(emb_N, emb_q, N, kappa_variant)
         if dist_p < epsilon or dist_q < epsilon:
             return p, q, min(dist_p, dist_q)
     return None, None, None
@@ -87,10 +68,14 @@ if __name__ == "__main__":
     print(f"Sample 128-bit N = {N} ({N.bit_length()} bits)")
 
     import time
-    start = time.time()
     for dims in [5, 7, 9, 11, 13, 15, 17, 21]:
         print(f"Testing dims={dims}")
+        start = time.time()
         result = gva_factorize_128bit(N, dims)
+        end = time.time()
+        if result[0]:
+            print(f"GEODESIC VICTORY: {result[0]} × {result[1]} = {N}")
+            print(f"Distance: {result[2]:.4f}")
+        else:
+            print("No factors found")
         print(f"Time: {end - start:.2f}s")
-    end = time.time()
-
