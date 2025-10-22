@@ -6,6 +6,15 @@
 # Python
 .venv/
 __pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+*.so
+
+# Hyper-rotation CLI artifacts
+apps/hr_cli/*.log
+apps/hr_cli/*.sock
 
 # Sandbox outputs
 /data/
