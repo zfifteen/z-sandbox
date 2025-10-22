@@ -4,6 +4,7 @@ Generate 256-bit balanced semiprime targets using Z5D-guided prime selection.
 Creates test cases for factorization pipeline with reproducible results.
 """
 
+import argparse
 import json
 import math
 import random
@@ -86,6 +87,37 @@ def find_prime_near_z5d_prediction(k, max_search=1000):
     prime = sympy.nextprime(prediction)
     return prime, k, prime - prediction
 
+def find_prime_near(target, search_radius=2**20):
+    """
+    Find a prime near the target value within search radius.
+    
+    Args:
+        target: Target value to search near
+        search_radius: Maximum distance from target
+    
+    Returns:
+        A prime near the target
+    """
+    # Start with target as odd number
+    if target % 2 == 0:
+        target += 1
+    
+    # Search in expanding radius
+    for offset in range(0, search_radius, 2):
+        # Try above target
+        candidate = target + offset
+        if sympy.isprime(candidate):
+            return candidate
+        
+        # Try below target
+        if offset > 0:
+            candidate = target - offset
+            if candidate > 2 and sympy.isprime(candidate):
+                return candidate
+    
+    # Fallback: use sympy to find next prime
+    return sympy.nextprime(target)
+
 def generate_balanced_128bit_prime_pair(bias_close=False, max_retries=10):
     """
     Generate a pair of balanced 128-bit primes using Z5D prediction.
@@ -147,6 +179,150 @@ def generate_balanced_128bit_prime_pair(bias_close=False, max_retries=10):
     
     # If we couldn't generate after max_retries, raise error
     raise ValueError(f"Could not generate balanced 128-bit primes after {max_retries} attempts")
+
+def generate_unbiased_target(target_id, seed):
+    """
+    Pure Z5D-guided generation with NO bias toward close factors.
+    
+    Args:
+        target_id: Unique identifier for this target
+        seed: Random seed for reproducibility
+    
+    Returns:
+        Dictionary with target information
+    """
+    random.seed(seed)
+    
+    # Generate truly random 128-bit primes (no proximity bias)
+    # We use sympy.randprime which is cryptographically suitable
+    p = sympy.randprime(2**127, 2**128)
+    q = sympy.randprime(2**127, 2**128)
+    
+    # Ensure distinct primes
+    while p == q:
+        q = sympy.randprime(2**127, 2**128)
+    
+    # Sort so p < q
+    if p > q:
+        p, q = q, p
+    
+    # Calculate approximate k values (for metadata/tracking)
+    k1 = int(p / math.log(p)) if p > 2 else 1
+    k2 = int(q / math.log(q)) if q > 2 else 1
+    
+    # Verify balance
+    N = p * q
+    assert 127 <= p.bit_length() <= 128, f"p bit length {p.bit_length()} not in [127, 128]"
+    assert 127 <= q.bit_length() <= 128, f"q bit length {q.bit_length()} not in [127, 128]"
+    assert 254 <= N.bit_length() <= 256, f"N bit length {N.bit_length()} not in [254, 256]"
+    
+    return {
+        'id': target_id,
+        'type': 'unbiased',
+        'N': str(N),
+        'p': str(p),  # Keep for validation only
+        'q': str(q),
+        'N_bits': N.bit_length(),
+        'p_bits': p.bit_length(),
+        'q_bits': q.bit_length(),
+        'gap': str(abs(p - q)),
+        'seed': seed,
+        'k1': k1,
+        'k2': k2,
+        'offset1': 0,
+        'offset2': 0,
+        'bias_close': False,
+        'balance_ratio': abs(math.log2(p / q)),
+        'factor_gap': abs(p - q)
+    }
+
+def generate_biased_target(target_id, seed, max_gap=2**64):
+    """
+    Generate factors with |p - q| < max_gap.
+    
+    Args:
+        target_id: Unique identifier for this target
+        seed: Random seed for reproducibility
+        max_gap: Maximum gap between p and q
+    
+    Returns:
+        Dictionary with target information
+    """
+    random.seed(seed)
+    
+    # Start with base prime in 128-bit range
+    p = sympy.randprime(2**127, 2**128)
+    
+    # Search for q near p within max_gap
+    # Try to find q in range [p + small_offset, p + max_gap]
+    min_offset = min(2**32, max_gap // 4)
+    gap_target = random.randint(min_offset, max_gap)
+    
+    # Try to find a prime near p + gap_target
+    q_start = p + gap_target
+    
+    # Ensure q_start is in valid range
+    if q_start >= 2**128:
+        # If too large, try below p instead
+        q_start = max(2**127, p - gap_target)
+    
+    q = find_prime_near(q_start, search_radius=2**25)
+    
+    # Ensure q is still in 128-bit range
+    retries = 0
+    while (q < 2**127 or q >= 2**128 or abs(p - q) > max_gap) and retries < 20:
+        # Try different gaps
+        gap_target = random.randint(min_offset, max_gap)
+        q_start = p + gap_target if q_start >= 2**128 else p + gap_target
+        
+        if q_start >= 2**128:
+            q_start = max(2**127, p - gap_target)
+        
+        q = find_prime_near(q_start, search_radius=2**25)
+        retries += 1
+    
+    # If still can't find close factors in valid range, use different base p
+    if retries >= 20:
+        # Try with a p that has more room for gaps
+        p = sympy.randprime(2**127 + max_gap, 2**128 - max_gap)
+        gap_target = random.randint(min_offset, max_gap)
+        q = find_prime_near(p + gap_target, search_radius=2**25)
+    
+    # Sort so p < q
+    if p > q:
+        p, q = q, p
+    
+    # Calculate k values for metadata
+    k1 = int(p / math.log(p)) if p > 2 else 1
+    
+    # Verify balance
+    N = p * q
+    assert 127 <= p.bit_length() <= 128, f"p bit length {p.bit_length()} not in [127, 128]"
+    assert 127 <= q.bit_length() <= 128, f"q bit length {q.bit_length()} not in [127, 128]"
+    assert 254 <= N.bit_length() <= 256, f"N bit length {N.bit_length()} not in [254, 256]"
+    
+    actual_gap = abs(p - q)
+    
+    return {
+        'id': target_id,
+        'type': 'biased',
+        'N': str(N),
+        'p': str(p),
+        'q': str(q),
+        'N_bits': N.bit_length(),
+        'p_bits': p.bit_length(),
+        'q_bits': q.bit_length(),
+        'gap': str(actual_gap),
+        'seed': seed,
+        'k1': k1,
+        'k2': 0,  # Not used for biased
+        'offset1': 0,
+        'offset2': 0,
+        'max_gap': max_gap,
+        'bias_close': True,
+        'balance_ratio': abs(math.log2(p / q)),
+        'factor_gap': actual_gap
+    }
 
 def generate_targets(num_targets=20, bias_close_ratio=0.1):
     """
@@ -217,6 +393,79 @@ def generate_targets(num_targets=20, bias_close_ratio=0.1):
     
     return targets
 
+def generate_100_target_set(unbiased_count=80, biased_count=20, seed=42):
+    """
+    Generate 100 balanced 256-bit semiprimes.
+    
+    Distribution:
+    - 80 unbiased (random 128-bit primes, no proximity constraint)
+    - 20 biased (|p - q| < 2^64 for Fermat viability)
+    
+    Args:
+        unbiased_count: Number of unbiased targets
+        biased_count: Number of biased targets
+        seed: Base seed for reproducibility
+    
+    Returns:
+        List of target dictionaries
+    """
+    targets = []
+    
+    print(f"Generating {unbiased_count + biased_count} targets...")
+    print(f"  {unbiased_count} unbiased (cryptographically random)")
+    print(f"  {biased_count} biased (close factors for Fermat)")
+    
+    # Unbiased targets (ID: UB-001 to UB-080)
+    print("\nGenerating unbiased targets...")
+    for i in range(1, unbiased_count + 1):
+        try:
+            target = generate_unbiased_target(
+                target_id=f"UB-{i:03d}",
+                seed=seed + i
+            )
+            targets.append(target)
+            
+            if i % 10 == 0:
+                print(f"  Generated {i}/{unbiased_count} unbiased targets")
+        except Exception as e:
+            print(f"  Error generating unbiased target {i}: {e}")
+            # Retry with different seed
+            target = generate_unbiased_target(
+                target_id=f"UB-{i:03d}",
+                seed=seed + i + 1000
+            )
+            targets.append(target)
+    
+    # Biased targets (ID: B-001 to B-020)
+    print("\nGenerating biased targets...")
+    for i in range(1, biased_count + 1):
+        try:
+            target = generate_biased_target(
+                target_id=f"B-{i:03d}",
+                seed=1000 + seed + i,
+                max_gap=2**64
+            )
+            targets.append(target)
+            
+            if i % 5 == 0:
+                print(f"  Generated {i}/{biased_count} biased targets")
+        except Exception as e:
+            print(f"  Error generating biased target {i}: {e}")
+            # Retry with different seed
+            target = generate_biased_target(
+                target_id=f"B-{i:03d}",
+                seed=2000 + seed + i,
+                max_gap=2**64
+            )
+            targets.append(target)
+    
+    # Shuffle to prevent batch effects
+    random.seed(seed)
+    random.shuffle(targets)
+    
+    print(f"\n✓ Generated {len(targets)} targets total")
+    return targets
+
 def verify_targets(targets):
     """Verify all targets are valid semiprimes using centralized validation."""
     print("\nVerifying targets...")
@@ -227,11 +476,16 @@ def verify_targets(targets):
 
 def save_targets(targets, filepath):
     """Save targets to JSON file."""
+    unbiased_count = sum(1 for t in targets if t.get('type') == 'unbiased' or not t.get('bias_close', False))
+    biased_count = len(targets) - unbiased_count
+    
     output = {
         'metadata': {
             'generated_at': time.strftime('%Y-%m-%d %H:%M:%S'),
             'seed': SEED,
             'num_targets': len(targets),
+            'unbiased_count': unbiased_count,
+            'biased_count': biased_count,
             'description': '256-bit balanced semiprimes for factorization testing'
         },
         'targets': targets
@@ -241,6 +495,8 @@ def save_targets(targets, filepath):
         json.dump(output, f, indent=2)
     
     print(f"\n✓ Saved {len(targets)} targets to {filepath}")
+    print(f"  Unbiased: {unbiased_count}")
+    print(f"  Biased: {biased_count}")
 
 def print_statistics(targets):
     """Print statistics about generated targets."""
@@ -282,12 +538,56 @@ def print_statistics(targets):
 
 def main():
     """Main function to generate targets."""
+    parser = argparse.ArgumentParser(
+        description='Generate 256-bit balanced semiprime targets for factorization testing'
+    )
+    parser.add_argument('--count', type=int, default=20,
+                       help='Total number of targets to generate (default: 20)')
+    parser.add_argument('--unbiased', type=int, default=None,
+                       help='Number of unbiased targets (for 100-sample mode)')
+    parser.add_argument('--biased', type=int, default=None,
+                       help='Number of biased targets (for 100-sample mode)')
+    parser.add_argument('--output', type=str, default='targets_256bit.json',
+                       help='Output JSON file (default: targets_256bit.json)')
+    parser.add_argument('--seed', type=int, default=42,
+                       help='Random seed for reproducibility (default: 42)')
+    parser.add_argument('--bias-ratio', type=float, default=0.1,
+                       help='Fraction of biased targets in default mode (default: 0.1)')
+    
+    args = parser.parse_args()
+    
+    # Set global seed
+    global SEED
+    SEED = args.seed
+    random.seed(SEED)
+    
     print("="*60)
     print("256-bit RSA Target Generation via Z5D-Guided Prime Selection")
     print("="*60)
     
-    # Generate targets
-    targets = generate_targets(num_targets=20, bias_close_ratio=0.1)
+    # Determine generation mode
+    if args.unbiased is not None and args.biased is not None:
+        # 100-sample mode with explicit unbiased/biased counts
+        print(f"\nMode: Custom distribution")
+        print(f"  Unbiased: {args.unbiased}")
+        print(f"  Biased: {args.biased}")
+        print(f"  Total: {args.unbiased + args.biased}")
+        
+        targets = generate_100_target_set(
+            unbiased_count=args.unbiased,
+            biased_count=args.biased,
+            seed=args.seed
+        )
+    else:
+        # Original mode with bias ratio
+        print(f"\nMode: Standard generation")
+        print(f"  Count: {args.count}")
+        print(f"  Bias ratio: {args.bias_ratio:.1%}")
+        
+        targets = generate_targets(
+            num_targets=args.count,
+            bias_close_ratio=args.bias_ratio
+        )
     
     # Verify
     verify_targets(targets)
@@ -297,7 +597,7 @@ def main():
     
     # Save to file
     output_dir = Path(__file__).parent
-    output_file = output_dir / 'targets_256bit.json'
+    output_file = output_dir / args.output
     save_targets(targets, output_file)
     
     print("\n" + "="*60)
