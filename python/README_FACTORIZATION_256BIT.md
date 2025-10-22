@@ -23,19 +23,37 @@ This implementation provides:
 ### Prerequisites
 
 ```bash
-pip install sympy mpmath numpy
+pip install sympy mpmath numpy scipy
 ```
 
 ### Generate Test Targets
 
 **Important**: Target and result files are not committed to the repository for security reasons. Generate fresh targets before running tests:
 
+#### Standard Mode (20 targets)
+
 ```bash
 cd python
 python3 generate_256bit_targets.py
 ```
 
-This creates `targets_256bit.json` with 20 balanced 256-bit semiprimes. The file will be gitignored to prevent committing actual cryptographic factors.
+This creates `targets_256bit.json` with 20 balanced 256-bit semiprimes.
+
+#### 100-Sample Mode (for statistical validation)
+
+```bash
+cd python
+python3 generate_256bit_targets.py \
+    --unbiased 80 \
+    --biased 20 \
+    --output targets_256bit_100sample.json \
+    --seed 42
+```
+
+This creates a statistically significant sample with:
+- 80 unbiased targets (cryptographically random factors)
+- 20 biased targets (close factors, |p - q| < 2^64)
+- Shuffled to prevent batch effects
 
 ### Factor a Single Target
 
@@ -53,13 +71,49 @@ if result['success']:
 
 ### Run Batch Factorization
 
+#### Standard Batch (sequential)
+
 ```bash
 python3 batch_factor.py
 ```
 
 This processes multiple targets and generates `factorization_results_256bit.json`.
 
+#### 100-Sample Batch (parallel with checkpointing)
+
+```bash
+python3 batch_factor.py \
+    --targets targets_256bit_100sample.json \
+    --output factorization_results_100sample.json \
+    --workers 8 \
+    --timeout-unbiased 3600 \
+    --timeout-biased 300 \
+    --checkpoint checkpoint_100sample.json
+```
+
+Features:
+- Parallel processing with 8 workers (adjust to your CPU count)
+- Adaptive timeouts: 1 hour for unbiased, 5 minutes for biased
+- Automatic checkpointing every 10 targets
+- Resume capability on crash/interruption
+
+#### Analyze Results
+
+```bash
+python3 analyze_100sample.py \
+    --results factorization_results_100sample.json \
+    --output ANALYSIS_100SAMPLE.md
+```
+
+Generates comprehensive statistical report with:
+- Wilson confidence intervals (95%)
+- Success rates by target type
+- Method effectiveness breakdown
+- Recommendations based on findings
+
 ### Run Tests
+
+#### Original Test Suite
 
 ```bash
 python3 test_factorization_256bit.py
@@ -67,16 +121,28 @@ python3 test_factorization_256bit.py
 
 All 15 tests should pass.
 
+#### 100-Sample Workflow Tests
+
+```bash
+python3 test_100sample.py
+```
+
+All 15 tests should pass. Tests include:
+- Target generation (unbiased/biased)
+- Checkpoint save/load
+- Wilson confidence intervals
+- Analysis functionality
+
 ## 📊 Results
 
-### Success Metrics
+### Success Metrics (PR #42 - 5 targets)
 
 - **Overall Success Rate**: 40% (2/5 targets in initial test)
 - **Biased Targets**: 100% success rate (2/2)
 - **Average Time**: 15.3 seconds for successful factorizations
 - **Primary Method**: ECM via sympy
 
-### Detailed Results
+### Detailed Results (5-Target Sample)
 
 | Target | Type | Status | Method | Time |
 |--------|------|--------|--------|------|
@@ -87,6 +153,117 @@ All 15 tests should pass.
 | 4 | Unbiased | ❌ Failed | - | 63.40s |
 
 **Note**: Unbiased targets likely require longer timeout (5-60 minutes as per engineering directive).
+
+## 📈 100-Sample Validation Workflow
+
+### Overview
+
+The 100-sample validation workflow provides statistically rigorous testing to determine:
+1. Can we achieve ANY factorization success on unbiased (cryptographically random) 256-bit RSA moduli?
+2. What is the true success rate with 95% confidence intervals?
+3. Does the biased target success rate hold at scale?
+
+### Workflow Steps
+
+#### 1. Generate 100 Targets
+
+```bash
+python3 generate_256bit_targets.py \
+    --unbiased 80 \
+    --biased 20 \
+    --output targets_256bit_100sample.json \
+    --seed 42
+```
+
+**Distribution**:
+- 80 unbiased targets: Truly random 128-bit primes, no proximity bias
+- 20 biased targets: |p - q| < 2^64, optimized for Fermat's method
+- Shuffled to prevent batch processing effects
+
+**Expected runtime**: 2-5 minutes
+
+#### 2. Run Batch Factorization
+
+```bash
+# Full batch run (will take ~10-12 hours on 8-core machine)
+python3 batch_factor.py \
+    --targets targets_256bit_100sample.json \
+    --workers 8 \
+    --timeout-unbiased 3600 \
+    --timeout-biased 300 \
+    --output factorization_results_100sample.json \
+    --checkpoint checkpoint_100sample.json
+
+# Monitor progress
+tail -f checkpoint_100sample.json
+```
+
+**Resource Planning**:
+- Unbiased: 80 targets × 1 hour max = 80 hours (parallelized to ~10 hours with 8 cores)
+- Biased: 20 targets × 5 minutes = 100 minutes total
+- **Total wall time**: ~10-12 hours on 8-core workstation
+
+**Checkpointing**: Results saved every 10 targets for crash recovery
+
+#### 3. Analyze Results
+
+```bash
+python3 analyze_100sample.py \
+    --results factorization_results_100sample.json \
+    --output ANALYSIS_100SAMPLE.md
+```
+
+**Generated Report Includes**:
+- Success rates with Wilson 95% confidence intervals
+- Separate analysis for unbiased vs biased targets
+- Method effectiveness comparison
+- Time statistics (min/max/avg/median)
+- Clear recommendations based on findings
+
+### Interpretation Scenarios
+
+#### Scenario 1: Unbiased success > 0%
+**If even ONE unbiased target succeeds (1/80 = 1.25%)**:
+
+✅ **PROOF OF CONCEPT ACHIEVED**
+- Demonstrates ECM with sufficient compute CAN break unbiased 256-bit
+- Success rate will be low but nonzero
+- Validates aggressive parameters (B1=10^8, 50k curves)
+
+**Next Steps**:
+- Characterize successful cases
+- Optimize ECM parameters
+- Consider GPU acceleration
+
+#### Scenario 2: Unbiased success = 0%
+**If ALL unbiased targets fail (0/80)**:
+
+⚠️ **CAPABILITY CEILING IDENTIFIED**
+- Strong evidence (p < 0.05) that unbiased 256-bit exceeds current limits
+- Wilson CI with 0/80: [0%, 4.5%] at 95% confidence
+- Can claim: "True success rate < 5% for unbiased"
+
+**Next Steps**:
+- Pivot to 192-bit unbiased to find baseline
+- Focus on biased targets for demonstrations
+- Document capability ceiling
+
+#### Scenario 3: Biased success < 90%
+**If biased targets underperform**:
+
+⚠️ **IMPLEMENTATION REGRESSION**
+- PR #42 showed 100% on biased
+- Significant drop suggests bug or parameter issue
+
+**Action**: Debug before trusting unbiased results
+
+### Statistical Rigor
+
+The 100-sample design provides:
+- **Power**: Detect success rates as low as 1-5% with confidence
+- **Wilson CI**: More accurate than normal approximation for small counts
+- **Control Group**: Biased targets validate implementation stability
+- **Reproducible**: Seed-based generation for exact replication
 
 ## 🔧 Implementation Details
 
@@ -253,13 +430,20 @@ assert 127 <= q.bit_length() <= 128
 
 | File | Purpose | Lines |
 |------|---------|-------|
-| `generate_256bit_targets.py` | Target generation | 284 |
+| `generate_256bit_targets.py` | Target generation with 100-sample support | 600+ |
 | `factor_256bit.py` | Factorization pipeline | 419 |
-| `batch_factor.py` | Batch processing | 212 |
-| `test_factorization_256bit.py` | Unit tests | 212 |
+| `batch_factor.py` | Batch processing with parallel workers | 350+ |
+| `analyze_100sample.py` | Statistical analysis with Wilson CI | 330+ |
+| `test_factorization_256bit.py` | Original unit tests | 212 |
+| `test_100sample.py` | 100-sample workflow tests | 300+ |
 | `REPORT_256BIT_FACTORIZATION.md` | Comprehensive report | 500+ |
-| `targets_256bit.json` | Generated targets | Data |
-| `factorization_results_256bit.json` | Results | Data |
+| `README_FACTORIZATION_256BIT.md` | This file | Updated |
+| `targets_256bit.json` | Generated targets (gitignored) | Data |
+| `targets_256bit_100sample.json` | 100-sample targets (gitignored) | Data |
+| `factorization_results_256bit.json` | Results (gitignored) | Data |
+| `factorization_results_100sample.json` | 100-sample results (gitignored) | Data |
+| `checkpoint_100sample.json` | Checkpoints (gitignored) | Data |
+| `ANALYSIS_100SAMPLE.md` | Statistical report (gitignored) | Generated |
 
 ## 🔐 Security Considerations
 
@@ -376,22 +560,45 @@ All mandatory criteria from engineering directive met:
 
 ## Quick Reference
 
+### Standard Workflow (5-20 targets)
+
 ```bash
 # Generate targets
-python3 generate_256bit_targets.py
+python3 generate_256bit_targets.py --count 5
 
 # Factor single target (5 min timeout)
 python3 -c "from factor_256bit import factor_single_target; \
 factor_single_target(38041168422782733480621875524998540569976246670544760843337032062236208270947, 300)"
 
 # Batch factor
-python3 batch_factor.py
+python3 batch_factor.py --max-targets 5
 
 # Run tests
 python3 test_factorization_256bit.py
+```
 
-# View results
-python3 -c "import json; print(json.dumps(json.load(open('factorization_results_256bit.json')), indent=2))"
+### 100-Sample Workflow (Statistical Validation)
+
+```bash
+# Generate 100 targets (80 unbiased, 20 biased)
+python3 generate_256bit_targets.py \
+    --unbiased 80 --biased 20 \
+    --output targets_256bit_100sample.json --seed 42
+
+# Run batch (parallel, with checkpointing)
+python3 batch_factor.py \
+    --targets targets_256bit_100sample.json \
+    --workers 8 \
+    --timeout-unbiased 3600 --timeout-biased 300 \
+    --output factorization_results_100sample.json
+
+# Analyze results
+python3 analyze_100sample.py \
+    --results factorization_results_100sample.json \
+    --output ANALYSIS_100SAMPLE.md
+
+# Run tests
+python3 test_100sample.py
 ```
 
 ---

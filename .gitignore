@@ -68,3 +68,7 @@ bin/
 .vscode/
 
 /.idea/
+# 100-sample workflow artifacts
+python/checkpoint_*.json
+python/*checkpoint*.json
+python/ANALYSIS_*.md
