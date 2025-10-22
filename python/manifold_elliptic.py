@@ -288,7 +288,10 @@ def embedTorusGeodesic_with_elliptic_refinement(N, k, dims=17):
 # Helper function for testing
 def test_ellipse_property(p, q):
     """
-    Test if factors lie on ellipse in log-space.
+    Test log-sum relation for factors: log(N) = log(p) + log(q).
+    
+    Note: In log-coordinates (log p, log q), valid factors lie on the LINE
+    x + y = log N, not an ellipse. This function tests the log-sum identity.
     
     Args:
         p, q: Prime factors
@@ -303,10 +306,10 @@ def test_ellipse_property(p, q):
     # Check: log(N) = log(p) + log(q)
     log_sum_error = abs(log_N - (log_p + log_q))
     
-    # Ellipse center
+    # Log-space center
     center = log_N / 2
     
-    # Check if p, q are equidistant from center
+    # Check if p, q are equidistant from center in log-space
     d1 = abs(log_p - center)
     d2 = abs(log_q - center)
     

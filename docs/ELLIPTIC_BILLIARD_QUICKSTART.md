@@ -199,7 +199,7 @@ This implementation is based on modeling factorization as a **wave propagation p
 ## Citation
 
 Part of the z-sandbox RSA factorization framework.
-Based on the insight that N = p × q can be modeled as an ellipse in log-space with foci at log(p) and log(q).
+Based on the insight that p × q = N defines a hyperbola in integer space, with log-sum identity log(p) + log(q) = log(N) used for heuristic seed generation.
 
 ## Support
 
