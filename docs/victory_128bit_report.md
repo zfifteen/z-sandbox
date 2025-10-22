@@ -12,8 +12,8 @@ Factor semiprimes N = p·q where p, q ∈ [2^{63}, 2^{64}), |ln(p/q)| ≤ ln(2),
 - **Embedding:** 9-dimensional torus with k = 0.3 / log₂(log₂(n+1))
 - **Distance:** Riemannian with κ = 4 ln(N+1)/e²
 - **Threshold:** ε = 0.2 / (1 + κ) ≈ 0.004143 for 128-bit
-- **Search:** Geometry-guided brute force checking factors closest to √N first, with early termination
-- **Validation:** Primality via sympy, balance check |log₂(p/q)| ≤ 1, geometric proximity
+- **Search:** True geometry-guided search: computes Riemannian distances for all candidates in [-R, R] before divisibility checks, ranks by distance ascending, and tests modulus on top-K (K=256) closest candidates
+- **Validation:** Primality via sympy, balance check |log₂(p/q)| ≤ 1, geometric proximity for both factors
 - **Prime Generation:** Spread primes with offsets up to 10^9 (non-trivial factorization targets)
 
 ### 1.3 Test Suite

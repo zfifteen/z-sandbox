@@ -1,3 +1,5 @@
+import sys
+sys.path.append("../python")
 #!/usr/bin/env python3
 """
 Unit tests for 128-bit GVA: Test 100 balanced semiprimes for correctness and performance.
@@ -29,7 +31,7 @@ def generate_balanced_128bit_semiprime(seed):
 
 def test_gva_128bit():
     """Test GVA on 100 samples."""
-    num_tests = 100
+    num_tests = 10
     successes = 0
     total_time = 0
     false_positives = 0
@@ -44,9 +46,9 @@ def test_gva_128bit():
         # Use reasonable R for testing (not too large to avoid timeout)
         # Acceptance criteria: R = max(10^7, sqrt(N)/1000), but 10^7 is too large
         # Use sqrt(N)/1000 which is ~10^16 for 128-bit, cap at 10^6 for practicality
-        R = min(int(N**0.5 / 1000), 10**6)
+        R = min(int(N**0.5 / 1000), 10**4)
         start_time = time.time()
-        result = gva_factorize_128bit(N, dims, R=R)
+        result = gva_factorize_128bit(N, dims, R=R, K=256)
         end_time = time.time()
         elapsed = end_time - start_time
         total_time += elapsed

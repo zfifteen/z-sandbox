@@ -12,7 +12,7 @@ from mpmath import *
 import sympy
 
 # High precision for 128-bit
-mp.dps = 400
+mp.dps = 50
 
 phi = (1 + sqrt(5)) / 2
 c = math.exp(2)
@@ -57,40 +57,46 @@ def check_balance(p, q):
     ratio = abs(math.log2(p / q))
     return ratio <= 1
 
-def gva_factorize_128bit(N, dims, R=1000000):
+def gva_factorize_128bit(N, dims, R=1000000, K=256):
     """
-    GVA for 128-bit balanced semiprimes with geometry-guided search.
-    Precomputes emb_N, kappa, epsilon outside loops for efficiency.
+    GVA for 128-bit balanced semiprimes with true geometry-guided search.
+    Computes Riemannian distances for all candidates in [-R, R] before checking divisibility,
+    ranks by distance, and tests modulus on top-K candidates.
     """
-    # Precompute outside loops (optimization from acceptance criteria)
+    # Precompute outside loops
     epsilon = adaptive_threshold(N)
     kappa = 4 * math.log(N + 1) / c
     emb_N = embed_torus_geodesic(N, dims)
     sqrtN = int(mpf(N).sqrt())
     
-    # Use simple brute force with early termination on geometric match
-    # Geometry-guided: check closest candidates first (small |d|)
-    for d in range(R+1):
-        # Check both +d and -d for symmetry
-        for offset in ([d] if d == 0 else [d, -d]):
-            p = sqrtN + offset
-            if p <= 1 or p >= N:
-                continue
-            if N % p != 0:
-                continue
-            q = N // p
-            if not sympy.isprime(p) or not sympy.isprime(q) or not check_balance(p, q):
-                continue
-            
-            # Compute distances only for valid factor pairs
-            emb_p = embed_torus_geodesic(p, dims)
-            emb_q = embed_torus_geodesic(q, dims)
-            dist_p = riemannian_distance(emb_N, emb_p, N)
-            dist_q = riemannian_distance(emb_N, emb_q, N)
-            min_dist = min(dist_p, dist_q)
-            
-            if min_dist < epsilon:
-                return p, q, min_dist
+    # Generate all candidates and compute distances without modulus checks
+    candidates = []
+    for offset in range(-R, R+1):
+        p = sqrtN + offset
+        if p <= 1 or p >= N:
+            continue
+        emb_p = embed_torus_geodesic(p, dims)
+        dist = riemannian_distance(emb_N, emb_p, N)
+        candidates.append((dist, p))
+    
+    # Sort candidates by distance ascending (geometry-guided ranking)
+    candidates.sort()
+    
+    # Test divisibility only on top-K closest by distance
+    for dist, p in candidates[:K]:
+        if N % p != 0:
+            continue
+        q = N // p
+        if not sympy.isprime(p) or not sympy.isprime(q) or not check_balance(p, q):
+            continue
+        
+        # Compute distance for q and check combined condition
+        emb_q = embed_torus_geodesic(q, dims)
+        dist_q = riemannian_distance(emb_N, emb_q, N)
+        min_dist = min(dist, dist_q)
+        
+        if min_dist < epsilon:
+            return p, q, min_dist
     
     return None, None, None
 
