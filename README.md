@@ -388,7 +388,7 @@ The Python-based Geodesic Validation Assault (GVA) has been successfully scaled 
 - **Algorithm:** Torus embedding with golden ratio (φ) and adaptive curvature
 - **Dimensions:** 9-dimensional torus for 128-bit scale
 - **Parameters:** Adaptive k = 0.3 / log₂(log₂(n+1)), threshold ε = 0.2 / (1 + κ)
-- **Search:** Geometry-guided brute force checking factors closest to √N first
+- **Search:** True geometry-guided: computes Riemannian distances for all candidates in [-R, R] before divisibility checks, ranks by distance ascending, tests modulus on top-K (K=256) closest
 
 ### Test Results (100 samples with spread primes)
 - **Success Rate:** 5% (5/100 factorizations successful)
