@@ -9,7 +9,9 @@ import math
 import sympy
 import subprocess
 import shutil
-from typing import Optional, Tuple, List
+import json
+from typing import Optional, Tuple, List, Dict
+from pathlib import Path
 
 def verify_factors(N: int, p: int, q: int) -> bool:
     """
@@ -312,22 +314,36 @@ class FactorizationPipeline:
         """Run ECM with gmp-ecm if available."""
         return try_ecm_gmp(self.N, timeout_seconds=time_budget, B1=10**8, curves=10000)
     
-    def run(self) -> Tuple[Optional[Tuple[int, int]], str, float]:
+    def run(self) -> Tuple[Optional[Tuple[int, int]], str, float, Dict]:
         """
         Run the factorization pipeline.
         
         Returns:
-            (factors, method_name, elapsed_time) where factors is (p, q) or None
+            (factors, method_name, elapsed_time, metadata) where factors is (p, q) or None
+            metadata contains: B1, curves, method_order, time_per_method
         """
         start_time = time.time()
+        metadata = {
+            'method_order': [],
+            'time_per_method': {},
+            'parameters': {}
+        }
         
         for method_name, method_func, time_ratio in self.methods:
             if time.time() - start_time > self.timeout:
-                return None, 'timeout', time.time() - start_time
+                return None, 'timeout', time.time() - start_time, metadata
             
             # Calculate time budget for this method
             remaining_time = self.timeout - (time.time() - start_time)
             time_budget = min(remaining_time, self.timeout * time_ratio)
+            
+            # Record method order and parameters
+            metadata['method_order'].append(method_name)
+            if 'ecm' in method_name:
+                if method_name == 'ecm_sympy':
+                    metadata['parameters'][method_name] = {'B1': 10**7}
+                elif method_name == 'ecm_gmp':
+                    metadata['parameters'][method_name] = {'B1': 10**8, 'curves': 10000}
             
             print(f"  Trying {method_name} with {time_budget:.1f}s budget...")
             method_start = time.time()
@@ -335,22 +351,25 @@ class FactorizationPipeline:
             try:
                 factors = method_func(time_budget)
                 method_elapsed = time.time() - method_start
+                metadata['time_per_method'][method_name] = method_elapsed
                 
                 if factors:
                     p, q = factors
                     if verify_factors(self.N, p, q):
                         elapsed = time.time() - start_time
                         print(f"  ✓ SUCCESS with {method_name} in {method_elapsed:.2f}s")
-                        return factors, method_name, elapsed
+                        return factors, method_name, elapsed, metadata
                 
                 print(f"    {method_name} failed after {method_elapsed:.2f}s")
             
             except Exception as e:
+                method_elapsed = time.time() - method_start
+                metadata['time_per_method'][method_name] = method_elapsed
                 print(f"    {method_name} error: {e}")
                 continue
         
         elapsed = time.time() - start_time
-        return None, 'exhausted_methods', elapsed
+        return None, 'exhausted_methods', elapsed, metadata
 
 def factor_single_target(N: int, timeout: float = 3600, verbose: bool = True) -> dict:
     """
@@ -369,7 +388,7 @@ def factor_single_target(N: int, timeout: float = 3600, verbose: bool = True) ->
         print(f"  N bit length: {N.bit_length()}")
     
     pipeline = FactorizationPipeline(N, timeout_seconds=timeout)
-    factors, method, elapsed = pipeline.run()
+    factors, method, elapsed, metadata = pipeline.run()
     
     result = {
         'N': str(N),
@@ -378,6 +397,7 @@ def factor_single_target(N: int, timeout: float = 3600, verbose: bool = True) ->
         'elapsed_time': elapsed,
         'p': str(factors[0]) if factors else None,
         'q': str(factors[1]) if factors else None,
+        'metadata': metadata
     }
     
     if verbose:

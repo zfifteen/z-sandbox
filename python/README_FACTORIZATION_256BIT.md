@@ -28,12 +28,14 @@ pip install sympy mpmath numpy
 
 ### Generate Test Targets
 
+**Important**: Target and result files are not committed to the repository for security reasons. Generate fresh targets before running tests:
+
 ```bash
 cd python
 python3 generate_256bit_targets.py
 ```
 
-This creates `targets_256bit.json` with 20 balanced 256-bit semiprimes.
+This creates `targets_256bit.json` with 20 balanced 256-bit semiprimes. The file will be gitignored to prevent committing actual cryptographic factors.
 
 ### Factor a Single Target
 

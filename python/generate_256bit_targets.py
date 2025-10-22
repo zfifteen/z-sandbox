@@ -16,6 +16,45 @@ from z5d_predictor import z5d_predict
 SEED = 42
 random.seed(SEED)
 
+# Validation constants (single source of truth)
+N_BIT_MIN = 254
+N_BIT_MAX = 256
+P_BIT_MIN = 127
+P_BIT_MAX = 128
+Q_BIT_MIN = 127
+Q_BIT_MAX = 128
+
+def assert_256_balance(target_dict):
+    """
+    Single source of truth for 256-bit balanced semiprime validation.
+    
+    Args:
+        target_dict: Dictionary with 'N', 'p', 'q' as strings or ints
+    
+    Raises:
+        AssertionError if validation fails
+    """
+    N = int(target_dict['N']) if isinstance(target_dict['N'], str) else target_dict['N']
+    p = int(target_dict['p']) if isinstance(target_dict['p'], str) else target_dict['p']
+    q = int(target_dict['q']) if isinstance(target_dict['q'], str) else target_dict['q']
+    
+    target_id = target_dict.get('id', 'unknown')
+    
+    # Verify factorization
+    assert p * q == N, f"Target {target_id}: p*q != N"
+    
+    # Verify primality
+    assert sympy.isprime(p), f"Target {target_id}: p is not prime"
+    assert sympy.isprime(q), f"Target {target_id}: q is not prime"
+    
+    # Verify bit lengths (match generation constraints)
+    assert N_BIT_MIN <= N.bit_length() <= N_BIT_MAX, \
+        f"Target {target_id}: N bit length {N.bit_length()} not in [{N_BIT_MIN}, {N_BIT_MAX}]"
+    assert P_BIT_MIN <= p.bit_length() <= P_BIT_MAX, \
+        f"Target {target_id}: p bit length {p.bit_length()} not in [{P_BIT_MIN}, {P_BIT_MAX}]"
+    assert Q_BIT_MIN <= q.bit_length() <= Q_BIT_MAX, \
+        f"Target {target_id}: q bit length {q.bit_length()} not in [{Q_BIT_MIN}, {Q_BIT_MAX}]"
+
 def find_prime_near_z5d_prediction(k, max_search=1000):
     """
     Find a prime near the Z5D prediction for index k.
@@ -81,11 +120,11 @@ def generate_balanced_128bit_prime_pair(bias_close=False, max_retries=10):
             while q == p:
                 q = sympy.randprime(2**127, 2**128)
         
-        # Verify 128-bit range
+        # Verify 128-bit range using constants
         p_bits = p.bit_length()
         q_bits = q.bit_length()
         
-        if 127 <= p_bits <= 128 and 127 <= q_bits <= 128:
+        if P_BIT_MIN <= p_bits <= P_BIT_MAX and Q_BIT_MIN <= q_bits <= Q_BIT_MAX:
             # Sort so p < q
             if p > q:
                 p, q = q, p
@@ -138,8 +177,8 @@ def generate_targets(num_targets=20, bias_close_ratio=0.1):
             N = p * q
             N_bits = N.bit_length()
             
-            # Verify it's a 256-bit semiprime (254-256 bits acceptable)
-            if not (254 <= N_bits <= 256):
+            # Verify it's a 256-bit semiprime using constants
+            if not (N_BIT_MIN <= N_bits <= N_BIT_MAX):
                 continue
             
             # Verify balance (|log2(p/q)| ≤ 1)
@@ -179,24 +218,10 @@ def generate_targets(num_targets=20, bias_close_ratio=0.1):
     return targets
 
 def verify_targets(targets):
-    """Verify all targets are valid semiprimes."""
+    """Verify all targets are valid semiprimes using centralized validation."""
     print("\nVerifying targets...")
     for target in targets:
-        N = int(target['N'])
-        p = int(target['p'])
-        q = int(target['q'])
-        
-        # Verify factorization
-        assert p * q == N, f"Target {target['id']}: p*q != N"
-        
-        # Verify primality
-        assert sympy.isprime(p), f"Target {target['id']}: p is not prime"
-        assert sympy.isprime(q), f"Target {target['id']}: q is not prime"
-        
-        # Verify bit lengths (match generation constraints)
-        assert 254 <= N.bit_length() <= 256, f"Target {target['id']}: N is not 256-bit"
-        assert 127 <= p.bit_length() <= 128, f"Target {target['id']}: p is not 128-bit"
-        assert 127 <= q.bit_length() <= 128, f"Target {target['id']}: q is not 128-bit"
+        assert_256_balance(target)
     
     print(f"✓ All {len(targets)} targets verified")
 

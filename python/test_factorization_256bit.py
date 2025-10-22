@@ -115,7 +115,7 @@ class TestPipeline(unittest.TestCase):
         N = p * q
         
         pipeline = FactorizationPipeline(N, timeout_seconds=30)
-        factors, method, elapsed = pipeline.run()
+        factors, method, elapsed, metadata = pipeline.run()
         
         self.assertIsNotNone(factors)
         self.assertEqual(set(factors), {p, q})
@@ -126,7 +126,7 @@ class TestPipeline(unittest.TestCase):
         N = 1000000007  # A large prime
         
         pipeline = FactorizationPipeline(N, timeout_seconds=5)
-        factors, method, elapsed = pipeline.run()
+        factors, method, elapsed, metadata = pipeline.run()
         
         # Should not factor a prime
         self.assertIsNone(factors)

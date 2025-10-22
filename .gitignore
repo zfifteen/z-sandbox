@@ -11,6 +11,13 @@ __pycache__/
 /data/
 out/
 
+# Factorization artifacts (security: never commit actual targets/factors)
+python/targets_256bit.json
+python/factorization_results_256bit.json
+python/batch_run_log.txt
+python/*_targets.json
+python/*_results.json
+
 # OS
 .DS_Store
 
