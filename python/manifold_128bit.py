@@ -1,3 +1,4 @@
+# DEPRECATED: This Python prototype has been superseded by the Java BigDecimal implementation in unifiedframework.* classes.
 #!/usr/bin/env python3
 """
 128-Bit Balanced Semiprime Factorization via Geodesic Validation Assault (GVA)

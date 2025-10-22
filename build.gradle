@@ -103,3 +103,13 @@ tasks.register('demofull') {
         }
     }
 }
+
+tasks.register('gva') {
+    doLast {
+        // run Java GVA factorization demo
+        exec {
+            workingDir projectDir
+            commandLine 'java', '-cp', sourceSets.main.runtimeClasspath.asPath, 'unifiedframework.GVAFactorizerDemo'
+        }
+    }
+}
