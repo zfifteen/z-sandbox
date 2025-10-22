@@ -306,7 +306,9 @@ class GeometricFactorizer:
         # Adjust k based on N size
         bit_len = N.bit_length()
         if bit_len > 128:
-            k = 0.3 / (np.log2(np.log2(N)) if np.log2(N) > 2 else 1)
+            # Ensure denominator is always >= 1.0 to avoid division by zero or negative/very small values
+            denom = max(np.log2(np.log2(N)), 1.0)
+            k = 0.3 / denom
         else:
             k = 0.3
         
