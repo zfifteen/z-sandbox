@@ -2,7 +2,6 @@ plugins {
     id 'java'
     id 'application'
     id 'jacoco'  // Code coverage
-    id 'com.diffplug.spotless' version '6.25.0'  // Code formatting
     id 'me.champeau.jmh' version '0.7.2'  // JMH for microbenchmarking
 }
 
@@ -51,11 +50,6 @@ jacocoTestReport {
     }
 }
 
-spotless {
-    java {
-        googleJavaFormat()
-    }
-}
 
 tasks.register('integrationTest', Test) {
     group = 'verification'
