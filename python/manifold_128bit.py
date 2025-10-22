@@ -65,7 +65,6 @@ def gva_factorize_128bit(N, dims, R=1000000, K=256):
     """
     # Precompute outside loops
     epsilon = adaptive_threshold(N)
-    kappa = 4 * math.log(N + 1) / c
     emb_N = embed_torus_geodesic(N, dims)
     sqrtN = int(mpf(N).sqrt())
     
