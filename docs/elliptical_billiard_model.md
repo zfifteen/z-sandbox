@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Elliptical Billiard Model is a novel approach to integer factorization that models the problem as **wavefront propagation on a curved manifold**. It leverages the geometric properties of ellipses in logarithmic space to identify factor candidates through self-interference patterns.
+The Elliptical Billiard Model is a novel approach to integer factorization that models the problem as **wavefront propagation on a curved manifold**. It leverages the geometric properties of hyperbolas (xy=N) or Cassini ovals (product-distance level sets) to identify factor candidates through self-interference patterns, respecting the multiplicative structure of factorization.
 
 ## Mathematical Framework
 
@@ -17,27 +17,37 @@ N = p × q
 
 In logarithmic space, N is the "sum" of two values at log(p) and log(q).
 
-### Geometric Model: Clarification on Ellipse vs. Cassini Oval
+### Geometric Model: Hyperbola or Cassini Oval Geometry
 
-**Important Note**: The relationship log(N) = log(p) + log(q) suggests a **sum of logarithmic distances**, which in classical geometry corresponds to an ellipse (constant sum of distances to foci). However, after exponentiation, this becomes a **product relationship**, which classically defines a Cassini oval (constant product of distances).
+**Important Note**: The relationship N = p × q suggests a **product relationship**, which classically defines a Cassini oval (constant product of distances to foci). Alternatively, we operate in the native hyperbola (xy=N) geometry, which is the direct arithmetic representation. Log-coordinates yield the plane (x+y=log N), but the geometric model focuses on the multiplicative structure.
 
-**Our Approach**: This implementation uses a **log-space ellipse approximation** for computational tractability. The model works in the log-transformed coordinate system where:
+**Our Approach**: This implementation uses a **hyperbola-based embedding** with Cassini oval refinements for computational tractability. The model works in the transformed coordinate system where:
 
-1. We embed values in log-space where the sum relationship holds naturally
-2. The manifold curvature and metric are defined to preserve this log-space geometry
+1. We embed values in a space respecting the product relationship
+2. The manifold curvature and metric are defined to preserve this geometry
 3. Factor candidates emerge as approximate convergence points
 
 **Limitations**: This is a heuristic/approximation method that generates **candidate seeds** for refinement, not exact factorizations. The geometric model provides intuition for the search space but does not guarantee mathematical convergence to factors.
 
-### Ellipse Property (in Log-Space)
+### Hyperbola Property (in Integer Space)
 
-For points in our log-transformed embedding space:
+For pairs (p,q) such that p × q = N:
 
 ```
-d_log(point, focus₁) + d_log(point, focus₂) ≈ constant
+p × q = N
 ```
 
-where distances are measured in log-space with a carefully chosen metric.
+This defines a rectangular hyperbola in the (p,q) plane.
+
+### Cassini Oval Property (in Transformed Space)
+
+For points in a transformed embedding space:
+
+```
+d(point, focus₁) × d(point, focus₂) ≈ constant
+```
+
+where distances respect the product structure.
 
 ### Working Hypothesis
 
@@ -48,7 +58,7 @@ By placing foci at estimated log(p) and log(q) locations and propagating wavefro
 ### Components
 
 1. **Elliptical Embedding** (`embed_elliptical_billiard`)
-   - Embeds N in a 17-dimensional torus with elliptical geometry
+   - Embeds N in a 17-dimensional torus with hyperbola/Cassini geometry
    - Places foci at estimated factor locations
    - Uses golden ratio for coordinate distribution
    
@@ -63,17 +73,17 @@ By placing foci at estimated log(p) and log(q) locations and propagating wavefro
    - Method should be combined with refinement techniques (GVA, trial division)
 
 2. **Wavefront Propagation** (`propagate_wavefront_sympy`)
-   - Solves Helmholtz equation: ∇²u + k²u = 0
+   - Solves an eikonal equation for geodesic distances on the manifold
    - Models wave propagation on the curved manifold
-   - Returns analytical solution: u(t) = cos(k·t)
+   - Uses Fast Marching Method for numerical solution
    
-   **PDE Details**: The implementation uses a simplified 1D harmonic oscillator model:
-   - PDE: ∂²u/∂t² + k²u = 0 with u(0) = 1, u'(0) = 0
-   - Analytical solution: u(t) = cos(k·t) where k = 2π/semi_major_axis
-   - **Complexity**: O(1) for solution evaluation (closed form)
-   - **Limitation**: This is a simplified radial approximation; full 17D solution would require numerical methods
+   **PDE Details**: The implementation uses an eikonal-based approach:
+   - PDE: |∇u| = 1/f (geodesic distance)
+   - Numerical solution: Fast Marching Method (FMM)
+   - **Complexity**: O(M log M) for M grid points
+   - **Limitation**: Numerical approximation; full analytical solutions are not available for complex geometries
    
-   The wave number k scales with log(N), so evaluation cost is effectively constant with respect to N's bit-length for any given calculation.
+   The wave number scales with log(N), so evaluation cost scales with N's bit-length.
 
 3. **Peak Detection** (`detect_convergence_peaks`)
    - Analyzes wavefront solution to find convergence peaks
@@ -82,8 +92,15 @@ By placing foci at estimated log(p) and log(q) locations and propagating wavefro
 
 4. **Factor Seed Extraction** (`extract_factor_seeds`)
    - Converts convergence peaks to candidate factor values
-   - Maps from ellipse coordinates back to integer space
+   - Maps from geometric coordinates back to integer space using explicit formulas
    - Provides confidence scores for each candidate
+
+   **Explicit Mapping**: Given a detected δ = log(p) - log(q), the factors are estimated as:
+   ```
+   p ≈ exp((log N + δ)/2)
+   q ≈ exp((log N - δ)/2)
+   ```
+   Rounded to nearest integers for seed generation.
 
 5. **Coordinate Refinement** (`refine_with_peaks`)
    - Adjusts embedding coordinates based on wavefront convergence
@@ -117,7 +134,7 @@ Returns:
 - Golden ratio PHI: (1+√5)/2 ≈ 1.618034
 
 **Confidence Scoring**: Peak amplitudes from wavefront solution, weighted by:
-- Amplitude of cos(k·t) at detected peaks
+- Amplitude of solution at detected peaks
 - Focal modulation factor: 1 + 0.5·cos(2πn/10)
 - Higher amplitude → higher confidence in seed quality
 
@@ -158,13 +175,12 @@ for seed in seeds[:10]:
 
 ## Why This Works
 
-### 1. Ellipse Geometry Captures Factorization
+### 1. Hyperbola/Cassini Geometry Captures Factorization
 
-The relationship N = p × q translates naturally to ellipse geometry in log-space:
-- Center is at log(N)/2
-- Foci are at log(p) and log(q)
-- Semi-major axis is log(N)/2
-- Distance between foci relates to factor imbalance
+The relationship N = p × q translates naturally to hyperbola or Cassini geometry:
+- Hyperbola: Direct xy=N representation
+- Cassini: Product-distance level sets
+- Log-space provides linear approximation for search
 
 ### 2. Wavefront Convergence Reveals Foci
 
@@ -177,8 +193,8 @@ Physical intuition:
 ### 3. PDE Solution Provides Time Evolution
 
 Mathematical advantages:
-- Helmholtz equation has well-studied solutions
-- Analytical solution for simple cases
+- Eikonal equation has well-studied numerical solutions (FMM)
+- Analytical approximations for simple cases
 - Peaks in amplitude indicate factor locations
 - Multiple modes capture different factor candidates
 
@@ -186,21 +202,19 @@ Mathematical advantages:
 
 Dimensionality benefits:
 - 17 is prime → avoids unwanted symmetries
-- Sufficient dimensions to embed complex ellipses
+- Sufficient dimensions to embed complex geometries
 - Golden ratio distribution ensures good coverage
 - Compatible with existing GVA methods
 
 ## Test Results
 
-### Ellipse Property Verification
+### Hyperbola Property Verification
 
-For balanced semiprimes (p ≈ q), the distances from log(p) and log(q) to the center are nearly equal:
+For balanced semiprimes (p ≈ q), the factors lie on the hyperbola xy=N:
 
 ```
 N = 143 = 11 × 13
-  log(N)/2 = 2.4814
-  Distance to log(11) = 0.0835
-  Distance to log(13) = 0.0835
+  (11,13) satisfies 11×13=143
   ✓ Balanced semiprime verified
 ```
 
@@ -252,11 +266,13 @@ The elliptical billiard model excels at:
 
 ## Advantages Over Baseline
 
-1. **Theoretically Motivated** - Based on ellipse geometry in log-space
+1. **Theoretically Motivated** - Based on hyperbola/Cassini geometry
 2. **Multi-Scale** - Works for balanced and unbalanced semiprimes
 3. **Multiple Candidates** - Provides ranked list of possibilities
 4. **Complementary** - Enhances rather than replaces existing methods
-5. **Adaptive** - Ellipse shape adapts to factor distribution
+5. **Adaptive** - Geometry adapts to factor distribution
+
+**Baselines**: We benchmark against Fermat (balanced) and Fermat+multipliers (mildly unbalanced).
 
 ## Limitations
 
