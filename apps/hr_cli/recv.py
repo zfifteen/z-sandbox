@@ -137,6 +137,8 @@ class HyperRotationReceiver:
         print(f"\n=== Listening for messages on port {self.port} ===\n")
         
         # Create listening socket
+        # Bind to 0.0.0.0 to accept connections from any interface (for demo/LAN use)
+        # For production, consider binding to specific interface or using firewall rules
         server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         server.bind(('0.0.0.0', self.port))
