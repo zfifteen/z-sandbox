@@ -226,8 +226,11 @@ def validate_breakthrough(epsilon_mult=1.0, num_samples=100):
     print(f"\n95% Confidence Interval: [{ci_low_pct:.1f}%, {ci_high_pct:.1f}%]")
     
     # Hypothesis test: is this different from 16%?
-    p_value = stats.binom_test(successes, num_samples, 0.16, alternative='two-sided')
-    print(f"P-value (vs 16% null hypothesis): {p_value:.4f}")
+    try:
+        p_value = stats.binomtest(successes, num_samples, 0.16, alternative='two-sided').pvalue
+        print(f"P-value (vs 16% null hypothesis): {p_value:.4f}")
+    except:
+        print(f"P-value calculation skipped (scipy version issue)")
     if p_value < 0.05:
         print("  → Statistically significant difference from 16% baseline!")
     else:
