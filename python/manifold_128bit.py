@@ -12,7 +12,7 @@ from mpmath import *
 import sympy
 
 # High precision for 128-bit
-mp.dps = 400
+mp.dps = 50
 
 phi = (1 + sqrt(5)) / 2
 c = math.exp(2)
@@ -57,26 +57,46 @@ def check_balance(p, q):
     ratio = abs(math.log2(p / q))
     return ratio <= 1
 
-def gva_factorize_128bit(N, dims, R=1000000):
+def gva_factorize_128bit(N, dims, R=1000000, K=256):
     """
-    GVA for 128-bit balanced semiprimes.
+    GVA for 128-bit balanced semiprimes with true geometry-guided search.
+    Computes Riemannian distances for all candidates in [-R, R] before checking divisibility,
+    ranks by distance, and tests modulus on top-K candidates.
     """
+    # Precompute outside loops
     epsilon = adaptive_threshold(N)
     emb_N = embed_torus_geodesic(N, dims)
     sqrtN = int(mpf(N).sqrt())
-    for d in range(-R, R+1):
-        p = sqrtN + d
-        if p <= 1 or p >= N or N % p != 0:
+    
+    # Generate all candidates and compute distances without modulus checks
+    candidates = []
+    for offset in range(-R, R+1):
+        p = sqrtN + offset
+        if p <= 1 or p >= N:
+            continue
+        emb_p = embed_torus_geodesic(p, dims)
+        dist = riemannian_distance(emb_N, emb_p, N)
+        candidates.append((dist, p))
+    
+    # Sort candidates by distance ascending (geometry-guided ranking)
+    candidates.sort()
+    
+    # Test divisibility only on top-K closest by distance
+    for dist, p in candidates[:K]:
+        if N % p != 0:
             continue
         q = N // p
         if not sympy.isprime(p) or not sympy.isprime(q) or not check_balance(p, q):
             continue
-        emb_p = embed_torus_geodesic(p, dims)
+        
+        # Compute distance for q and check combined condition
         emb_q = embed_torus_geodesic(q, dims)
-        dist_p = riemannian_distance(emb_N, emb_p, N)
         dist_q = riemannian_distance(emb_N, emb_q, N)
-        if dist_p < epsilon or dist_q < epsilon:
-            return p, q, min(dist_p, dist_q)
+        min_dist = min(dist, dist_q)
+        
+        if min_dist < epsilon:
+            return p, q, min_dist
+    
     return None, None, None
 
 if __name__ == "__main__":
