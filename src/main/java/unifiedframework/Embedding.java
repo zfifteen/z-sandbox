@@ -9,7 +9,7 @@ import java.math.RoundingMode;
  * Ports Python embed_torus_geodesic function.
  */
 public class Embedding {
-    private static final MathContext MC = new MathContext(400, RoundingMode.HALF_UP);
+    private static final MathContext MC = new MathContext(1000, RoundingMode.HALF_UP);
     private static final BigDecimal PHI = BigDecimal.valueOf((1 + Math.sqrt(5)) / 2).setScale(400, RoundingMode.HALF_UP);
     private static final BigDecimal E_SQUARED = BigDecimal.valueOf(Math.exp(2)).setScale(400, RoundingMode.HALF_UP);
 

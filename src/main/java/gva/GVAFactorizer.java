@@ -16,12 +16,10 @@ import tools.BenchLadder.CandidateBuilder;
  */
 public class GVAFactorizer implements CandidateBuilder {
 
-  private final MathContext mc;
   private final Embedding embedding;
   private final RiemannianDistance distance;
 
   public GVAFactorizer(MathContext mc) {
-    this.mc = mc;
     this.embedding = new Embedding(mc);
     this.distance = new RiemannianDistance(mc);
   }

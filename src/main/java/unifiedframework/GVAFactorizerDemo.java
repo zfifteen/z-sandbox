@@ -1,6 +1,7 @@
 package unifiedframework;
 
 import java.math.BigInteger;
+import java.util.Optional;
 
 /**
  * Demo class for Java BigDecimal GVA factorization.
@@ -27,7 +28,7 @@ public class GVAFactorizerDemo {
         BigInteger p256 = BigInteger.probablePrime(64, new java.util.Random(42)); // Smaller for speed
         BigInteger q256 = p256.add(BigInteger.valueOf(2).pow(20)).nextProbablePrime();
         BigInteger N256 = p256.multiply(q256);
-        runTest("256-bit", N256, 100);
+        runTest("256-bit", N256, 50);
 
         System.out.println("=== Demo Complete ===");
     }
@@ -36,7 +37,8 @@ public class GVAFactorizerDemo {
         System.out.println("Testing " + label + " N: " + N);
         System.out.println("Bit length: " + N.bitLength());
         long start = System.nanoTime();
-        BigInteger[] factors = GVAFactorizer.factorize(N, maxAttempts);
+        Optional<BigInteger[]> result = GVAFactorizer.factorize(N, maxAttempts);
+        BigInteger[] factors = result.orElse(null);
         long end = System.nanoTime();
         double timeMs = (end - start) / 1e6;
 
