@@ -556,7 +556,7 @@ public class TestZ5dPredictor {
   @DisplayName("Find maximum finite scale limit")
   public void testMaxFiniteScale() {
     System.out.println("=== FINDING MAX FINITE SCALE LIMIT ===");
-    int maxExp = 0;
+
     boolean overflowSeen = false;
     int maxFiniteExp = 0;
     for (int exp = 1; exp <= 10000; exp++) { // Upper bound way beyond double limit
@@ -595,8 +595,5 @@ public class TestZ5dPredictor {
     System.out.println("=== MAX FINITE SCALE TEST COMPLETE ===");
   }
 
-  private String formatScale(double scale) {
-    int exponent = (int) Math.round(Math.log10(scale));
-    return String.format("10^%d", exponent);
-  }
+
 }

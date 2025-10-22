@@ -14,7 +14,7 @@ import java.util.Optional;
  */
 public class GVAFactorizer {
     private static final MathContext MC = new MathContext(1000, RoundingMode.HALF_UP);
-    private static final int DEFAULT_DIMS = 9; // For 128-bit+
+
 
     /**
      * Factorize balanced semiprime N using GVA.
@@ -50,8 +50,7 @@ public class GVAFactorizer {
             candidates = generateCandidatesWithZ5D(kApprox, 1000); // +/- 100000 around estimate
         }
 
-        RiemannianDistance distFunc = new RiemannianDistance();
-        RiemannianAStar astar = new RiemannianAStar(distFunc);
+
         BigDecimal epsilon = RiemannianDistance.adaptiveThreshold(N_bd);
 
         for (BigInteger p : candidates) {
@@ -75,7 +74,7 @@ public class GVAFactorizer {
             }
 
             // Optional: Try A* to find path to factor embedding
-            List<BigDecimal[]> path = astar.findPath(emb_N, emb_p, N_bd, 10000);
+            List<BigDecimal[]> path = RiemannianAStar.findPath(emb_N, emb_p, N_bd, 10000);
             if (path != null && path.size() > 1) {
                 // Inverse embedding would be needed here, but simplified
             }

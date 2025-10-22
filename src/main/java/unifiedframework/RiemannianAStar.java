@@ -8,23 +8,18 @@ import java.util.*;
  * Ports Python RiemannianAStar class.
  */
 public class RiemannianAStar {
-    private final RiemannianDistance distanceFunc;
-
-    public RiemannianAStar(RiemannianDistance distanceFunc) {
-        this.distanceFunc = distanceFunc;
-    }
 
     /**
      * Heuristic: straight-line distance in torus.
      */
-    private BigDecimal heuristic(BigDecimal[] current, BigDecimal[] goal) {
-        return distanceFunc.calculate(current, goal, BigDecimal.ONE); // N not used in heuristic
+    private static BigDecimal heuristic(BigDecimal[] current, BigDecimal[] goal) {
+        return RiemannianDistance.calculate(current, goal, BigDecimal.ONE); // N not used in heuristic
     }
 
     /**
      * Generate neighboring points on the torus.
      */
-    private List<BigDecimal[]> getNeighbors(BigDecimal[] point, BigDecimal stepSize) {
+    private static List<BigDecimal[]> getNeighbors(BigDecimal[] point, BigDecimal stepSize) {
         List<BigDecimal[]> neighbors = new ArrayList<>();
         for (int i = 0; i < point.length; i++) {
             for (int delta = -1; delta <= 1; delta += 2) { // -1, 1
@@ -39,7 +34,7 @@ public class RiemannianAStar {
     /**
      * A* search from start to goal on the torus.
      */
-    public List<BigDecimal[]> findPath(BigDecimal[] start, BigDecimal[] goal, BigDecimal N, int maxIterations) {
+    public static List<BigDecimal[]> findPath(BigDecimal[] start, BigDecimal[] goal, BigDecimal N, int maxIterations) {
         PriorityQueue<Node> frontier = new PriorityQueue<>(Comparator.comparingDouble(n -> n.priority));
         frontier.add(new Node(start, heuristic(start, goal).doubleValue()));
 
@@ -55,7 +50,7 @@ public class RiemannianAStar {
             Node currentNode = frontier.poll();
             BigDecimal[] current = currentNode.point;
 
-            if (distanceFunc.calculate(current, goal, N).compareTo(BigDecimal.valueOf(0.001)) < 0) {
+            if (RiemannianDistance.calculate(current, goal, N).compareTo(BigDecimal.valueOf(0.001)) < 0) {
                 // Reconstruct path
                 List<BigDecimal[]> path = new ArrayList<>();
                 BigDecimal[] node = current;
@@ -68,7 +63,7 @@ public class RiemannianAStar {
             }
 
             for (BigDecimal[] neighbor : getNeighbors(current, BigDecimal.valueOf(0.01))) {
-                BigDecimal newCost = costSoFar.get(Arrays.toString(current)).add(distanceFunc.calculate(current, neighbor, N));
+                BigDecimal newCost = costSoFar.get(Arrays.toString(current)).add(RiemannianDistance.calculate(current, neighbor, N));
                 String neighborKey = Arrays.toString(neighbor);
                 if (!costSoFar.containsKey(neighborKey) || newCost.compareTo(costSoFar.get(neighborKey)) < 0) {
                     costSoFar.put(neighborKey, newCost);

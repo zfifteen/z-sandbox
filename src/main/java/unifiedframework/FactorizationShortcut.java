@@ -621,7 +621,7 @@ public class FactorizationShortcut {
     System.out.println("\n=== Factorization Shortcut Examples (BigInteger/Z5D-only) ===");
     int printed = 0;
     for (BigInteger[] semi : semis) {
-      BigInteger p = semi[0], q = semi[1], N = semi[2];
+      BigInteger N = semi[2];
 
       List<BigInteger> cands =
           heuristicBand(
@@ -657,7 +657,7 @@ public class FactorizationShortcut {
       int full = 0;
       List<Integer> candSizes = new ArrayList<>(semis.size());
       for (BigInteger[] semi : semis) {
-        BigInteger p = semi[0], q = semi[1], N = semi[2];
+      BigInteger p = semi[0], q = semi[1], N = semi[2];
         List<BigInteger> cands =
             heuristicBand(
                 N,

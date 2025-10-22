@@ -24,7 +24,6 @@ public class TestGVAFactorizer {
         assertEquals(64, N.bitLength(), "N should be 64-bit");
 
         long start = System.nanoTime();
-        int attempts = 100; // Reduce for speed
         Optional<BigInteger[]> result = GVAFactorizer.factorize(N, 100);
         BigInteger[] factors = result.orElse(null);
         long end = System.nanoTime();
@@ -52,7 +51,6 @@ public class TestGVAFactorizer {
         assertTrue(N.bitLength() >= 127 && N.bitLength() <= 129, "N should be ~128-bit");
 
         long start = System.nanoTime();
-        int attempts = 100; // Reduce for speed
         Optional<BigInteger[]> result = GVAFactorizer.factorize(N, 100);
         BigInteger[] factors = result.orElse(null);
         long end = System.nanoTime();
@@ -82,7 +80,6 @@ public class TestGVAFactorizer {
         assertTrue(N.bitLength() >= 255 && N.bitLength() <= 257, "N should be ~256-bit");
 
         long start = System.nanoTime();
-        int attempts = 100; // Reduce for speed
         Optional<BigInteger[]> result = GVAFactorizer.factorize(N, 100);
         BigInteger[] factors = result.orElse(null);
         long end = System.nanoTime();
@@ -116,12 +113,8 @@ public class TestGVAFactorizer {
     @DisplayName("Test Z5D integration for candidate generation")
     public void testZ5DIntegration() {
         // Test that Z5D generates reasonable candidates around sqrt(N)
-        BigInteger N = BigInteger.valueOf(1000000); // Small for testing
-        BigDecimal sqrtN = new BigDecimal(N).sqrt(new java.math.MathContext(10));
 
         // The integration is tested indirectly in factorize, but here check Z5D output
-        double kApprox = GVAFactorizer.class.getDeclaredMethods()[0].getName().equals("findPrimeIndexApproximation") ?
-                0 : 0; // Simplified, assume method exists
 
         // For now, just assert Z5D predictor works
         double est = Z5dPredictor.z5dPrime(100, 0, 0, 0, true);
