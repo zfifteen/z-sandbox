@@ -50,9 +50,9 @@ public class GVAFactorizer {
         double phi = Math.sqrt(2); // √2
 
         for (double w : W_LEVELS) {
-            for (int dx = -1; dx <= 1; dx += 2) {
-                for (int dy = -1; dy <= 1; dy += 2) {
-                    for (int dz = -1; dz <= 1; dz += 2) {
+            for (int dx = -5; dx <= 5; dx++) {
+                for (int dy = -5; dy <= 5; dy++) {
+                    for (int dz = -5; dz <= 5; dz++) {
                         double[] coord4D = {dx * 1e6, dy * 1e6, dz * 1e6, w * 1e6};
                         double[] proj = project4DTo3D(coord4D);
                         double offset = proj[0] + proj[1] * tau + proj[2] * phi;
