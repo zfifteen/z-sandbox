@@ -45,7 +45,7 @@ def test_gva_128bit():
 
         # Use reasonable R for testing (not too large to avoid timeout)
         # Acceptance criteria: R = max(10^7, sqrt(N)/1000), but 10^7 is too large
-        # Use sqrt(N)/1000 which is ~10^16 for 128-bit, cap at 10^6 for practicality
+        # Use sqrt(N)/1000 which is ≈1.8×10^16 for 128-bit N (2^128), cap at 10^6 for practicality
         R = min(int(N**0.5 / 1000), 10**4)
         start_time = time.time()
         result = gva_factorize_128bit(N, dims, R=R, K=256)
