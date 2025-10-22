@@ -5,6 +5,7 @@ import java.math.BigInteger;
 import java.math.MathContext;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -33,25 +34,53 @@ public class GVAFactorizer {
     }
 
     // Generate unicursal geodesic seeds from e₄ intersections
-    private static List<BigInteger> seedZ5DAtE4Intersections(BigDecimal sqrtN, int range) {
+    private static List<BigInteger> seedZ5DAtE4Intersections(BigDecimal sqrtN, BigDecimal N_bd) {
         List<BigInteger> seeds = new ArrayList<>();
+        List<Double> distances = new ArrayList<>();
         double kApprox = findPrimeIndexApproximation(sqrtN);
+
+        // Reference: project first 4 dims of N's embedding
+        BigDecimal k = Embedding.adaptiveK(N_bd);
+        BigDecimal[] emb_N = Embedding.embedTorusGeodesic(N_bd, k, TORUS_DIMS);
+        double[] ref4D = {emb_N[0].doubleValue(), emb_N[1].doubleValue(), emb_N[2].doubleValue(), emb_N[3].doubleValue()};
+        double[] refProj = project4DTo3D(ref4D);
+        BigDecimal[] refCoords = {BigDecimal.valueOf(refProj[0]), BigDecimal.valueOf(refProj[1]), BigDecimal.valueOf(refProj[2])};
+
+        double tau = (1 + Math.sqrt(5)) / 2; // Golden ratio
+        double phi = Math.sqrt(2); // √2
+
         for (double w : W_LEVELS) {
             for (int dx = -1; dx <= 1; dx += 2) {
                 for (int dy = -1; dy <= 1; dy += 2) {
                     for (int dz = -1; dz <= 1; dz += 2) {
                         double[] coord4D = {dx * 1e6, dy * 1e6, dz * 1e6, w * 1e6};
                         double[] proj = project4DTo3D(coord4D);
-                        double est = Z5dPredictor.z5dPrime((int)(kApprox + proj[0]), 0, 0, 0, true);
+                        double offset = proj[0] + proj[1] * tau + proj[2] * phi;
+                        double est = Z5dPredictor.z5dPrime((int)(kApprox + offset), 0, 0, 0, true);
                         BigInteger p = BigInteger.valueOf(Math.round(est));
                         if (p.compareTo(BigInteger.ONE) > 0 && isPrimeMR(p)) {
                             seeds.add(p);
+                            // Compute distance for ranking
+                            BigDecimal[] seedCoords = {BigDecimal.valueOf(proj[0]), BigDecimal.valueOf(proj[1]), BigDecimal.valueOf(proj[2])};
+                            BigDecimal dist = RiemannianDistance.calculate(refCoords, seedCoords, BigDecimal.ONE);
+                            distances.add(dist.doubleValue());
                         }
                     }
                 }
             }
         }
-        return seeds;
+
+        // Sort seeds by distance ascending
+        List<Integer> indices = new ArrayList<>();
+        for (int i = 0; i < seeds.size(); i++) indices.add(i);
+        indices.sort(Comparator.comparingDouble(distances::get));
+
+        List<BigInteger> sortedSeeds = new ArrayList<>();
+        for (int idx : indices) {
+            sortedSeeds.add(seeds.get(idx));
+        }
+
+        return sortedSeeds;
     }
 
     // Miller-Rabin (20 witnesses)
@@ -111,7 +140,7 @@ public class GVAFactorizer {
         } else {
             // Use new (1,3) Pythagram seeding at e₄ intersections
             BigDecimal sqrtN = sqrt(N_bd, MC);
-            candidates = seedZ5DAtE4Intersections(sqrtN, 1000000);
+            candidates = seedZ5DAtE4Intersections(sqrtN, N_bd);
         }
 
 
