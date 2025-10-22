@@ -29,13 +29,13 @@ mp.dps = 400
 phi = (1 + sqrt(5)) / 2
 c = float(exp(2))
 
-def adaptive_threshold(N):
+def adaptive_threshold(N, epsilon_mult=1.0):
     """
     Adaptive threshold for GVA based on curvature.
-    ε = 0.2 / (1 + κ)
+    ε = 0.2 / (1 + κ) * epsilon_mult
     """
     kappa = 4 * math.log(N + 1) / c
-    return 0.2 / (1 + kappa)
+    return (0.2 / (1 + kappa)) * epsilon_mult
 
 def embed_torus_geodesic(n, dims=11):
     """
@@ -90,12 +90,12 @@ def generate_balanced_127bit_semiprime(seed):
         N = p * q
     return N, p, q
 
-def gva_factorize_127bit(N, dims=11, R=1000000):
+def gva_factorize_127bit(N, dims=11, R=1000000, epsilon_mult=1.0):
     """
     GVA for 127-bit balanced semiprimes.
     Returns (p, q, distance) if successful, (None, None, None) otherwise.
     """
-    epsilon = adaptive_threshold(N)
+    epsilon = adaptive_threshold(N, epsilon_mult)
     emb_N = embed_torus_geodesic(N, dims)
     sqrtN = int(mpf(N).sqrt())
     
@@ -114,10 +114,10 @@ def gva_factorize_127bit(N, dims=11, R=1000000):
             return p, q, min(dist_p, dist_q)
     return None, None, None
 
-def validate_breakthrough():
+def validate_breakthrough(epsilon_mult=1.0, num_samples=100):
     """
     Test if 100% success rate is real.
-    Run 100 trials at 127-bit with current best config.
+    Run trials at 127-bit with current best config.
     
     This is THE critical experiment from the issue.
     """
@@ -126,11 +126,12 @@ def validate_breakthrough():
     print("=" * 70)
     print("\nTesting hypothesis: 100% success rate at 127-bit")
     print("Prior data: 10/10 successes (100%)")
+    print(f"Epsilon multiplier: {epsilon_mult}")
     print("Expected outcomes:")
     print("  - >90%: Extraordinary breakthrough")
     print("  - 30-50%: Significant improvement over 16%")
     print("  - ~16%: Confirms original findings")
-    print("\nRunning 100 samples with dims=11...")
+    print(f"\nRunning {num_samples} samples with dims=11...")
     print()
     
     results = []
@@ -140,11 +141,11 @@ def validate_breakthrough():
     successful_distances = []
     failed_min_distances = []
     
-    for seed in range(100):
+    for seed in range(num_samples):
         N, true_p, true_q = generate_balanced_127bit_semiprime(seed)
         
         start_time = time.time()
-        found_p, found_q, dist = gva_factorize_127bit(N, dims=11)
+        found_p, found_q, dist = gva_factorize_127bit(N, dims=11, epsilon_mult=epsilon_mult)
         end_time = time.time()
         elapsed = end_time - start_time
         total_time += elapsed
@@ -178,14 +179,14 @@ def validate_breakthrough():
         if not success and successes + failures == 1:
             print(f"\n*** First failure at trial {seed} ***\n")
     
-    success_rate = successes / 100
-    avg_time = total_time / 100
+    success_rate = successes / num_samples
+    avg_time = total_time / num_samples
     
     print()
     print("=" * 70)
     print("RESULTS")
     print("=" * 70)
-    print(f"Success rate: {successes}/100 ({success_rate*100:.1f}%)")
+    print(f"Success rate: {successes}/{num_samples} ({success_rate*100:.1f}%)")
     print(f"Average time: {avg_time:.2f}s")
     print(f"Total time: {total_time:.2f}s")
     
@@ -219,13 +220,13 @@ def validate_breakthrough():
     
     # Binomial confidence interval
     from scipy import stats
-    ci_low, ci_high = stats.binom.interval(0.95, 100, success_rate)
-    ci_low_pct = ci_low / 100 * 100
-    ci_high_pct = ci_high / 100 * 100
+    ci_low, ci_high = stats.binom.interval(0.95, num_samples, success_rate)
+    ci_low_pct = ci_low / num_samples * 100
+    ci_high_pct = ci_high / num_samples * 100
     print(f"\n95% Confidence Interval: [{ci_low_pct:.1f}%, {ci_high_pct:.1f}%]")
     
     # Hypothesis test: is this different from 16%?
-    p_value = stats.binom_test(successes, 100, 0.16, alternative='two-sided')
+    p_value = stats.binom_test(successes, num_samples, 0.16, alternative='two-sided')
     print(f"P-value (vs 16% null hypothesis): {p_value:.4f}")
     if p_value < 0.05:
         print("  → Statistically significant difference from 16% baseline!")
@@ -235,4 +236,15 @@ def validate_breakthrough():
     return success_rate, results
 
 if __name__ == "__main__":
-    success_rate = validate_breakthrough()
+    import argparse
+    parser = argparse.ArgumentParser(description='127-bit GVA validation')
+    parser.add_argument('--epsilon-mult', type=float, default=1.0,
+                       help='Epsilon multiplier (default: 1.0)')
+    parser.add_argument('--num-samples', type=int, default=100,
+                       help='Number of samples to test (default: 100)')
+    args = parser.parse_args()
+    
+    success_rate, results = validate_breakthrough(
+        epsilon_mult=args.epsilon_mult,
+        num_samples=args.num_samples
+    )
