@@ -93,14 +93,15 @@ def demo_wavefront_convergence():
         print(f"    {i+1}. t={peak['time']:.4f}, amplitude={peak['amplitude']:.4f}")
     
     print("\nStep 4: Extract factor candidates from peaks")
+    print("  NOTE: These are APPROXIMATE SEEDS, not exact factors")
     factor_seeds = extract_factor_seeds(peaks, ellipse_data, N)
     print(f"  Generated {len(factor_seeds)} candidate pairs")
-    print("\n  Top 5 candidates:")
+    print("\n  Top 5 candidates (approximate seeds):")
     for i, seed in enumerate(factor_seeds[:5]):
         p, q = seed['p'], seed['q']
         product = p * q
         is_correct = (product == N)
-        status = "✓ CORRECT" if is_correct else f"→ {product}"
+        status = "✓ EXACT" if is_correct else f"≈ {product} (seed for refinement)"
         print(f"    {i+1}. {p} × {q} = {status} (conf: {seed['confidence']:.3f})")
 
 
@@ -124,10 +125,10 @@ def demo_full_pipeline():
         # Run full pipeline
         coords, seeds = embedTorusGeodesic_with_elliptic_refinement(N, k=0.3, dims=17)
         
-        print(f"Generated {len(coords)}-D embedding with {len(seeds)} candidate seeds")
+        print(f"Generated {len(coords)}-D embedding with {len(seeds)} APPROXIMATE candidate seeds")
         
         if len(seeds) > 0:
-            print("\nTop 3 candidates:")
+            print("\nTop 3 candidates (approximate seeds for refinement):")
             for i, seed in enumerate(seeds[:3]):
                 p, q = seed['p'], seed['q']
                 product = p * q

@@ -3,14 +3,22 @@
 Elliptical Billiard Model for Factorization
 ============================================
 
+IMPORTANT: This module generates APPROXIMATE CANDIDATE SEEDS for factorization,
+not exact factors. Seeds should be used to initialize refinement methods (GVA,
+trial division, etc.)
+
 Mathematical Framework:
 - Semiprime N = p × q → log(N) = log(p) + log(q)
-- In log-space, N is the "sum" of two foci
-- Ellipse property: d(point, focus₁) + d(point, focus₂) = 2a (constant)
-- Wavefronts from log(N) converge at factor locations (foci)
+- Works in log-space where sum relationship holds
+- Uses ellipse-approximation in log-space (note: product relationship after
+  exponentiation suggests Cassini oval, but we use ellipse for tractability)
+- Wavefront propagation provides heuristic guidance toward factor regions
 
-This module implements wavefront propagation on an elliptical billiard
-to discover factor locations through self-intersection analysis.
+Limitations:
+- Generates approximate seeds, not exact factorizations
+- Best for balanced semiprimes (p ≈ q)
+- Accuracy degrades for highly unbalanced factors
+- Requires downstream refinement for actual factorization
 """
 
 import numpy as np
