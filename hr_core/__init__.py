@@ -2,7 +2,21 @@
 """
 Hyper-Rotation Core (hr_core)
 
-Core cryptographic modules for time-windowed hyper-rotation encryption.
+⚠️ RESEARCH PROOF OF CONCEPT ONLY ⚠️
+
+This is a research prototype for exploring mathematical concepts in cryptographic
+protocol design. NOT suitable for production use or real-world applications.
+
+Do NOT use this code for:
+- Real communications requiring security
+- Production environments
+- Protecting sensitive data
+- Any scenario where security matters
+
+Research Purpose: Academic exploration of time-based key derivation concepts,
+experimental protocol design, and mathematical research into cryptographic primitives.
+
+Core cryptographic modules for time-windowed hyper-rotation encryption research.
 
 Modules:
 - key_schedule: HKDF-based key derivation with time windows

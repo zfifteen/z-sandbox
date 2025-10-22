@@ -1,8 +1,14 @@
 # Performance Benchmarks
 
+**⚠️ RESEARCH PROOF OF CONCEPT ONLY ⚠️**
+
+**This is a research prototype for exploring mathematical concepts only.** Performance measurements are provided for academic research purposes to understand the computational characteristics of time-based key derivation schemes. This code is **NOT suitable for production use or real-world applications.**
+
+---
+
 ## Overview
 
-This document describes performance characteristics of the Hyper-Rotation Messenger and provides benchmarking scripts.
+This document describes performance characteristics of the Hyper-Rotation Messenger research prototype and provides benchmarking scripts for academic analysis.
 
 ## 1. Target Metrics
 

@@ -1,6 +1,10 @@
 #!/bin/bash
 # Demo script for hyper-rotation messenger
 # Runs sender and receiver in separate terminal panes
+#
+# ⚠️ RESEARCH PROOF OF CONCEPT ONLY ⚠️
+# This is experimental research code for exploring mathematical concepts.
+# NOT for production use or real communications.
 
 set -e
 
@@ -10,8 +14,12 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
+RED='\033[0;31m'
 NC='\033[0m' # No Color
 
+echo -e "${RED}⚠️  RESEARCH PROOF OF CONCEPT ONLY ⚠️${NC}"
+echo -e "${RED}This is experimental research code. NOT for production use.${NC}"
+echo ""
 echo -e "${YELLOW}=== Hyper-Rotation Messenger Demo ===${NC}"
 echo ""
 echo "This demo runs a local sender and receiver with 3-second key rotation."

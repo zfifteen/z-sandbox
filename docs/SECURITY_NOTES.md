@@ -1,8 +1,24 @@
 # Security Notes: Hyper-Rotation Messenger
 
+**⚠️ RESEARCH PROOF OF CONCEPT ONLY - NOT FOR PRODUCTION USE ⚠️**
+
+**CRITICAL DISCLAIMER:** This is a research prototype for exploring mathematical concepts in cryptographic protocol design. This code and protocol are **NOT suitable for real-world use, production deployments, or any security-critical applications.**
+
+**Do NOT use this system for:**
+- Real communications requiring confidentiality
+- Any production environment
+- Protecting sensitive data
+- Any scenario where security failures would have consequences
+
+**Research Purpose:** This codebase exists solely for academic exploration of time-based key derivation concepts, experimental protocol design patterns, and mathematical research into cryptographic primitives. Treat all code and documentation as experimental research material only.
+
+For production encrypted messaging, use established, audited protocols like Signal, Matrix (with Olm/Megolm), or Wire Protocol.
+
+---
+
 ## Executive Summary
 
-This document clarifies the security properties of the Hyper-Rotation Messenger MVP and distinguishes them from full forward secrecy (PFS) protocols like Signal's Double Ratchet or MLS.
+This document clarifies the security properties of the Hyper-Rotation Messenger research prototype and distinguishes them from full forward secrecy (PFS) protocols like Signal's Double Ratchet or MLS.
 
 **Key Points:**
 - ✅ MVP provides **window-confined exposure** and strong AEAD encryption

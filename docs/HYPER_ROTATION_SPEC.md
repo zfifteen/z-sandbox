@@ -1,5 +1,13 @@
 # Hyper-Rotation Messenger Specification
 
+**⚠️ RESEARCH PROOF OF CONCEPT ONLY ⚠️**
+
+**THIS IS A RESEARCH PROTOTYPE FOR MATHEMATICAL EXPLORATION ONLY.** This specification describes an experimental protocol designed for academic research and exploration of time-based cryptographic concepts. It is **NOT suitable for production use, real communications, or any security-critical applications.**
+
+**Research Purpose:** This document exists to explore mathematical concepts in time-windowed key derivation, HKDF-based key schedules, and experimental approaches to reducing handshake overhead. All implementations based on this specification should be treated as experimental research code only.
+
+---
+
 ## 1. Overview
 
 **Goal:** Time-windowed end-to-end encrypted messaging where both parties derive the same encryption keys from a shared secret and rotating time windows (e.g., every 3s), enabling message exchange without online handshake.

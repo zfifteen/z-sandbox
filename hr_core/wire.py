@@ -2,7 +2,11 @@
 """
 Wire Protocol
 
+⚠️ RESEARCH PROOF OF CONCEPT ONLY ⚠️
+This is experimental research code. NOT for production use or real communications.
+
 Defines message header format and serialization for hyper-rotation messenger.
+For academic research and mathematical concept exploration only.
 """
 
 import struct

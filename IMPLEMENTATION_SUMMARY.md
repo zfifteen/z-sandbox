@@ -1,8 +1,16 @@
 # Implementation Summary: Hyper-Rotation Messenger PoC
 
+**⚠️ RESEARCH PROOF OF CONCEPT ONLY ⚠️**
+
+**This is a research prototype for exploring mathematical concepts only. NOT suitable for any use outside experimentation and academic research. Do NOT use for real communications or production environments.**
+
+**Research Purpose:** This implementation exists solely for the exploration of mathematical concepts in time-based cryptographic key derivation, experimental protocol design, and Z5D geometric prime prediction research.
+
+---
+
 ## Overview
 
-Successfully implemented a complete PoC "hyper-rotating" end-to-end encrypted messenger with time-based automatic key rotation, as specified in issue #6.
+Successfully implemented a complete research PoC "hyper-rotating" end-to-end encrypted messenger with time-based automatic key rotation, as specified in issue #6.
 
 **Total Changes:** 3,922 lines across 17 files
 

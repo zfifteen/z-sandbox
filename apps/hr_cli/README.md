@@ -1,5 +1,13 @@
 # Hyper-Rotation Messenger
 
+**⚠️ RESEARCH PROOF OF CONCEPT ONLY ⚠️**
+
+**This is a research prototype for exploring mathematical concepts in time-based key rotation and is NOT suitable for any use outside of experimentation and academic research. Do NOT use this code in production, for real communications, or for any security-critical applications.**
+
+**Purpose:** This codebase exists solely for the exploration of mathematical concepts related to time-windowed cryptographic key derivation, geometric prime prediction (Z5D), and experimental protocol design. It is intended for educational and research purposes only.
+
+---
+
 A PoC "hyper-rotating" end-to-end encrypted messenger with time-based automatic key rotation.
 
 ## Overview

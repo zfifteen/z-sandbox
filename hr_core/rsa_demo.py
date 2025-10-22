@@ -2,11 +2,16 @@
 """
 RSA Demo Mode with Z5D-Assisted Prime Generation
 
+⚠️ RESEARCH PROOF OF CONCEPT ONLY ⚠️
+This is experimental research code for exploring mathematical concepts.
+NOT for production use or real communications.
+
 Demonstrates deterministic RSA keypair generation using Z5D prime prediction
 for fast prime finding, validated with BPSW and Miller-Rabin tests.
 
-WARNING: This is for demonstration purposes only. Production use should rely
-on symmetric AEAD mode.
+WARNING: This is for demonstration and research purposes only. Production use 
+should rely on symmetric AEAD mode, and even then, only for research/academic 
+experimentation, NOT real-world applications.
 """
 
 import os

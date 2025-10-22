@@ -2,7 +2,11 @@
 """
 Replay Protection
 
+⚠️ RESEARCH PROOF OF CONCEPT ONLY ⚠️
+This is experimental research code. NOT for production use or real communications.
+
 Manages per-window message counters to prevent replay attacks.
+For academic research and mathematical concept exploration only.
 """
 
 from typing import Dict, Optional

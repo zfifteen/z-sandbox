@@ -2,8 +2,12 @@
 """
 AEAD Encryption Module
 
+⚠️ RESEARCH PROOF OF CONCEPT ONLY ⚠️
+This is experimental research code. NOT for production use or real communications.
+
 Provides XChaCha20-Poly1305 AEAD encryption/decryption wrappers.
 Uses PyNaCl (libsodium bindings) for production-grade cryptography.
+For academic research and mathematical concept exploration only.
 """
 
 import os

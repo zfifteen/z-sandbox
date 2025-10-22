@@ -2,10 +2,15 @@
 """
 Hyper-Rotation Key Schedule
 
+⚠️ RESEARCH PROOF OF CONCEPT ONLY ⚠️
+This is experimental research code for exploring mathematical concepts.
+NOT for production use or real communications.
+
 Implements HKDF-based key derivation for time-windowed encryption keys.
 Keys are derived from a shared secret and time bucket, with domain separation.
 
 Based on RFC 5869 (HKDF) and the hyper-rotation specification.
+For academic research and mathematical concept exploration only.
 """
 
 import hashlib

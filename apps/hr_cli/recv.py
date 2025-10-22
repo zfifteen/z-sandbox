@@ -2,8 +2,11 @@
 """
 Hyper-Rotation Messenger - Receive
 
+⚠️ RESEARCH PROOF OF CONCEPT ONLY ⚠️
+This is experimental research code. NOT for production use or real communications.
+
 CLI tool for receiving and decrypting messages with time-based key rotation
-and clock drift tolerance.
+and clock drift tolerance. For academic research and mathematical concept exploration only.
 """
 
 import sys

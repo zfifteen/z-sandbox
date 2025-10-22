@@ -2,7 +2,11 @@
 """
 Hyper-Rotation Messenger - Send
 
+⚠️ RESEARCH PROOF OF CONCEPT ONLY ⚠️
+This is experimental research code. NOT for production use or real communications.
+
 CLI tool for sending encrypted messages with time-based key rotation.
+For academic research and mathematical concept exploration only.
 """
 
 import sys
