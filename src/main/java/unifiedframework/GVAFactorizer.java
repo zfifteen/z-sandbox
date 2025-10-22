@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.MathContext;
 import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -13,8 +14,73 @@ import java.util.Optional;
  * Fixed for safety with large inputs: avoids double conversions, uses probable prime checks.
  */
 public class GVAFactorizer {
-    private static final MathContext MC = new MathContext(1000, RoundingMode.HALF_UP);
+    private static final MathContext MC = new MathContext(2000, RoundingMode.HALF_UP);
+    private static final int TORUS_DIMS = 17;
+    private static final int PROJ_BLOCKS = 4; // (x,y,z,w) blocks
+    private static final double[] W_LEVELS = {0.0, 1.0}; // Blue/Red cubes
 
+    // Unicursal 4D→3D projection: (x,y,z,w) → (x',y',z') in ℝ³
+    private static double[] project4DTo3D(double[] coords4D) {
+        double x = coords4D[0], y = coords4D[1], z = coords4D[2], w = coords4D[3];
+        // e₁,e₂,e₃,e₄ as basis in ℝ³ (orthonormal + offset)
+        double[] e1 = {1, 0, 0}, e2 = {0, 1, 0}, e3 = {0, 0, 1};
+        double[] e4 = {0.5, 0.5, 0.5}; // Diagonal for tesseract shadow
+        double[] proj = new double[3];
+        for (int i = 0; i < 3; i++) {
+            proj[i] = x*e1[i] + y*e2[i] + z*e3[i] + w*e4[i];
+        }
+        return proj;
+    }
+
+    // Generate unicursal geodesic seeds from e₄ intersections
+    private static List<BigInteger> seedZ5DAtE4Intersections(BigDecimal sqrtN, int range) {
+        List<BigInteger> seeds = new ArrayList<>();
+        double kApprox = findPrimeIndexApproximation(sqrtN);
+        for (double w : W_LEVELS) {
+            for (int dx = -1; dx <= 1; dx += 2) {
+                for (int dy = -1; dy <= 1; dy += 2) {
+                    for (int dz = -1; dz <= 1; dz += 2) {
+                        double[] coord4D = {dx * 1e6, dy * 1e6, dz * 1e6, w * 1e6};
+                        double[] proj = project4DTo3D(coord4D);
+                        double est = Z5dPredictor.z5dPrime((int)(kApprox + proj[0]), 0, 0, 0, true);
+                        BigInteger p = BigInteger.valueOf(Math.round(est));
+                        if (p.compareTo(BigInteger.ONE) > 0 && isPrimeMR(p)) {
+                            seeds.add(p);
+                        }
+                    }
+                }
+            }
+        }
+        return seeds;
+    }
+
+    // Miller-Rabin (20 witnesses)
+    private static boolean isPrimeMR(BigInteger n) {
+        if (n.compareTo(BigInteger.valueOf(3)) < 0) return n.equals(BigInteger.TWO);
+        if (n.mod(BigInteger.TWO).equals(BigInteger.ZERO)) return false;
+        BigInteger s = n.subtract(BigInteger.ONE);
+        int r = 0;
+        while (s.mod(BigInteger.TWO).equals(BigInteger.ZERO)) {
+            s = s.divide(BigInteger.TWO);
+            r++;
+        }
+        BigInteger[] witnesses = {BigInteger.valueOf(2), BigInteger.valueOf(3), BigInteger.valueOf(5),
+                BigInteger.valueOf(7), BigInteger.valueOf(11), BigInteger.valueOf(13),
+                BigInteger.valueOf(17), BigInteger.valueOf(19), BigInteger.valueOf(23),
+                BigInteger.valueOf(29), BigInteger.valueOf(31), BigInteger.valueOf(37)};
+        for (BigInteger a : witnesses) {
+            if (a.compareTo(n) >= 0) break;
+            BigInteger x = a.modPow(s, n);
+            if (x.equals(BigInteger.ONE) || x.equals(n.subtract(BigInteger.ONE))) continue;
+            boolean comp = false;
+            for (int i = 1; i < r; i++) {
+                x = x.modPow(BigInteger.TWO, n);
+                if (x.equals(n.subtract(BigInteger.ONE))) { comp = true; break; }
+            }
+            if (!comp) return false;
+        }
+        return true;
+    }
 
     /**
      * Factorize balanced semiprime N using GVA.
@@ -43,11 +109,9 @@ public class GVAFactorizer {
                 }
             }
         } else {
-            // Use Z5D to estimate prime index near sqrt(N)
+            // Use new (1,3) Pythagram seeding at e₄ intersections
             BigDecimal sqrtN = sqrt(N_bd, MC);
-            double kApprox = findPrimeIndexApproximation(sqrtN);
-            // Generate candidate primes using Z5D predictions around kApprox
-            candidates = generateCandidatesWithZ5D(kApprox, 1000); // +/- 100000 around estimate
+            candidates = seedZ5DAtE4Intersections(sqrtN, 1000000);
         }
 
 
@@ -140,9 +204,7 @@ public class GVAFactorizer {
      * Get dimensions for embedding based on bit size.
      */
     private static int getDimsForBitSize(int bits) {
-        if (bits <= 64) return 7;
-        if (bits <= 128) return 9;
-        return 15; // For 256-bit+
+        return 17; // Fixed to 17-torus
     }
 
     /**

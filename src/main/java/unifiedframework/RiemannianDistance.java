@@ -9,7 +9,7 @@ import java.math.RoundingMode;
  * Ports Python riemannian_distance function.
  */
 public class RiemannianDistance {
-    private static final MathContext MC = new MathContext(1000, RoundingMode.HALF_UP);
+    private static final MathContext MC = new MathContext(2000, RoundingMode.HALF_UP);
     private static final BigDecimal E_SQUARED = BigDecimal.valueOf(Math.exp(2)).setScale(400, RoundingMode.HALF_UP);
 
     /**
@@ -49,9 +49,14 @@ public class RiemannianDistance {
     }
 
     /**
-     * Square root of BigDecimal.
+     * Square root of BigDecimal using Newton's method.
      */
     private static BigDecimal sqrt(BigDecimal x, MathContext mc) {
-        return BigDecimal.valueOf(Math.sqrt(x.doubleValue())).setScale(400, RoundingMode.HALF_UP);
+        if (x.compareTo(BigDecimal.ZERO) <= 0) return BigDecimal.ZERO;
+        BigDecimal guess = BigDecimal.valueOf(Math.sqrt(x.doubleValue()));
+        for (int i = 0; i < 10; i++) {  // 10 iterations for precision
+            guess = guess.add(x.divide(guess, mc), mc).divide(BigDecimal.valueOf(2), mc);
+        }
+        return guess;
     }
 }
