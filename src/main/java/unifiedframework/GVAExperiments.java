@@ -52,8 +52,10 @@ public class GVAExperiments {
 
             // Embed
             BigDecimal k = Embedding.adaptiveK(new BigDecimal(N));
-            BigDecimal[] emb_N = Embedding.embedTorusGeodesic(new BigDecimal(N), k, 7);
-            BigDecimal[] emb_p = Embedding.embedTorusGeodesic(new BigDecimal(p), k, 7);
+            List<BigDecimal[]> curve_N = Embedding.embedTorusGeodesic(new BigDecimal(N), k, 7);
+            BigDecimal[] emb_N = curve_N.get(0);
+            List<BigDecimal[]> curve_p = Embedding.embedTorusGeodesic(new BigDecimal(p), k, 7);
+            BigDecimal[] emb_p = curve_p.get(0);
 
             if (trial == 0) {
                 System.out.printf("N=%s, p=%s, k=%.6f\n", N, p, k.doubleValue());
@@ -72,7 +74,8 @@ public class GVAExperiments {
             // NON-FACTOR distances (10 random primes near p)
             for (int i = 0; i < 10; i++) {
                 BigInteger nonFactor = BigInteger.probablePrime(32, RNG);
-                BigDecimal[] emb_nf = Embedding.embedTorusGeodesic(new BigDecimal(nonFactor), k, 7);
+                List<BigDecimal[]> curve_nf = Embedding.embedTorusGeodesic(new BigDecimal(nonFactor), k, 7);
+                    BigDecimal[] emb_nf = curve_nf.get(0);
                 BigDecimal dist_nonfactor = RiemannianDistance.calculate(emb_N, emb_nf, new BigDecimal(N));
                 nonFactorDistances.add(dist_nonfactor.doubleValue());
             }
@@ -115,8 +118,10 @@ public class GVAExperiments {
 
                 // Measure separation at this scale
                 BigDecimal k = Embedding.adaptiveK(new BigDecimal(N));
-                BigDecimal[] emb_N = Embedding.embedTorusGeodesic(new BigDecimal(N), k, 7);
-                BigDecimal[] emb_p = Embedding.embedTorusGeodesic(new BigDecimal(p), k, 7);
+                List<BigDecimal[]> curve_N = Embedding.embedTorusGeodesic(new BigDecimal(N), k, 7);
+            BigDecimal[] emb_N = curve_N.get(0);
+                List<BigDecimal[]> curve_p = Embedding.embedTorusGeodesic(new BigDecimal(p), k, 7);
+            BigDecimal[] emb_p = curve_p.get(0);
 
                 BigDecimal factorDist = RiemannianDistance.calculate(emb_N, emb_p, new BigDecimal(N));
 
@@ -124,7 +129,8 @@ public class GVAExperiments {
                 double nonFactorSum = 0;
                 for (int i = 0; i < 5; i++) {
                     BigInteger nonFactor = BigInteger.probablePrime(bits/2, RNG);
-                    BigDecimal[] emb_nf = Embedding.embedTorusGeodesic(new BigDecimal(nonFactor), k, 7);
+                    List<BigDecimal[]> curve_nf = Embedding.embedTorusGeodesic(new BigDecimal(nonFactor), k, 7);
+                    BigDecimal[] emb_nf = curve_nf.get(0);
                     BigDecimal dist = RiemannianDistance.calculate(emb_N, emb_nf, new BigDecimal(N));
                     nonFactorSum += dist.doubleValue();
                 }
@@ -193,8 +199,10 @@ public class GVAExperiments {
 
             for (int t = 0; t < trials; t++) {
                 BigDecimal k = Embedding.adaptiveK(new BigDecimal(N));
-                BigDecimal[] emb_N = Embedding.embedTorusGeodesic(new BigDecimal(N), k, dims);
-                BigDecimal[] emb_p = Embedding.embedTorusGeodesic(new BigDecimal(p), k, dims);
+                List<BigDecimal[]> curve_N = Embedding.embedTorusGeodesic(new BigDecimal(N), k, dims);
+                BigDecimal[] emb_N = curve_N.get(0);
+                List<BigDecimal[]> curve_p = Embedding.embedTorusGeodesic(new BigDecimal(p), k, dims);
+                BigDecimal[] emb_p = curve_p.get(0);
 
                 BigDecimal factorDist = RiemannianDistance.calculate(emb_N, emb_p, new BigDecimal(N));
 
@@ -202,7 +210,8 @@ public class GVAExperiments {
                 double nonFactorSum = 0;
                 for (int i = 0; i < 3; i++) {
                     BigInteger nonFactor = BigInteger.probablePrime(20, RNG);
-                    BigDecimal[] emb_nf = Embedding.embedTorusGeodesic(new BigDecimal(nonFactor), k, dims);
+                    List<BigDecimal[]> curve_nf = Embedding.embedTorusGeodesic(new BigDecimal(nonFactor), k, dims);
+                    BigDecimal[] emb_nf = curve_nf.get(0);
                     BigDecimal dist = RiemannianDistance.calculate(emb_N, emb_nf, new BigDecimal(N));
                     nonFactorSum += dist.doubleValue();
                 }
@@ -286,7 +295,7 @@ public class GVAExperiments {
 
         double successRate = (double) successes / trials * 100;
         double avgTime = (double) totalTime / trials / 1000; // seconds
-        System.out.printf("\n256-bit Results: %.1f%% success, %.2fs average time\n", successRate, avgTime);
+        System.out.printf("\n256-bit Results: %.1f%% success, %.2fs average time (predicted 18%%, 9s)\n", successRate, avgTime);
     }
     /** Square root for BigDecimal.
      */

@@ -1,10 +1,10 @@
 package unifiedframework;
 
 import java.math.BigDecimal;
-import java.math.MathContext;
-import java.math.RoundingMode;
 import java.util.List;
 import java.util.ArrayList;
+import java.math.MathContext;
+import java.math.RoundingMode;
 
 /**
  * Torus geodesic embedding for GVA using BigDecimal for high precision.
@@ -17,23 +17,18 @@ public class Embedding {
 
     /**
      * Embed N into torus using iterative θ' transformations.
-     * Approximates semiprime as elliptic curve segment in 17-torus.
+     * Z = A(B / c) with c = e², plus curvature perturbation.
      */
     public static List<BigDecimal[]> embedTorusGeodesic(BigDecimal n, BigDecimal k, int dims) {
         BigDecimal x = n.divide(E_SQUARED, MC);
-        List<BigDecimal[]> curve = new ArrayList<>();
+        BigDecimal[] coords = new BigDecimal[dims];
         for (int i = 0; i < dims; i++) {
             BigDecimal frac = fractionalPart(x.divide(PHI, MC));
             x = PHI.multiply(frac.pow(k.intValue(), MC), MC);  // Approximate power
             BigDecimal perturbation = BigDecimal.valueOf(0.01).multiply(BigDecimal.valueOf(Math.sin(k.doubleValue() * i + n.doubleValue() * 1e-15)), MC);
-            BigDecimal[] point = new BigDecimal[dims];
-            BigDecimal base = fractionalPart(x).add(perturbation, MC);
-            for (int j = 0; j < dims; j++) {
-                point[j] = fractionalPart(base.add(BigDecimal.valueOf(j * 0.1), MC));
-            }
-            curve.add(point);
+            coords[i] = fractionalPart(x).add(perturbation, MC);
         }
-        return curve;
+        return coords;
     }
 
     /**

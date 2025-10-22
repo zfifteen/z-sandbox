@@ -41,7 +41,8 @@ public class GVAFactorizer {
 
         // Reference: project first 4 dims of N's embedding
         BigDecimal k = Embedding.adaptiveK(N_bd);
-        BigDecimal[] emb_N = Embedding.embedTorusGeodesic(N_bd, k, TORUS_DIMS);
+        List<BigDecimal[]> curve_N = Embedding.embedTorusGeodesic(N_bd, k, TORUS_DIMS);
+        BigDecimal[] emb_N = curve_N.get(0);
         double[] ref4D = {emb_N[0].doubleValue(), emb_N[1].doubleValue(), emb_N[2].doubleValue(), emb_N[3].doubleValue()};
         double[] refProj = project4DTo3D(ref4D);
         BigDecimal[] refCoords = {BigDecimal.valueOf(refProj[0]), BigDecimal.valueOf(refProj[1]), BigDecimal.valueOf(refProj[2])};
@@ -122,7 +123,8 @@ public class GVAFactorizer {
 
         // Embed N
         BigDecimal k = Embedding.adaptiveK(N_bd);
-        BigDecimal[] emb_N = Embedding.embedTorusGeodesic(N_bd, k, dims);
+        List<BigDecimal[]> curve_N = Embedding.embedTorusGeodesic(N_bd, k, dims);
+        BigDecimal[] emb_N = curve_N.get(0);
 
         List<BigInteger> candidates;
         if (N.bitLength() < 100) {
@@ -156,8 +158,10 @@ public class GVAFactorizer {
             if (!isBalanced(p, q)) continue;
 
             // Embed factors and check distance
-            BigDecimal[] emb_p = Embedding.embedTorusGeodesic(new BigDecimal(p), k, dims);
-            BigDecimal[] emb_q = Embedding.embedTorusGeodesic(new BigDecimal(q), k, dims);
+            List<BigDecimal[]> curve_p = Embedding.embedTorusGeodesic(new BigDecimal(p), k, dims);
+            BigDecimal[] emb_p = curve_p.get(0);
+            List<BigDecimal[]> curve_q = Embedding.embedTorusGeodesic(new BigDecimal(q), k, dims);
+            BigDecimal[] emb_q = curve_q.get(0);
             BigDecimal dist_p = RiemannianDistance.calculate(emb_N, emb_p, N_bd);
             BigDecimal dist_q = RiemannianDistance.calculate(emb_N, emb_q, N_bd);
             BigDecimal minDist = dist_p.min(dist_q);
