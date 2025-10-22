@@ -1,3 +1,5 @@
+# DEPRECATED: This Python prototype has been superseded by the Java BigDecimal implementation in unifiedframework.* classes.
+# DEPRECATED: This Python prototype has been superseded by the Java BigDecimal implementation in unifiedframework.* classes.
 #!/usr/bin/env python3
 """
 Manifold Core: 5-Torus Embedding and Riemannian A* Pathfinder
