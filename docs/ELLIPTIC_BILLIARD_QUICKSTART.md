@@ -149,7 +149,7 @@ for seed in seeds[:10]:
 ## Performance
 
 - **Embedding**: O(dims) = O(17) operations
-- **Wavefront**: O(1) per evaluation (simplified 1D harmonic model, not full ND solution)
+- **Wavefront surrogate (1-D oscillator): O(1) per evaluation**; full 2-D PDE/eikonal solvers are **not O(1)** and are out of scope here.
 - **Peak detection**: O(peaks) = O(20) samples
 - **Extraction**: O(peaks) = O(10) candidates
 
