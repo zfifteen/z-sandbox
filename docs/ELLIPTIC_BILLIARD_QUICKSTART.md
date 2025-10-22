@@ -2,7 +2,7 @@
 
 ## What is it?
 
-A novel approach to integer factorization based on **wavefront propagation on a curved manifold**. It models the factorization problem N = p × q using a hyperbola/Cassini-oval inspired heuristic, where the product relationship (not log-sum) guides factor search. Factors emerge as approximate convergence points of wavefront patterns on a curved torus embedding.
+A novel approach to integer factorization based on **wavefront propagation on a curved manifold**. In log-space, factor pairs satisfy x + y = log N (a line). We use an ellipse-like manifold as a heuristic embedding; the native integer geometry is xy = N, and the product-faithful two-foci analogue is the Cassini oval.
 
 ## Quick Start
 
@@ -100,7 +100,7 @@ This implementation uses a **heuristic approximation** inspired by hyperbola/Cas
 ### Test Case: N = 143 (11 × 13)
 
 ```
-Log-sum relation: ✓ Verified (log(11) + log(13) = log(143))
+Log-sum relation: ✓ Verified (x + y = log N holds)
 Generated 10 approximate seed candidates
 Top seeds (for refinement):
   1. 15 × 9 = 135   (error: 5.6%, confidence: 1.500)
@@ -199,7 +199,7 @@ This implementation is based on modeling factorization as a **wave propagation p
 ## Citation
 
 Part of the z-sandbox RSA factorization framework.
-Based on the insight that p × q = N defines a hyperbola in integer space, with log-sum identity log(p) + log(q) = log(N) used for heuristic seed generation.
+Grounded in the hyperbola xy = N (integer space) with the log-sum relation used as a heuristic embedding (ellipse-like manifold is heuristic; Cassini ovals are the product analogue).
 
 ## Support
 
