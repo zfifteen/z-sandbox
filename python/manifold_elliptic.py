@@ -57,11 +57,10 @@ def embed_elliptical_billiard(N, dims=17):
     focus2 = np.zeros(dims)
     
     # Distribute foci coordinates using golden ratio
-    phi = (1 + np.sqrt(5)) / 2
     k = 0.5 / np.log2(np.log2(float(N) + 1))
     
     for i in range(dims):
-        angle = 2 * np.pi * i / phi
+        angle = 2 * np.pi * i / PHI
         focus1[i] = (log_p_est / np.e**2 + c * np.cos(angle)) % 1.0
         focus2[i] = (log_q_est / np.e**2 + c * np.sin(angle)) % 1.0
     
@@ -223,10 +222,9 @@ def refine_with_peaks(coords, factor_seeds, dims):
         weight = seed['confidence']
         
         # Map factor seed to torus coordinates
-        phi = (1 + np.sqrt(5)) / 2
         for i in range(dims):
             # Adjust coordinate toward peak
-            peak_coord = (np.log(seed['p']) * phi**i) % 1.0
+            peak_coord = (np.log(seed['p']) * PHI**i) % 1.0
             coords_refined[i] += weight * (peak_coord - coords_refined[i]) * 0.1
             coords_refined[i] %= 1.0  # Keep in [0,1)
     
@@ -254,12 +252,11 @@ def embedTorusGeodesic_with_elliptic_refinement(N, k, dims=17):
     """
     # Step 1: Create original embedding (golden-ratio based)
     # Using simple golden ratio embedding as baseline
-    phi = (1 + np.sqrt(5)) / 2
     coords_original = np.zeros(dims)
     
     x = float(N) / np.e**2
     for i in range(dims):
-        x = phi * ((x / phi) % 1.0) ** k
+        x = PHI * ((x / PHI) % 1.0) ** k
         coords_original[i] = x % 1.0
     
     # Step 2: Elliptical billiard modeling
