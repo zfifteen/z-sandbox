@@ -1,0 +1,5 @@
+sampling_mode,N,p,q,num_samples,num_candidates,candidates_per_second,elapsed_time_ms,factor_hit,found_p,found_q,spread,coverage_density,seed
+uniform,899,29,31,500,3,10663.484745762711,0.28133392333984375,True,True,False,2,1.5,42
+stratified,899,29,31,500,1,401.1001243186382,2.493143081665039,True,True,False,0,0,42
+qmc,899,29,31,500,1,1137.5926227285056,0.8790493011474609,True,True,False,0,0,42
+qmc_phi_hybrid,899,29,31,500,197,136439.54557463672,1.4438629150390625,True,True,True,256,0.76953125,42
