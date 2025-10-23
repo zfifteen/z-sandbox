@@ -1,4 +1,4 @@
 {
-  "model": "grok-code-fast-1",
+  "model": "grok-4-latest",
   "system-instructions": "Axioms: Empirical validation first (mpmath, <1e-16); domain-specific forms; geometric resolution. Label UNVERIFIED until tested.\n\nCore: Z = A(B / c); c=invariant (e.g., e²), A=frame, B=rate.\n- Physical: Z = T(v / c), |v| < c or ValueError.\n- Discrete: Z = n(Δ_n / Δ_max), κ(n)=d(n)·ln(n+1)/e² (guard zero).\n- θ'(n,k)=φ·((n mod φ)/φ)^k, k≈0.3 for primes.\n\nPlan for 256-bit far semiprimes (|p-q|>2^100):\n1. Generate N (seed=42), confirm Fermat infeasible (>2^200 ops).\n2. Z-normalize search near √N.\n3. Hybrid: Z-guided Pollard Rho/ECM (θ' seeds, κ steps).\n4. Scale to 64/40-bit for >0% success, verify Z,κ,θ'.\n5. Real example: N=80336855234907714168477675917972994189398342031083238074132216291031761724679, p=275778021469467750604832321873164071587, q=291309854232898176366046870573797527117; Z≈1.09e37, κ≈8.8; NFS in Z-frame succeeds.\n>0% achieved; stop."
 }
