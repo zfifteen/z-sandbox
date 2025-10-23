@@ -27,7 +27,7 @@ def _parse_factor_lines(output: str, N: int) -> Optional[int]:
     """
     Parse ECM stdout: factors are typically printed as bare decimal integers
     on their own line (quiet mode), or space-separated on one line.
-    We conservatively accept only pure digits.
+    We accept decimal integers either on separate lines or space-separated on one line.
     """
     for line in output.splitlines():
         s = line.strip()
