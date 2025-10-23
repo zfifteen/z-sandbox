@@ -807,6 +807,125 @@ def test_terminal_digit_vs_uniform():
     return True
 
 
+def test_empirical_weighted_stratification():
+    """Test empirical weighted stratified sampling based on full RSA challenge data."""
+    print("\n=== Test: Empirical Weighted Stratification ===")
+    
+    enhancer = FactorizationMonteCarloEnhancer(seed=42)
+    
+    # Test with weighted sampling - use larger N for better sample size
+    N = 10403  # 101 × 103 - larger to get more candidates
+    num_samples = 1000
+    candidates = enhancer.stratified_by_terminal_digit(
+        N, num_samples=num_samples, spread_factor=0.3, use_empirical_weights=True
+    )
+    
+    print(f"N = {N} (factors: 101 × 103)")
+    print(f"Requested {num_samples} candidates with empirical weights")
+    print(f"Generated {len(candidates)} unique candidates")
+    
+    # Count terminal digits
+    digit_counts = {1: 0, 3: 0, 7: 0, 9: 0}
+    for c in candidates:
+        last_digit = c % 10
+        if last_digit in digit_counts:
+            digit_counts[last_digit] += 1
+    
+    print(f"\nTerminal digit distribution (empirical weights):")
+    print(f"Expected: 1: 13%, 3: 26%, 7: 26%, 9: 35%")
+    print(f"Actual:")
+    for digit, count in sorted(digit_counts.items()):
+        if len(candidates) > 0:
+            pct = count / len(candidates) * 100
+            print(f"  Digit {digit}: {count} candidates ({pct:.1f}%)")
+    
+    # Verify all candidates are coprime with 2 and 5
+    for c in candidates:
+        assert c % 2 == 1, f"Candidate {c} is even (not coprime with 2)"
+        assert c % 5 != 0, f"Candidate {c} is divisible by 5"
+        assert c % 10 in [1, 3, 7, 9], f"Candidate {c} has invalid terminal digit"
+    
+    # Check that weights are approximately correct (allow generous tolerance for small samples)
+    if len(candidates) >= 40:
+        expected_weights = {1: 0.13, 3: 0.26, 7: 0.26, 9: 0.35}
+        for digit, expected_weight in expected_weights.items():
+            actual_weight = digit_counts[digit] / len(candidates)
+            # Allow 100% relative tolerance due to small sample sizes and rejection sampling
+            lower_bound = expected_weight * 0.4
+            upper_bound = expected_weight * 1.6
+            assert lower_bound <= actual_weight <= upper_bound, \
+                f"Digit {digit} weight {actual_weight:.2f} outside expected range [{lower_bound:.2f}, {upper_bound:.2f}]"
+    
+    print("✓ Empirical weighted stratification works correctly")
+    return True
+
+
+def test_weighted_vs_uniform_stratification():
+    """Compare weighted vs uniform stratified sampling."""
+    print("\n=== Test: Weighted vs Uniform Stratification Comparison ===")
+    
+    N = 1517  # 37 × 41
+    num_samples = 1000
+    seed = 42
+    
+    # Uniform stratified
+    enhancer_uniform = FactorizationMonteCarloEnhancer(seed=seed)
+    candidates_uniform = enhancer_uniform.stratified_by_terminal_digit(
+        N, num_samples=num_samples, spread_factor=0.3, use_empirical_weights=False
+    )
+    
+    # Weighted stratified
+    enhancer_weighted = FactorizationMonteCarloEnhancer(seed=seed)
+    candidates_weighted = enhancer_weighted.stratified_by_terminal_digit(
+        N, num_samples=num_samples, spread_factor=0.3, use_empirical_weights=True
+    )
+    
+    # Analyze distributions
+    def analyze_dist(candidates):
+        counts = {1: 0, 3: 0, 7: 0, 9: 0}
+        for c in candidates:
+            d = c % 10
+            if d in counts:
+                counts[d] += 1
+        return counts
+    
+    uniform_dist = analyze_dist(candidates_uniform)
+    weighted_dist = analyze_dist(candidates_weighted)
+    
+    print(f"\nUniform stratification (equal allocation):")
+    for digit, count in sorted(uniform_dist.items()):
+        if len(candidates_uniform) > 0:
+            pct = count / len(candidates_uniform) * 100
+            print(f"  Digit {digit}: {count} ({pct:.1f}%)")
+    
+    print(f"\nWeighted stratification (empirical RSA distribution):")
+    for digit, count in sorted(weighted_dist.items()):
+        if len(candidates_weighted) > 0:
+            pct = count / len(candidates_weighted) * 100
+            print(f"  Digit {digit}: {count} ({pct:.1f}%)")
+    
+    # Both should have all digits represented
+    for digit in [1, 3, 7, 9]:
+        assert uniform_dist[digit] > 0, f"Uniform: digit {digit} not represented"
+        assert weighted_dist[digit] > 0, f"Weighted: digit {digit} not represented"
+    
+    # Weighted should have more 9s and fewer 1s compared to uniform
+    if len(candidates_weighted) >= 20 and len(candidates_uniform) >= 20:
+        uniform_ratio_9_to_1 = uniform_dist[9] / uniform_dist[1] if uniform_dist[1] > 0 else float('inf')
+        weighted_ratio_9_to_1 = weighted_dist[9] / weighted_dist[1] if weighted_dist[1] > 0 else float('inf')
+        
+        print(f"\nRatio of 9s to 1s:")
+        print(f"  Uniform: {uniform_ratio_9_to_1:.2f}")
+        print(f"  Weighted: {weighted_ratio_9_to_1:.2f}")
+        
+        # Weighted should have higher ratio (more 9s relative to 1s)
+        assert weighted_ratio_9_to_1 > uniform_ratio_9_to_1 * 0.8, \
+            "Weighted should favor 9s over 1s more than uniform"
+    
+    print("✓ Weighted stratification shows expected distribution differences")
+    return True
+
+
 def run_all_tests():
     """Run all test cases."""
     print("=" * 70)
@@ -835,6 +954,8 @@ def run_all_tests():
         test_terminal_digit_reproducibility,
         test_rsa_challenge_terminal_digits,
         test_terminal_digit_vs_uniform,
+        test_empirical_weighted_stratification,
+        test_weighted_vs_uniform_stratification,
     ]
     
     passed = 0

@@ -489,37 +489,44 @@ class FactorizationMonteCarloEnhancer:
         return result
     
     def stratified_by_terminal_digit(self, N: int, num_samples: int = 1000,
-                                     spread_factor: float = 0.1) -> List[int]:
+                                     spread_factor: float = 0.1,
+                                     use_empirical_weights: bool = False) -> List[int]:
         """
         Zero-parameter stratified Monte Carlo with terminal-digit balance.
         
-        Observation from RSA challenge data (RSA-100, RSA-129, RSA-155, RSA-250):
-        Prime factors exhibit perfectly uniform terminal digit distribution across
-        {1, 3, 7, 9} - each digit appears exactly twice across the eight factors.
+        Observation from RSA challenge data:
+        - Subset (RSA-100, RSA-129, RSA-155, RSA-250): Perfectly uniform across {1,3,7,9}
+        - Full set (46 primes from 23 factored challenges): Skewed distribution
+          {1: 13%, 3: 26%, 7: 26%, 9: 35%}
         
         This method implements variance reduction by:
         1. Filtering to coprime candidates (excluding multiples of 2 and 5)
-        2. Allocating equal sampling budget to each terminal digit class {1, 3, 7, 9}
+        2. Allocating sampling budget across terminal digit classes {1, 3, 7, 9}
         3. Reducing variance from accidental over-sampling of any digit class
         
         Args:
             N: Number to factor (semiprime)
             num_samples: Total number of candidates to generate
             spread_factor: Relative spread around √N (default 0.1)
+            use_empirical_weights: If True, use weights from full RSA challenge data
+                                   (1: 13%, 3: 26%, 7: 26%, 9: 35%). If False (default),
+                                   use uniform allocation (25% each).
             
         Returns:
             List of candidate factors with balanced terminal-digit distribution
             
         Example:
-            For num_samples=1000, allocates 250 samples to each digit class:
-            - 250 candidates ending in 1
-            - 250 candidates ending in 3
-            - 250 candidates ending in 7
-            - 250 candidates ending in 9
+            # Uniform allocation (default)
+            For num_samples=1000: 250 candidates each for digits {1, 3, 7, 9}
+            
+            # Empirical weights from full RSA challenge data
+            For num_samples=1000: 130 (1), 260 (3), 260 (7), 350 (9)
             
         Reference:
             RSA numbers - Wikipedia: https://en.wikipedia.org/wiki/RSA_numbers
-            Terminal digit tally: {1→2, 3→2, 7→2, 9→2} (perfectly balanced)
+            
+            Uniform subset (8 primes): {1→2, 3→2, 7→2, 9→2}
+            Full set (46 primes): {1→6, 3→12, 7→12, 9→16}
         """
         if N <= 1:
             raise ValueError(f"N must be > 1, got {N}")
@@ -528,8 +535,24 @@ class FactorizationMonteCarloEnhancer:
         spread = max(10, int(sqrt_N * spread_factor))  # Ensure minimum spread
         
         # Terminal digits for odd primes: {1, 3, 7, 9}
-        terminal_digits = [1, 3, 7, 9]
-        samples_per_digit = num_samples // len(terminal_digits)
+        # Allocate samples based on strategy
+        if use_empirical_weights:
+            # Empirical distribution from full RSA challenge data (46 primes)
+            # Based on analysis: 1: 6/46 ≈ 13%, 3: 12/46 ≈ 26%, 7: 12/46 ≈ 26%, 9: 16/46 ≈ 35%
+            digit_weights = {1: 0.13, 3: 0.26, 7: 0.26, 9: 0.35}
+            terminal_digits = [1, 3, 7, 9]
+            samples_by_digit = {d: int(num_samples * digit_weights[d]) for d in terminal_digits}
+            
+            # Adjust for rounding to ensure total matches num_samples
+            total_allocated = sum(samples_by_digit.values())
+            if total_allocated < num_samples:
+                # Add remaining samples to most frequent digit (9)
+                samples_by_digit[9] += num_samples - total_allocated
+        else:
+            # Uniform allocation (original approach)
+            terminal_digits = [1, 3, 7, 9]
+            samples_per_digit = num_samples // len(terminal_digits)
+            samples_by_digit = {d: samples_per_digit for d in terminal_digits}
         
         # Safety multiplier for rejection sampling: accounts for coprime filtering
         # and terminal-digit matching. Value of 100 provides sufficient margin
@@ -539,11 +562,12 @@ class FactorizationMonteCarloEnhancer:
         candidates = []
         
         for digit in terminal_digits:
+            target_samples = samples_by_digit[digit]
             digit_candidates = 0
             attempts = 0
-            max_attempts = samples_per_digit * MAX_ATTEMPTS_MULTIPLIER
+            max_attempts = target_samples * MAX_ATTEMPTS_MULTIPLIER
             
-            while digit_candidates < samples_per_digit and attempts < max_attempts:
+            while digit_candidates < target_samples and attempts < max_attempts:
                 # Generate random offset around √N
                 offset = int(self.rng.normal(0, spread))
                 candidate = sqrt_N + offset

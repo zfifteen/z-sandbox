@@ -124,8 +124,9 @@ candidates_stratified = enhancer.stratified_by_terminal_digit(N, num_samples=100
 #### Terminal-Digit Stratification (NEW)
 
 **Observation from RSA Challenge Data**:
-Across the factored RSA challenge semiprimes (RSA-100, RSA-129, RSA-155, RSA-250), 
-the eight prime factors exhibit a **perfectly uniform** terminal digit distribution:
+
+**Subset Analysis** (RSA-100, RSA-129, RSA-155, RSA-250 - 8 primes):
+The eight prime factors exhibit a **perfectly uniform** terminal digit distribution:
 
 | Terminal Digit | Count | RSA Numbers |
 |----------------|-------|-------------|
@@ -134,19 +135,35 @@ the eight prime factors exhibit a **perfectly uniform** terminal digit distribut
 | 7 | 2 | RSA-129-p, RSA-250-p |
 | 9 | 2 | RSA-100-p, RSA-155-p |
 
+**Full Dataset Analysis** (All 23 factored RSA challenges - 46 primes):
+The complete set shows a skewed distribution:
+
+| Terminal Digit | Count | Percentage |
+|----------------|-------|------------|
+| 1 | 6 | 13% |
+| 3 | 12 | 26% |
+| 7 | 12 | 26% |
+| 9 | 16 | 35% |
+
 **Zero-Parameter Stratified Sampling**:
 The `stratified_by_terminal_digit()` method implements variance reduction by:
 1. Filtering to coprime candidates (excluding multiples of 2 and 5)
-2. Allocating equal sampling budget to each terminal digit class {1, 3, 7, 9}
-3. Reducing variance from accidental over-sampling of any digit class
+2. Allocating sampling budget across terminal digit classes {1, 3, 7, 9}
+3. Two modes available:
+   - **Uniform mode** (default): Equal allocation (25% each) based on subset uniformity
+   - **Empirical mode**: Weighted allocation (13%, 26%, 26%, 35%) from full dataset
 
 ```python
-# Example: Terminal-digit stratified sampling
+# Example 1: Uniform stratified sampling (default)
 N = 899  # 29 × 31
 candidates = enhancer.stratified_by_terminal_digit(N, num_samples=400)
+# Result: ~100 candidates each ending in 1, 3, 7, 9
 
-# Result: 100 candidates each ending in 1, 3, 7, 9
-# Variance reduction: 29-77% lower coefficient of variation vs uniform sampling
+# Example 2: Empirical weighted sampling
+candidates = enhancer.stratified_by_terminal_digit(N, num_samples=1000, 
+                                                   use_empirical_weights=True)
+# Result: ~130 (1), ~260 (3), ~260 (7), ~350 (9)
+# Biases toward more frequent digits from full RSA challenge data
 ```
 
 **Benefits**:

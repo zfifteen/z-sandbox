@@ -320,9 +320,9 @@ def example_8_terminal_digit_stratification():
     print("=" * 70)
     
     print("\nRSA Challenge Observation:")
-    print("Across RSA-100, RSA-129, RSA-155, and RSA-250, prime factors exhibit")
-    print("a perfectly uniform terminal digit distribution: {1, 3, 7, 9}")
-    print("Each digit appears exactly twice across the eight factors.")
+    print("Subset (RSA-100, 129, 155, 250): Perfectly uniform {1:2, 3:2, 7:2, 9:2}")
+    print("Full set (46 primes): Skewed distribution {1:6, 3:12, 7:12, 9:16}")
+    print("                                          {1:13%, 3:26%, 7:26%, 9:35%}")
     
     enhancer = FactorizationMonteCarloEnhancer(seed=42)
     
@@ -334,7 +334,7 @@ def example_8_terminal_digit_stratification():
     ]
     
     print("\n" + "=" * 70)
-    print("Comparing Uniform vs Terminal-Digit Stratified Sampling")
+    print("Comparing Uniform vs Weighted Stratified Sampling")
     print("=" * 70)
     
     for N, p, q in test_cases:
@@ -343,8 +343,15 @@ def example_8_terminal_digit_stratification():
         # Uniform sampling
         candidates_uniform = enhancer.sample_near_sqrt(N, num_samples=100, spread_factor=0.2)
         
-        # Terminal-digit stratified sampling
-        candidates_stratified = enhancer.stratified_by_terminal_digit(N, num_samples=100, spread_factor=0.2)
+        # Terminal-digit stratified sampling (uniform allocation)
+        candidates_stratified_uniform = enhancer.stratified_by_terminal_digit(
+            N, num_samples=100, spread_factor=0.2, use_empirical_weights=False
+        )
+        
+        # Terminal-digit stratified sampling (empirical weights)
+        candidates_stratified_weighted = enhancer.stratified_by_terminal_digit(
+            N, num_samples=100, spread_factor=0.2, use_empirical_weights=True
+        )
         
         # Analyze distributions
         def analyze_digits(candidates):
@@ -355,41 +362,56 @@ def example_8_terminal_digit_stratification():
                     counts[d] += 1
             return counts
         
-        std_dist = analyze_digits(candidates_uniform)
-        strat_dist = analyze_digits(candidates_stratified)
+        uniform_dist = analyze_digits(candidates_uniform)
+        strat_uniform_dist = analyze_digits(candidates_stratified_uniform)
+        strat_weighted_dist = analyze_digits(candidates_stratified_weighted)
         
         # Check for factors
         found_uniform = p in candidates_uniform or q in candidates_uniform
-        found_strat = p in candidates_stratified or q in candidates_stratified
+        found_strat_u = p in candidates_stratified_uniform or q in candidates_stratified_uniform
+        found_strat_w = p in candidates_stratified_weighted or q in candidates_stratified_weighted
         
-        print(f"  Uniform:    {len(candidates_uniform):3d} candidates, dist={std_dist}, factor_found={found_uniform}")
-        print(f"  Stratified: {len(candidates_stratified):3d} candidates, dist={strat_dist}, factor_found={found_strat}")
+        print(f"  Uniform:              {len(candidates_uniform):3d} candidates, dist={uniform_dist}, factor={found_uniform}")
+        print(f"  Stratified (equal):   {len(candidates_stratified_uniform):3d} candidates, dist={strat_uniform_dist}, factor={found_strat_u}")
+        print(f"  Stratified (weights): {len(candidates_stratified_weighted):3d} candidates, dist={strat_weighted_dist}, factor={found_strat_w}")
         
         # Calculate balance (coefficient of variation)
         import numpy as np
         
-        std_counts = [std_dist[d] for d in [1, 3, 7, 9]]
-        strat_counts = [strat_dist[d] for d in [1, 3, 7, 9]]
+        std_counts = [uniform_dist[d] for d in [1, 3, 7, 9]]
+        strat_u_counts = [strat_uniform_dist[d] for d in [1, 3, 7, 9]]
+        strat_w_counts = [strat_weighted_dist[d] for d in [1, 3, 7, 9]]
         
         if np.mean(std_counts) > 0:
             cv_std = np.std(std_counts) / np.mean(std_counts)
         else:
             cv_std = float('inf')
             
-        if np.mean(strat_counts) > 0:
-            cv_strat = np.std(strat_counts) / np.mean(strat_counts)
+        if np.mean(strat_u_counts) > 0:
+            cv_strat_u = np.std(strat_u_counts) / np.mean(strat_u_counts)
         else:
-            cv_strat = float('inf')
+            cv_strat_u = float('inf')
+            
+        if np.mean(strat_w_counts) > 0:
+            cv_strat_w = np.std(strat_w_counts) / np.mean(strat_w_counts)
+        else:
+            cv_strat_w = float('inf')
         
-        print(f"  Balance (CV): Uniform={cv_std:.4f}, Stratified={cv_strat:.4f}")
-        if cv_strat < cv_std:
-            print(f"  ✓ Stratified is more balanced ({((cv_std - cv_strat)/cv_std * 100):.1f}% improvement)")
+        print(f"  Balance (CV): Uniform={cv_std:.4f}, Equal={cv_strat_u:.4f}, Weighted={cv_strat_w:.4f}")
+        if cv_strat_u < cv_std or cv_strat_w < cv_std:
+            improvements = []
+            if cv_strat_u < cv_std:
+                improvements.append(f"Equal stratified: {((cv_std - cv_strat_u)/cv_std * 100):.1f}%")
+            if cv_strat_w < cv_std:
+                improvements.append(f"Weighted: {((cv_std - cv_strat_w)/cv_std * 100):.1f}%")
+            print(f"  ✓ Improvements: {', '.join(improvements)}")
     
     print("\n" + "=" * 70)
     print("Conclusion: Terminal-digit stratification provides:")
     print("  1. Zero tunable parameters (data-driven from RSA challenges)")
-    print("  2. Reduced variance via balanced digit-class sampling")
-    print("  3. Preserved correctness (coprime filtering maintained)")
+    print("  2. Two modes: uniform (25% each) or empirical (13%, 26%, 26%, 35%)")
+    print("  3. Reduced variance via balanced digit-class sampling")
+    print("  4. Preserved correctness (coprime filtering maintained)")
     print("=" * 70)
 
 
