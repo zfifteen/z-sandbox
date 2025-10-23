@@ -322,9 +322,10 @@ class FactorizationMonteCarloEnhancer:
         
         return candidates
     
-    def biased_sampling_with_phi(self, N: int, num_samples: int = 1000) -> List[int]:
+    def biased_sampling_with_phi(self, N: int, num_samples: int = 1000, 
+                                 mode: str = "uniform") -> List[int]:
         """
-        Enhanced sampling using golden ratio φ modulation.
+        Enhanced sampling using golden ratio φ modulation with variance reduction.
         
         Geometric resolution: θ'(n, k) = φ · ((n mod φ) / φ)^k
         k ≈ 0.3 for prime-density mapping
@@ -332,38 +333,144 @@ class FactorizationMonteCarloEnhancer:
         Args:
             N: Number to factor
             num_samples: Number of samples
+            mode: Sampling mode - "uniform" (default), "stratified", or "qmc"
             
         Returns:
             Z5D-enhanced candidate list
+            
+        Modes:
+            - "uniform": Standard φ-biased sampling with random offsets
+            - "stratified": Divides search space into strata for better coverage
+            - "qmc": Quasi-Monte Carlo with low-discrepancy sequence
         """
         sqrt_N = int(math.sqrt(N))
         candidates = []
         k = 0.3  # Axiom-recommended value
         
-        for i in range(num_samples):
-            # Apply φ-modulated offset
-            phi_mod = (i % PHI) / PHI
-            offset_scale = phi_mod ** k
-            offset = int(sqrt_N * 0.05 * offset_scale * (1 if random.random() > 0.5 else -1))
+        if mode == "uniform":
+            # Standard φ-biased sampling
+            for i in range(num_samples):
+                # Apply φ-modulated offset
+                phi_mod = (i % PHI) / PHI
+                offset_scale = phi_mod ** k
+                offset = int(sqrt_N * 0.05 * offset_scale * (1 if random.random() > 0.5 else -1))
+                
+                candidate = sqrt_N + offset
+                
+                if candidate > 1 and candidate < N:
+                    candidates.append(candidate)
+        
+        elif mode == "stratified":
+            # Stratified sampling: divide search space into strata
+            spread = int(sqrt_N * 0.05)
+            num_strata = min(10, num_samples // 10)
+            samples_per_stratum = num_samples // num_strata
             
-            candidate = sqrt_N + offset
+            for stratum_idx in range(num_strata):
+                # Define stratum bounds
+                stratum_min = sqrt_N - spread + (2 * spread * stratum_idx // num_strata)
+                stratum_max = sqrt_N - spread + (2 * spread * (stratum_idx + 1) // num_strata)
+                
+                for _ in range(samples_per_stratum):
+                    # Sample uniformly within stratum
+                    offset = self.rng.integers(stratum_min - sqrt_N, stratum_max - sqrt_N + 1)
+                    
+                    # Apply φ modulation
+                    phi_mod = (stratum_idx % PHI) / PHI
+                    offset_scale = phi_mod ** k
+                    offset = int(offset * offset_scale)
+                    
+                    candidate = sqrt_N + offset
+                    
+                    if candidate > 1 and candidate < N:
+                        candidates.append(candidate)
+        
+        elif mode == "qmc":
+            # Quasi-Monte Carlo with Halton sequence
+            spread = int(sqrt_N * 0.05)
             
-            if candidate > 1 and candidate < N:
-                candidates.append(candidate)
+            for i in range(num_samples):
+                # Use Halton sequence for low-discrepancy sampling
+                halton_val = self._halton(i + 1, 2)  # Base-2 Halton
+                
+                # Map [0, 1] to [-spread, +spread] around sqrt_N
+                offset = int((halton_val - 0.5) * 2 * spread)
+                
+                # Apply φ modulation
+                phi_mod = (i % PHI) / PHI
+                offset_scale = phi_mod ** k
+                offset = int(offset * offset_scale)
+                
+                candidate = sqrt_N + offset
+                
+                if candidate > 1 and candidate < N:
+                    candidates.append(candidate)
+        
+        else:
+            raise ValueError(f"Unknown mode: {mode}. Choose 'uniform', 'stratified', or 'qmc'.")
         
         return sorted(set(candidates))
+    
+    def _halton(self, index: int, base: int) -> float:
+        """
+        Generate Halton sequence value for QMC sampling.
+        
+        Args:
+            index: Sequence index (1-based)
+            base: Prime base (2, 3, 5, 7, ...)
+            
+        Returns:
+            Halton value in [0, 1]
+        """
+        result = 0.0
+        f = 1.0 / base
+        i = index
+        
+        while i > 0:
+            result += f * (i % base)
+            i //= base
+            f /= base
+        
+        return result
 
 
 # Backwards compatibility: Import HyperRotationMonteCarloAnalyzer from security module
 # Moved to security/ submodule for modularity (MC-SCOPE-005)
+import warnings
+
 try:
-    from security.hyper_rotation import HyperRotationMonteCarloAnalyzer
+    from security.hyper_rotation import HyperRotationMonteCarloAnalyzer as _HyperRotationMonteCarloAnalyzer
 except ImportError:
     # Fallback if security module not in path
     import sys
     import os
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'python'))
-    from security.hyper_rotation import HyperRotationMonteCarloAnalyzer
+    from security.hyper_rotation import HyperRotationMonteCarloAnalyzer as _HyperRotationMonteCarloAnalyzer
+
+
+class HyperRotationMonteCarloAnalyzer(_HyperRotationMonteCarloAnalyzer):
+    """
+    DEPRECATED: Import from security.hyper_rotation instead.
+    
+    This backwards-compatible shim will be removed in a future version.
+    Please update your imports:
+    
+    Old:
+        from monte_carlo import HyperRotationMonteCarloAnalyzer
+    
+    New:
+        from security.hyper_rotation import HyperRotationMonteCarloAnalyzer
+    """
+    
+    def __init__(self, *args, **kwargs):
+        warnings.warn(
+            "Importing HyperRotationMonteCarloAnalyzer from monte_carlo is deprecated. "
+            "Import from security.hyper_rotation instead: "
+            "'from security.hyper_rotation import HyperRotationMonteCarloAnalyzer'",
+            DeprecationWarning,
+            stacklevel=2
+        )
+        super().__init__(*args, **kwargs)
 
 
 class VarianceReductionMethods:
