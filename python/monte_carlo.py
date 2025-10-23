@@ -432,6 +432,83 @@ class FactorizationMonteCarloEnhancer:
             f /= base
         
         return result
+    
+    def stratified_by_terminal_digit(self, N: int, num_samples: int = 1000,
+                                     spread_factor: float = 0.1) -> List[int]:
+        """
+        Zero-parameter stratified Monte Carlo with terminal-digit balance.
+        
+        Observation from RSA challenge data (RSA-100, RSA-129, RSA-155, RSA-250):
+        Prime factors exhibit perfectly uniform terminal digit distribution across
+        {1, 3, 7, 9} - each digit appears exactly twice across the eight factors.
+        
+        This method implements variance reduction by:
+        1. Filtering to coprime candidates (excluding multiples of 2 and 5)
+        2. Allocating equal sampling budget to each terminal digit class {1, 3, 7, 9}
+        3. Reducing variance from accidental over-sampling of any digit class
+        
+        Args:
+            N: Number to factor (semiprime)
+            num_samples: Total number of candidates to generate
+            spread_factor: Relative spread around √N (default 0.1)
+            
+        Returns:
+            List of candidate factors with balanced terminal-digit distribution
+            
+        Example:
+            For num_samples=1000, allocates 250 samples to each digit class:
+            - 250 candidates ending in 1
+            - 250 candidates ending in 3
+            - 250 candidates ending in 7
+            - 250 candidates ending in 9
+            
+        Reference:
+            RSA numbers - Wikipedia: https://en.wikipedia.org/wiki/RSA_numbers
+            Terminal digit tally: {1→2, 3→2, 7→2, 9→2} (perfectly balanced)
+        """
+        if N <= 1:
+            raise ValueError(f"N must be > 1, got {N}")
+        
+        sqrt_N = int(math.sqrt(N))
+        spread = max(10, int(sqrt_N * spread_factor))  # Ensure minimum spread
+        
+        # Terminal digits for odd primes: {1, 3, 7, 9}
+        terminal_digits = [1, 3, 7, 9]
+        samples_per_digit = num_samples // len(terminal_digits)
+        
+        candidates = []
+        
+        for digit in terminal_digits:
+            digit_candidates = 0
+            attempts = 0
+            max_attempts = samples_per_digit * 100  # Increase safety limit
+            
+            while digit_candidates < samples_per_digit and attempts < max_attempts:
+                # Generate random offset around √N
+                offset = int(self.rng.normal(0, spread))
+                candidate = sqrt_N + offset
+                
+                # Ensure candidate is positive and less than N
+                if candidate <= 1 or candidate >= N:
+                    attempts += 1
+                    continue
+                
+                # Filter: coprime with 2 and 5 (i.e., odd and not multiple of 5)
+                if candidate % 2 == 0 or candidate % 5 == 0:
+                    attempts += 1
+                    continue
+                
+                # Check terminal digit matches target stratum
+                if candidate % 10 == digit:
+                    candidates.append(candidate)
+                    digit_candidates += 1
+                
+                attempts += 1
+        
+        # Deduplicate and sort
+        candidates = sorted(set(candidates))
+        
+        return candidates
 
 
 # Backwards compatibility: Import HyperRotationMonteCarloAnalyzer from security module

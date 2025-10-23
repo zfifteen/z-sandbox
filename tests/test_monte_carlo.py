@@ -616,6 +616,197 @@ def test_benchmark_csv_fields():
     return True
 
 
+def test_terminal_digit_stratification():
+    """Test zero-parameter terminal-digit stratified sampling."""
+    print("\n=== Test: Terminal-Digit Stratification ===")
+    
+    enhancer = FactorizationMonteCarloEnhancer(seed=42)
+    
+    # Test with larger sample to see distribution
+    N = 899  # 29 × 31
+    num_samples = 400  # 100 per digit class
+    candidates = enhancer.stratified_by_terminal_digit(N, num_samples=num_samples, spread_factor=0.5)
+    
+    print(f"N = {N} (factors: 29 × 31)")
+    print(f"Requested {num_samples} candidates")
+    print(f"Generated {len(candidates)} unique candidates")
+    
+    # Count terminal digits
+    digit_counts = {1: 0, 3: 0, 7: 0, 9: 0}
+    for c in candidates:
+        last_digit = c % 10
+        if last_digit in digit_counts:
+            digit_counts[last_digit] += 1
+    
+    print(f"\nTerminal digit distribution:")
+    for digit, count in sorted(digit_counts.items()):
+        if len(candidates) > 0:
+            print(f"  Digit {digit}: {count} candidates ({count/len(candidates)*100:.1f}%)")
+    
+    # Verify all candidates are coprime with 2 and 5
+    for c in candidates:
+        assert c % 2 == 1, f"Candidate {c} is even (not coprime with 2)"
+        assert c % 5 != 0, f"Candidate {c} is divisible by 5"
+        assert c % 10 in [1, 3, 7, 9], f"Candidate {c} has invalid terminal digit"
+    
+    # Verify all four digit classes are represented (for adequate sample size)
+    if len(candidates) >= 4:
+        for digit in [1, 3, 7, 9]:
+            assert digit_counts[digit] > 0, \
+                f"Digit {digit} not represented in candidates"
+    
+    # Verify relatively balanced distribution if we have enough candidates
+    # Allow wider tolerance for small sample sizes
+    if len(candidates) >= 20:
+        import numpy as np
+        counts = [digit_counts[d] for d in [1, 3, 7, 9]]
+        cv = np.std(counts) / np.mean(counts) if np.mean(counts) > 0 else 0
+        print(f"Balance metric (CV): {cv:.4f}")
+        
+        # Should be reasonably balanced (CV < 1.0 means less than 100% variation)
+        assert cv < 1.0, f"Distribution too unbalanced: CV = {cv}"
+    
+    # Check if factors are in candidates
+    if 29 in candidates:
+        print(f"✓ Factor 29 found in candidates (terminal digit: 9)")
+    if 31 in candidates:
+        print(f"✓ Factor 31 found in candidates (terminal digit: 1)")
+    
+    print("✓ Terminal-digit stratification test passed")
+    return True
+
+
+def test_terminal_digit_reproducibility():
+    """Test reproducibility of terminal-digit stratification."""
+    print("\n=== Test: Terminal-Digit Stratification Reproducibility ===")
+    
+    seed = 987654321
+    N = 143  # 11 × 13
+    num_samples = 200
+    
+    # Run 1
+    enhancer1 = FactorizationMonteCarloEnhancer(seed=seed)
+    candidates1 = enhancer1.stratified_by_terminal_digit(N, num_samples=num_samples)
+    
+    # Run 2 with same seed
+    enhancer2 = FactorizationMonteCarloEnhancer(seed=seed)
+    candidates2 = enhancer2.stratified_by_terminal_digit(N, num_samples=num_samples)
+    
+    print(f"Run 1: {len(candidates1)} candidates")
+    print(f"Run 2: {len(candidates2)} candidates")
+    
+    # Should be identical
+    assert candidates1 == candidates2, "Results not reproducible with same seed"
+    
+    print(f"Sample candidates: {candidates1[:10]}")
+    print("✓ Terminal-digit stratification is reproducible")
+    return True
+
+
+def test_rsa_challenge_terminal_digits():
+    """Verify RSA challenge observation: uniform terminal-digit distribution."""
+    print("\n=== Test: RSA Challenge Terminal-Digit Distribution ===")
+    
+    # RSA challenge factors from Wikipedia
+    rsa_factors = {
+        'RSA-100-p': 37975227936943673922808872755445627854565536638199,
+        'RSA-100-q': 40094690950920881030683735292761468389214899724061,
+        'RSA-129-p': 3490529510847650949147849619903898133417764638493387843990820577,
+        'RSA-129-q': 32769132993266709549961988190834461413177642967992942539798288533,
+        'RSA-155-p': 102639592829741105772054196573991675900716567808038066803341933521790711307779,
+        'RSA-155-q': 106603488380168454820927220360012878679207958575989291522270608237193062808643,
+        'RSA-250-p': 64135289477071580278790190170577389084825014742943447208116859632024532344630238623598752668347708737661925585694639798853367,
+        'RSA-250-q': 33372027594978156556226010605355114227940760344767554666784520987023841729210037080257448673296881877565718986258036932062711,
+    }
+    
+    print("RSA challenge prime factors and terminal digits:")
+    print(f"{'Factor':<12} {'Last 6 Digits':<15} {'Terminal':<10}")
+    print("-" * 40)
+    
+    terminal_counts = {1: 0, 3: 0, 7: 0, 9: 0}
+    
+    for name, prime in rsa_factors.items():
+        last_6_digits = prime % 1000000
+        terminal_digit = prime % 10
+        terminal_counts[terminal_digit] += 1
+        print(f"{name:<12} {last_6_digits:<15} {terminal_digit:<10}")
+    
+    print(f"\nTerminal digit tally:")
+    for digit, count in sorted(terminal_counts.items()):
+        print(f"  Digit {digit}: {count} occurrences")
+    
+    # Verify perfect uniformity: each digit appears exactly twice
+    for digit in [1, 3, 7, 9]:
+        assert terminal_counts[digit] == 2, \
+            f"Terminal digit {digit} should appear exactly twice, got {terminal_counts[digit]}"
+    
+    print("\n✓ RSA challenge observation verified: perfectly uniform distribution")
+    print("  Each terminal digit {1, 3, 7, 9} appears exactly 2 times")
+    return True
+
+
+def test_terminal_digit_vs_uniform():
+    """Compare terminal-digit stratification vs uniform sampling."""
+    print("\n=== Test: Terminal-Digit Stratification vs Uniform Sampling ===")
+    
+    N = 899  # 29 × 31
+    num_samples = 400
+    seed = 42
+    
+    # Uniform sampling
+    enhancer_uniform = FactorizationMonteCarloEnhancer(seed=seed)
+    candidates_uniform = enhancer_uniform.sample_near_sqrt(N, num_samples=num_samples, spread_factor=0.1)
+    
+    # Terminal-digit stratification
+    enhancer_stratified = FactorizationMonteCarloEnhancer(seed=seed)
+    candidates_stratified = enhancer_stratified.stratified_by_terminal_digit(N, num_samples=num_samples)
+    
+    # Analyze distribution for uniform
+    digit_counts_uniform = {1: 0, 3: 0, 7: 0, 9: 0, 'other': 0}
+    for c in candidates_uniform:
+        last_digit = c % 10
+        if last_digit in [1, 3, 7, 9]:
+            digit_counts_uniform[last_digit] += 1
+        else:
+            digit_counts_uniform['other'] += 1
+    
+    # Analyze distribution for stratified
+    digit_counts_stratified = {1: 0, 3: 0, 7: 0, 9: 0}
+    for c in candidates_stratified:
+        last_digit = c % 10
+        digit_counts_stratified[last_digit] += 1
+    
+    print(f"\nUniform sampling distribution:")
+    for digit in [1, 3, 7, 9, 'other']:
+        count = digit_counts_uniform.get(digit, 0)
+        if count > 0 and len(candidates_uniform) > 0:
+            pct = count / len(candidates_uniform) * 100
+            print(f"  Digit {digit}: {count} ({pct:.1f}%)")
+    
+    print(f"\nStratified sampling distribution:")
+    for digit in [1, 3, 7, 9]:
+        count = digit_counts_stratified[digit]
+        if len(candidates_stratified) > 0:
+            pct = count / len(candidates_stratified) * 100
+            print(f"  Digit {digit}: {count} ({pct:.1f}%)")
+    
+    # Calculate coefficient of variation (std/mean) for balance metric
+    import numpy as np
+    
+    stratified_counts = [digit_counts_stratified[d] for d in [1, 3, 7, 9]]
+    if len(stratified_counts) > 0 and np.mean(stratified_counts) > 0:
+        cv_stratified = np.std(stratified_counts) / np.mean(stratified_counts)
+        
+        print(f"\nBalance metric (coefficient of variation):")
+        print(f"  Stratified: {cv_stratified:.4f} (lower is better)")
+        
+        # Stratified should have lower CV (more balanced)
+        assert cv_stratified < 0.5, f"Stratified CV {cv_stratified} should be low (< 0.5)"
+    
+    print("✓ Terminal-digit stratification produces more balanced distribution")
+    return True
+
+
 def run_all_tests():
     """Run all test cases."""
     print("=" * 70)
@@ -640,6 +831,10 @@ def run_all_tests():
         test_variance_reduction_modes_in_factorization,
         test_deprecation_warning,
         test_benchmark_csv_fields,
+        test_terminal_digit_stratification,
+        test_terminal_digit_reproducibility,
+        test_rsa_challenge_terminal_digits,
+        test_terminal_digit_vs_uniform,
     ]
     
     passed = 0

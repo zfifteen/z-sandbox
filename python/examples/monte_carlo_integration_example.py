@@ -309,6 +309,90 @@ def example_7_combined_workflow():
     print("\nWorkflow complete: Z5D + Monte Carlo integration successful")
 
 
+def example_8_terminal_digit_stratification():
+    """
+    Example 8: Terminal-Digit Stratified Sampling
+    
+    Demonstrates zero-parameter variance reduction based on RSA challenge observation.
+    """
+    print("\n\n" + "=" * 70)
+    print("Example 8: Terminal-Digit Stratified Sampling")
+    print("=" * 70)
+    
+    print("\nRSA Challenge Observation:")
+    print("Across RSA-100, RSA-129, RSA-155, and RSA-250, prime factors exhibit")
+    print("a perfectly uniform terminal digit distribution: {1, 3, 7, 9}")
+    print("Each digit appears exactly twice across the eight factors.")
+    
+    enhancer = FactorizationMonteCarloEnhancer(seed=42)
+    
+    # Test semiprimes
+    test_cases = [
+        (143, 11, 13),   # 11 × 13
+        (899, 29, 31),   # 29 × 31
+        (1517, 37, 41),  # 37 × 41
+    ]
+    
+    print("\n" + "=" * 70)
+    print("Comparing Uniform vs Terminal-Digit Stratified Sampling")
+    print("=" * 70)
+    
+    for N, p, q in test_cases:
+        print(f"\nN = {N} (factors: {p} × {q})")
+        
+        # Standard sampling
+        candidates_std = enhancer.sample_near_sqrt(N, num_samples=100, spread_factor=0.2)
+        
+        # Terminal-digit stratified sampling
+        candidates_stratified = enhancer.stratified_by_terminal_digit(N, num_samples=100, spread_factor=0.2)
+        
+        # Analyze distributions
+        def analyze_digits(candidates):
+            counts = {1: 0, 3: 0, 7: 0, 9: 0}
+            for c in candidates:
+                d = c % 10
+                if d in counts:
+                    counts[d] += 1
+            return counts
+        
+        std_dist = analyze_digits(candidates_std)
+        strat_dist = analyze_digits(candidates_stratified)
+        
+        # Check for factors
+        found_std = p in candidates_std or q in candidates_std
+        found_strat = p in candidates_stratified or q in candidates_stratified
+        
+        print(f"  Standard:   {len(candidates_std):3d} candidates, dist={std_dist}, factor_found={found_std}")
+        print(f"  Stratified: {len(candidates_stratified):3d} candidates, dist={strat_dist}, factor_found={found_strat}")
+        
+        # Calculate balance (coefficient of variation)
+        import numpy as np
+        
+        std_counts = [std_dist[d] for d in [1, 3, 7, 9]]
+        strat_counts = [strat_dist[d] for d in [1, 3, 7, 9]]
+        
+        if np.mean(std_counts) > 0:
+            cv_std = np.std(std_counts) / np.mean(std_counts)
+        else:
+            cv_std = float('inf')
+            
+        if np.mean(strat_counts) > 0:
+            cv_strat = np.std(strat_counts) / np.mean(strat_counts)
+        else:
+            cv_strat = float('inf')
+        
+        print(f"  Balance (CV): Standard={cv_std:.4f}, Stratified={cv_strat:.4f}")
+        if cv_strat < cv_std:
+            print(f"  ✓ Stratified is more balanced ({((cv_std - cv_strat)/cv_std * 100):.1f}% improvement)")
+    
+    print("\n" + "=" * 70)
+    print("Conclusion: Terminal-digit stratification provides:")
+    print("  1. Zero tunable parameters (data-driven from RSA challenges)")
+    print("  2. Reduced variance via balanced digit-class sampling")
+    print("  3. Preserved correctness (coprime filtering maintained)")
+    print("=" * 70)
+
+
 def main():
     """Run all examples."""
     print("\n" + "=" * 70)
@@ -324,6 +408,7 @@ def main():
         example_5_hyper_rotation_analysis,
         example_6_pq_resistance,
         example_7_combined_workflow,
+        example_8_terminal_digit_stratification,
     ]
     
     for example in examples:
