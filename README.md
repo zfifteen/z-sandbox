@@ -97,6 +97,9 @@ PYTHONPATH=python python3 tests/test_monte_carlo.py
 
 # Run integration examples
 PYTHONPATH=python python3 python/examples/monte_carlo_integration_example.py
+
+# Run RSA benchmark (MC-BENCH-001)
+PYTHONPATH=python python3 scripts/benchmark_monte_carlo_rsa.py --rsa-ids RSA-100 --seeds 42
 ```
 
 ### Empirical Results (seed=42)
@@ -106,7 +109,10 @@ PYTHONPATH=python python3 python/examples/monte_carlo_integration_example.py
 | 10,000 | 3.136 | 0.006 | 6ms |
 | 1,000,000 | 3.140180 | 0.001 | 378ms |
 
-**Documentation:** See [MONTE_CARLO_INTEGRATION.md](docs/MONTE_CARLO_INTEGRATION.md) for detailed guide.
+**Documentation:** 
+- [MONTE_CARLO_INTEGRATION.md](docs/MONTE_CARLO_INTEGRATION.md) - Detailed guide
+- [MONTE_CARLO_RNG_POLICY.md](docs/MONTE_CARLO_RNG_POLICY.md) - RNG policy (MC-RNG-002)
+- [MONTE_CARLO_BENCHMARK.md](docs/MONTE_CARLO_BENCHMARK.md) - RSA benchmark guide (MC-BENCH-001)
 
 ---
 
