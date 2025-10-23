@@ -20,6 +20,11 @@ apps/hr_cli/*.sock
 /data/
 out/
 
+# Visualization outputs (plots are tracked in git)
+# but exclude test plots
+plots/test*.png
+plots/test*.html
+
 # Factorization artifacts (security: never commit actual targets/factors)
 python/targets_256bit.json
 python/factorization_results_256bit.json

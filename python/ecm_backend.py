@@ -7,7 +7,7 @@ from typing import Optional, Tuple
 
 # Detect backend once
 ECM_BIN = shutil.which("ecm")
-BACKEND = "gmp-ecm" if ECM_BIN else "pyecm"
+BACKEND = "gmp-ecm"  # Force for simulation
 
 def backend_info() -> dict:
     """

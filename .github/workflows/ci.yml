@@ -34,6 +34,65 @@ jobs:
         run: |
           python3 tests/test_factorization_256bit.py
   
+  monte-carlo-tests:
+    name: Monte Carlo Tests
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python-version: ['3.11', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          pip install -r python/requirements.txt
+      - name: Run Monte Carlo tests
+        run: |
+          PYTHONPATH=python python3 tests/test_monte_carlo.py
+      - name: Run quick benchmark
+        run: |
+          PYTHONPATH=python python3 -c "
+          import time
+          import sys
+          sys.path.insert(0, 'python')
+          from monte_carlo import MonteCarloEstimator, FactorizationMonteCarloEnhancer
+          import numpy as np
+          
+          print('=' * 70)
+          print('Monte Carlo Quick Benchmark (CI)')
+          print('=' * 70)
+          print(f'OS: ${{ matrix.os }}')
+          print(f'Python: ${{ matrix.python-version }}')
+          print(f'NumPy: {np.__version__}')
+          print('=' * 70)
+          
+          # Benchmark 1: π estimation
+          estimator = MonteCarloEstimator(seed=42)
+          start = time.time()
+          pi_est, error, var = estimator.estimate_pi(N=100000)
+          elapsed = time.time() - start
+          print(f'π estimation (N=100k): {pi_est:.6f} ± {error:.6f} in {elapsed:.2f}s')
+          
+          # Benchmark 2: Factorization sampling
+          enhancer = FactorizationMonteCarloEnhancer(seed=42)
+          start = time.time()
+          candidates = enhancer.biased_sampling_with_phi(N=899, num_samples=500)
+          elapsed = time.time() - start
+          print(f'φ-biased sampling (N=899): {len(candidates)} candidates in {elapsed:.3f}s')
+          
+          # Check if we found the factors
+          if 29 in candidates or 31 in candidates:
+              print('✓ Factor found in φ-biased candidates!')
+          
+          print('=' * 70)
+          "
+  
   codeql:
     runs-on: ubuntu-latest
     permissions:

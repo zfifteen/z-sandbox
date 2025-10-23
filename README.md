@@ -17,6 +17,7 @@ A comprehensive Java framework for testing and benchmarking integer factorizatio
 
 ## Table of Contents
 - [Quick Start](#quick-start)
+- [Monte Carlo Integration](#monte-carlo-integration)
 - [RSA Challenge Framework](#rsa-challenge-framework)
 - [Factorization Ladder](#factorization-ladder)
 - [Candidate Builders](#candidate-builders)
@@ -74,6 +75,48 @@ java -cp build/libs/z5d-0.0.1.jar tools.BenchLadder --rsa260
 ```
 
 Results are logged to `ladder_results.csv` and `test_output.log`.
+
+---
+
+## Monte Carlo Integration
+
+Stochastic methods for Z5D validation, factorization enhancement, and hyper-rotation analysis.
+
+### Features
+- **π Estimation:** Basic Monte Carlo integration with O(1/√N) convergence
+- **Z5D Validation:** Prime density sampling with error bounds for Z5D predictions
+- **Factorization Enhancement:** φ-biased sampling near √N for candidate generation
+- **Hyper-Rotation Analysis:** Security risk assessment via timing simulations
+- **High Precision:** mpmath with target error < 1e-16
+- **Axiom Compliance:** Domain-specific forms Z = A(B / c) throughout
+
+### Quick Start
+
+```bash
+# Run Monte Carlo demo
+PYTHONPATH=python python3 python/monte_carlo.py
+
+# Run comprehensive tests
+PYTHONPATH=python python3 tests/test_monte_carlo.py
+
+# Run integration examples
+PYTHONPATH=python python3 python/examples/monte_carlo_integration_example.py
+
+# Run RSA benchmark (MC-BENCH-001)
+PYTHONPATH=python python3 scripts/benchmark_monte_carlo_rsa.py --rsa-ids RSA-100 --seeds 42
+```
+
+### Empirical Results (seed=42)
+| N | π estimate | Error | Time |
+|---|------------|-------|------|
+| 100 | 3.200 | 0.058 | 0.1ms |
+| 10,000 | 3.136 | 0.006 | 6ms |
+| 1,000,000 | 3.140180 | 0.001 | 378ms |
+
+**Documentation:** 
+- [MONTE_CARLO_INTEGRATION.md](docs/MONTE_CARLO_INTEGRATION.md) - Detailed guide
+- [MONTE_CARLO_RNG_POLICY.md](docs/MONTE_CARLO_RNG_POLICY.md) - RNG policy (MC-RNG-002)
+- [MONTE_CARLO_BENCHMARK.md](docs/MONTE_CARLO_BENCHMARK.md) - RSA benchmark guide (MC-BENCH-001)
 
 ---
 
@@ -272,9 +315,10 @@ Comprehensive test suite:
 - **BigDecimal Validation:** Ultra-high scale accuracy
 - **Integration Tests:** RSA-260 attempts (opt-in)
 - **TRANSEC Tests:** Encryption, replay protection, drift tolerance (25 tests)
+- **Monte Carlo Tests:** Stochastic methods validation with reproducibility
 
 ```bash
-# Run all tests
+# Run all Java tests
 ./gradlew test
 
 # Run integration tests
@@ -285,6 +329,11 @@ Comprehensive test suite:
 
 # Run TRANSEC tests
 python3 tests/test_transec.py -v
+# Run Python Monte Carlo tests
+PYTHONPATH=python python3 tests/test_monte_carlo.py
+
+# Run specific Python test
+PYTHONPATH=python python3 tests/test_gva_128.py
 ```
 
 ---
@@ -304,6 +353,8 @@ This section provides links to detailed documentation in the `docs/` folder, org
 ### TRANSEC (Time-Synchronized Encryption)
 - [TRANSEC Specification](docs/TRANSEC.md): Full protocol specification with security model, threat analysis, and cryptographic primitives.
 - [TRANSEC Usage Guide](docs/TRANSEC_USAGE.md): Complete API reference, examples, configuration options, and best practices.
+### Monte Carlo Integration
+- [Monte Carlo Integration Documentation](docs/MONTE_CARLO_INTEGRATION.md): Comprehensive guide to stochastic methods for Z5D validation, factorization enhancement, and hyper-rotation protocol analysis.
 
 ### GVA (Geodesic Validation Assault) Research
 - [GVA Mathematical Framework](docs/GVA_Mathematical_Framework.md): Formal mathematical foundations and algorithm overview for GVA factorization.
