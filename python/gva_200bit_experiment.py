@@ -6,6 +6,12 @@ Objective: Extend GVA to 200-bit semiprimes, aiming for >0% success rate
 to establish baseline feasibility for larger factorization targets.
 
 Uses geometric embedding with Riemannian distance on torus manifold.
+
+Usage:
+    python3 gva_200bit_experiment.py [num_trials] [dims] [search_range]
+
+Example:
+    python3 gva_200bit_experiment.py 100 13 5000
 """
 
 import sympy as sp
@@ -13,6 +19,7 @@ import math
 import csv
 import time
 import random
+import sys
 from datetime import datetime
 
 def embed(n, dims=11, k=None):
@@ -43,7 +50,7 @@ def generate_200bit_semiprime(seed=None):
 
     return N, int(p), int(q)
 
-def gva_factorize_200bit(N, max_candidates=1000, dims=11):
+def gva_factorize_200bit(N, max_candidates=1000, dims=11, search_range=1000):
     """Attempt GVA factorization on 200-bit semiprime."""
     start_time = time.time()
 
@@ -52,7 +59,7 @@ def gva_factorize_200bit(N, max_candidates=1000, dims=11):
 
     # Search around sqrt(N)
     sqrtN = int(math.sqrt(N))
-    R = 1000  # Search range
+    R = search_range
     candidates = range(max(2, sqrtN - R), sqrtN + R + 1)
 
     # Rank candidates by Riemannian distance
@@ -67,9 +74,9 @@ def gva_factorize_200bit(N, max_candidates=1000, dims=11):
     elapsed = time.time() - start_time
     return None, elapsed
 
-def run_experiment(num_trials=100, output_csv="gva_200bit_results.csv"):
-    """Run GVA scaling experiment on 100 random 200-bit semiprimes."""
-    print("=== GVA 200-bit Scaling Experiment ===")
+def run_experiment(num_trials=10, output_csv="gva_200bit_results.csv", dims=11, search_range=1000):
+    """Run GVA scaling experiment on random 200-bit semiprimes."""
+    print(f"=== GVA 200-bit Scaling Experiment (dims={dims}, range={search_range}) ===")
     print(f"Running {num_trials} trials on 200-bit semiprimes")
     print(f"Target: >0% success rate (at least one factorization)")
     print()
@@ -79,7 +86,7 @@ def run_experiment(num_trials=100, output_csv="gva_200bit_results.csv"):
     total_time = 0
 
     with open(output_csv, 'w', newline='') as csvfile:
-        fieldnames = ['trial', 'N_bits', 'success', 'factor_found', 'time_seconds', 'timestamp']
+        fieldnames = ['trial', 'N_bits', 'success', 'factor_found', 'time_seconds', 'dims', 'search_range', 'timestamp']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
 
@@ -90,7 +97,7 @@ def run_experiment(num_trials=100, output_csv="gva_200bit_results.csv"):
             print(f"Trial {trial+1}/{num_trials}: N = {N} ({N.bit_length()} bits)")
 
             # Attempt factorization
-            factor, elapsed = gva_factorize_200bit(N)
+            factor, elapsed = gva_factorize_200bit(N, dims=dims, search_range=search_range)
 
             success = factor is not None
             if success:
@@ -108,6 +115,8 @@ def run_experiment(num_trials=100, output_csv="gva_200bit_results.csv"):
                 'success': success,
                 'factor_found': str(factor) if factor else None,
                 'time_seconds': round(elapsed, 3),
+                'dims': dims,
+                'search_range': search_range,
                 'timestamp': datetime.now().isoformat()
             }
             results.append(result)
@@ -134,5 +143,11 @@ def run_experiment(num_trials=100, output_csv="gva_200bit_results.csv"):
     return success_rate > 0
 
 if __name__ == "__main__":
-    success = run_experiment()
+    # Parse command line arguments
+    num_trials = int(sys.argv[1]) if len(sys.argv) > 1 else 10
+    dims = int(sys.argv[2]) if len(sys.argv) > 2 else 11
+    search_range = int(sys.argv[3]) if len(sys.argv) > 3 else 1000
+
+    print(f"Running with parameters: trials={num_trials}, dims={dims}, search_range={search_range}")
+    success = run_experiment(num_trials, f"gva_200bit_d{dims}_r{search_range}_results.csv", dims, search_range)
     exit(0 if success else 1)

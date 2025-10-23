@@ -28,8 +28,8 @@ Focusing on scaling GVA for 200-bit semiprimes with corrected **target success >
 **Objective**: Extend GVA to 200-bit semiprimes, aiming for any factorization success (>0%) to establish baseline feasibility.
 
 **Experimental Results** (2025-10-23):
-- **Trials**: 100 random 200-bit semiprimes
-- **Success Rate**: 0.0% (0/100 factorizations)
+- **Trials**: 100 + 10 random 200-bit semiprimes (110 total)
+- **Success Rate**: 0.0% (0/110 factorizations)
 - **Average Time**: 0.007s per trial
 - **Conclusion**: Current GVA implementation does not scale to 200-bit numbers with existing parameters
 
@@ -115,10 +115,14 @@ print(f"Predicted {k}-th prime: {pred}")
 
 ## Next Steps
 
-- **Immediate**: Analyze GVA 200-bit failure - investigate parameter sensitivity (dims, k, R range)
-- **Parameter Tuning**: Try dims=13-17, adaptive k, larger R range (10^4-10^5)
-- **Follow-Up**: If parameter tuning shows promise, implement parallelization for 256-bit+ testing
-- **Alternative**: Investigate hybrid approaches combining GVA with other methods
-- **Tool Use**: Results logged to `python/gva_200bit_results.csv`; use for parameter optimization
+- **Immediate**: Parameter sensitivity analysis - test different configurations:
+  - **Dimensions**: Try dims=13, 15, 17 (current: 11)
+  - **Search Range**: Try R=5000, 10000, 50000 (current: 1000)
+  - **k parameter**: Try fixed k values vs adaptive calculation
+  - **Top-K candidates**: Try testing more candidates (current: 1000 max)
+- **Systematic Testing**: Create parameter sweep script to test combinations
+- **Follow-Up**: If any parameter combination shows >0% success, scale to 1000+ trials
+- **Alternative**: Investigate if GVA works better on smaller bit sizes first (150-180 bits)
+- **Tool Use**: Modify `python/gva_200bit_experiment.py` for parameter testing
 
 This aligns with your style guide’s emphasis on simple, precise solutions and empirical validation. If you can clarify document contents (e.g., bench_z5d_phase2.out.txt), I can refine further.
