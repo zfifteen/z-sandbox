@@ -354,96 +354,16 @@ class FactorizationMonteCarloEnhancer:
         return sorted(set(candidates))
 
 
-class HyperRotationMonteCarloAnalyzer:
-    """
-    Hyper-rotation protocol analysis via Monte Carlo key sampling.
-    
-    Estimates security risks for rotation windows (per issue #38)
-    Target: 1-10s rotation windows
-    """
-    
-    def __init__(self, seed: Optional[int] = 42):
-        """
-        Initialize with reproducible seed using PCG64 RNG.
-        
-        Args:
-            seed: RNG seed for reproducibility (MC-RNG-002)
-        """
-        self.seed = seed
-        random.seed(seed)
-        self.rng = np.random.Generator(np.random.PCG64(seed))
-        
-    def sample_rotation_times(self, num_samples: int = 10000, 
-                             window_min: float = 1.0,
-                             window_max: float = 10.0) -> Dict:
-        """
-        Monte Carlo sampling of rotation timing risks.
-        
-        Args:
-            num_samples: Number of timing samples
-            window_min: Minimum rotation window (seconds)
-            window_max: Maximum rotation window (seconds)
-            
-        Returns:
-            Risk analysis dictionary
-            
-        Future: PQ lattice sampling integration
-        """
-        samples = []
-        compromised = 0
-        
-        for _ in range(num_samples):
-            # Sample rotation time uniformly
-            rotation_time = random.uniform(window_min, window_max)
-            
-            # Simulate adversary intercept probability
-            # Assume adversary has ~0.1s window to intercept
-            adversary_window = 0.1
-            compromise_prob = min(adversary_window / rotation_time, 1.0)
-            
-            samples.append(rotation_time)
-            
-            if random.random() < compromise_prob:
-                compromised += 1
-        
-        # Statistics
-        mean_time = np.mean(samples)
-        std_time = np.std(samples)
-        compromise_rate = compromised / num_samples
-        
-        return {
-            'mean_rotation_time': mean_time,
-            'std_rotation_time': std_time,
-            'compromise_rate': compromise_rate,
-            'safe_threshold': mean_time - 2 * std_time,  # 95% safety
-            'num_samples': num_samples
-        }
-    
-    def estimate_pq_lattice_resistance(self, key_size: int = 256,
-                                      num_trials: int = 1000) -> float:
-        """
-        UNVERIFIED: Post-quantum lattice resistance estimation.
-        
-        Placeholder for future PQ integration.
-        
-        Args:
-            key_size: Key size in bits
-            num_trials: Number of Monte Carlo trials
-            
-        Returns:
-            Estimated resistance factor
-        """
-        # Simplified model: resistance grows with key_size
-        # Real implementation would use lattice reduction simulation
-        resistance_samples = []
-        
-        for _ in range(num_trials):
-            # Simulate lattice reduction difficulty
-            # This is a placeholder - actual implementation needs lattice theory
-            difficulty = math.log2(key_size) * random.gauss(1.0, 0.1)
-            resistance_samples.append(difficulty)
-        
-        return np.mean(resistance_samples)
+# Backwards compatibility: Import HyperRotationMonteCarloAnalyzer from security module
+# Moved to security/ submodule for modularity (MC-SCOPE-005)
+try:
+    from security.hyper_rotation import HyperRotationMonteCarloAnalyzer
+except ImportError:
+    # Fallback if security module not in path
+    import sys
+    import os
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'python'))
+    from security.hyper_rotation import HyperRotationMonteCarloAnalyzer
 
 
 class VarianceReductionMethods:
