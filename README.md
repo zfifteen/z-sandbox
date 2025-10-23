@@ -5,7 +5,8 @@ A comprehensive research framework for geometric approaches to integer factoriza
 **Also includes:** TRANSEC - Time-Synchronized Encryption for zero-handshake encrypted messaging, inspired by military frequency-hopping COMSEC.
 
 > **Recent Breakthroughs (Last 4 Days)**
-> - ✅ **QMC-φ Hybrid Enhancement:** 3× error reduction via Halton sequences + φ-biased torus embedding, 100% hit rate on test semiprimes (NEW!)
+> - ✅ **TRANSEC Prime Optimization (NEW!):** Invariant normalization using prime-valued slot indices achieves 25-88% curvature reduction for enhanced synchronization stability in time-synchronized encryption
+> - ✅ **QMC-φ Hybrid Enhancement:** 3× error reduction via Halton sequences + φ-biased torus embedding, 100% hit rate on test semiprimes
 > - ✅ **Monte Carlo Integration v2.0:** Variance reduction modes (uniform/stratified/QMC), builder performance comparisons, replay recipes, deprecation warnings, and CI guardrails
 > - ✅ **Minimal Existence Demonstration (MED):** Theta-gated ECM factorization proving geometry → decision → success (2/2 gated targets factored at 128-bit)
 > - ✅ **Geometric Factorization Advances:** Gauss-Prime Law implementation, flux-based Riemannian distance, spherical flux distance for enhanced GVA
@@ -20,7 +21,7 @@ A comprehensive research framework for geometric approaches to integer factoriza
 > - **Candidate Builders:** ZNeighborhood, ResidueFilter, HybridGcd, MetaSelection, GVA geometric strategies
 > - **Performance Metrics:** CSV logging, plotting, and BigDecimal timings up to 10^1233
 > - **BigDecimal Support:** Ultra-high scale computations with stable accuracy
-> - **TRANSEC Protocol:** Zero-RTT encrypted messaging for tactical/industrial applications
+> - **TRANSEC Protocol:** Zero-RTT encrypted messaging for tactical/industrial applications with optional prime optimization (25-88% curvature reduction)
 
 ---
 
@@ -410,6 +411,7 @@ Comprehensive performance analysis:
 - **Military-Grade Design**: Adapted from TRANSEC/COMSEC paradigms
 - **Sub-millisecond Latency**: ~0.3ms RTT for encrypted UDP packets
 - **3,000+ msg/sec Throughput**: High-performance AEAD encryption
+- **Prime Optimization** (NEW!): Optional slot normalization for enhanced synchronization stability
 
 ### Quick Start
 
@@ -419,8 +421,16 @@ from transec import TransecCipher, generate_shared_secret
 # Generate or provision shared secret
 secret = generate_shared_secret()
 
-# Create cipher instances
+# Create cipher instances (basic mode)
 cipher = TransecCipher(secret, slot_duration=5, drift_window=2)
+
+# Or with prime optimization for enhanced stability
+cipher = TransecCipher(
+    secret, 
+    slot_duration=3600,      # 1-hour slots
+    drift_window=3,          # ±3 slots tolerance
+    prime_strategy="nearest" # Use prime-valued slots
+)
 
 # Encrypt message (no handshake needed!)
 packet = cipher.seal(b"Hello, TRANSEC!", sequence=1)
@@ -428,6 +438,21 @@ packet = cipher.seal(b"Hello, TRANSEC!", sequence=1)
 # Decrypt message
 plaintext = cipher.open(packet)
 ```
+
+### Prime Optimization (NEW!)
+
+TRANSEC now supports prime-based slot normalization to minimize discrete curvature κ(n) and enhance synchronization stability:
+
+- **25-88% curvature reduction** by using prime-valued slot indices
+- **Lower drift-induced failures** through optimized discrete geodesic paths
+- **Backward compatible**: Default `prime_strategy="none"` maintains original behavior
+
+```bash
+# Run prime optimization demo
+python3 python/transec_prime_demo.py
+```
+
+See [TRANSEC Prime Optimization](docs/TRANSEC_PRIME_OPTIMIZATION.md) for detailed documentation.
 
 ### UDP Demo
 
@@ -446,7 +471,7 @@ python3 python/transec_udp_demo.py benchmark --count 100
 
 ### Use Cases
 
-- **Tactical Communications**: Drone swarms, battlefield mesh networks
+- **Tactical Communications**: Drone swarms, battlefield mesh networks with enhanced timing resilience
 - **Critical Infrastructure**: SCADA/power grid telemetry where TLS latency is unacceptable
 - **Autonomous Systems**: V2V messaging, vehicle platoons
 - **Edge Computing**: Low-latency IoT mesh networks
@@ -456,8 +481,11 @@ python3 python/transec_udp_demo.py benchmark --count 100
 
 - [TRANSEC Specification](docs/TRANSEC.md) - Full protocol specification with security model
 - [Usage Guide](docs/TRANSEC_USAGE.md) - API reference, examples, and best practices
+- [Prime Optimization](docs/TRANSEC_PRIME_OPTIMIZATION.md) - **NEW!** Invariant normalization guide
 - [Test Suite](tests/test_transec.py) - Comprehensive test coverage (25 tests)
+- [Prime Optimization Tests](tests/test_transec_prime_optimization.py) - **NEW!** 22 additional tests
 - [UDP Demo](python/transec_udp_demo.py) - Working client/server example
+- [Prime Demo](python/transec_prime_demo.py) - **NEW!** Curvature analysis and usage demo
 
 ---
 
