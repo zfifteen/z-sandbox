@@ -152,6 +152,10 @@ Following axiom requirements, these hypotheses are labeled UNVERIFIED:
    - Placeholder implementation
    - Future: Full lattice reduction simulation
 
+4. **Hydrogen Curvature Hypothesis**
+   - Status: **UNVERIFIED** (α = 0.0000 vs α_H = 0.7222, z=2.33)
+   - Insight: Strong correlation (r=0.9969), but weak exponential decay
+   - Next: Refine H₁ with α ∝ 1/√n scaling
 ## Performance Benchmarks
 
 | Operation | N/Samples | Time | Accuracy |
