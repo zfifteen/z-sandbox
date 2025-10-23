@@ -466,6 +466,7 @@ python3 python/transec_udp_demo.py benchmark --count 100
 
 ### Documentation
 
+- [Zero-Handshake Property Analysis](docs/ZERO_HANDSHAKE_PROPERTY_ANALYSIS.md) - **NEW!** Verification that TRANSEC property set is absent from other protocols
 - [Protocol Comparison](docs/TRANSEC_PROTOCOL_COMPARISON.md) - **NEW!** Comprehensive comparison with TLS 1.3, QUIC, IKEv2, and Signal
 - [TRANSEC Specification](docs/TRANSEC.md) - Full protocol specification with security model
 - [Usage Guide](docs/TRANSEC_USAGE.md) - API reference, examples, and best practices
@@ -548,6 +549,8 @@ This section provides links to detailed documentation in the `docs/` and root fo
 - [Existence Proof](reports/existence_proof.md): Formal geometric gating demonstration
 
 ### TRANSEC Protocol
+- [Zero-Handshake Property Analysis](docs/ZERO_HANDSHAKE_PROPERTY_ANALYSIS.md): **NEW!** Verification of unique properties vs TLS 1.3, QUIC, IKEv2, Signal
+- [TRANSEC Protocol Comparison](docs/TRANSEC_PROTOCOL_COMPARISON.md): Comprehensive comparison with Internet standards and RFCs
 - [TRANSEC Specification](docs/TRANSEC.md): Full protocol with security model
 - [TRANSEC Usage Guide](docs/TRANSEC_USAGE.md): API reference and examples
 - [TRANSEC Examples](python/transec_examples.py): Code examples and use cases
