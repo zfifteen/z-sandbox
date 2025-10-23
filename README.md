@@ -152,10 +152,16 @@ candidates = enhancer.biased_sampling_with_phi(
 ### Quick Start
 
 ```bash
+# Run N=899 QMC benchmark (generates CSV with metrics) - NEW!
+PYTHONPATH=python python3 python/benchmark_qmc_899.py
+
+# Run simple QMC example - NEW!
+PYTHONPATH=python python3 python/examples/qmc_simple_example.py
+
 # Run Monte Carlo demo with variance reduction
 PYTHONPATH=python python3 python/monte_carlo.py
 
-# Run QMC-φ hybrid demo (NEW!)
+# Run QMC-φ hybrid demo
 PYTHONPATH=python python3 python/examples/qmc_phi_hybrid_demo.py
 
 # Run comprehensive tests (17 tests)
@@ -193,7 +199,9 @@ print(f'Replayed: {len(c)} candidates')
 | Z5D builder | ~74,000 | Deterministic | Production baseline |
 
 **Documentation:**
-- [QMC_PHI_HYBRID_ENHANCEMENT.md](docs/QMC_PHI_HYBRID_ENHANCEMENT.md) - **NEW!** QMC-φ hybrid enhancement guide
+- [QMC_README.md](QMC_README.md) - **NEW!** Quick start for QMC variance reduction with N=899 benchmark
+- [QMC_RSA_FACTORIZATION_APPLICATION.md](docs/QMC_RSA_FACTORIZATION_APPLICATION.md) - **NEW!** First documented QMC application to RSA factorization
+- [QMC_PHI_HYBRID_ENHANCEMENT.md](docs/QMC_PHI_HYBRID_ENHANCEMENT.md) - QMC-φ hybrid enhancement guide
 - [MONTE_CARLO_INTEGRATION.md](docs/MONTE_CARLO_INTEGRATION.md) - Detailed guide
 - [MONTE_CARLO_RNG_POLICY.md](docs/MONTE_CARLO_RNG_POLICY.md) - RNG policy (PCG64)
 - [MONTE_CARLO_BENCHMARK.md](docs/MONTE_CARLO_BENCHMARK.md) - RSA benchmark guide
