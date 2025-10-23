@@ -340,8 +340,8 @@ def example_8_terminal_digit_stratification():
     for N, p, q in test_cases:
         print(f"\nN = {N} (factors: {p} × {q})")
         
-        # Standard sampling
-        candidates_std = enhancer.sample_near_sqrt(N, num_samples=100, spread_factor=0.2)
+        # Uniform sampling
+        candidates_uniform = enhancer.sample_near_sqrt(N, num_samples=100, spread_factor=0.2)
         
         # Terminal-digit stratified sampling
         candidates_stratified = enhancer.stratified_by_terminal_digit(N, num_samples=100, spread_factor=0.2)
@@ -355,14 +355,14 @@ def example_8_terminal_digit_stratification():
                     counts[d] += 1
             return counts
         
-        std_dist = analyze_digits(candidates_std)
+        std_dist = analyze_digits(candidates_uniform)
         strat_dist = analyze_digits(candidates_stratified)
         
         # Check for factors
-        found_std = p in candidates_std or q in candidates_std
+        found_uniform = p in candidates_uniform or q in candidates_uniform
         found_strat = p in candidates_stratified or q in candidates_stratified
         
-        print(f"  Standard:   {len(candidates_std):3d} candidates, dist={std_dist}, factor_found={found_std}")
+        print(f"  Uniform:    {len(candidates_uniform):3d} candidates, dist={std_dist}, factor_found={found_uniform}")
         print(f"  Stratified: {len(candidates_stratified):3d} candidates, dist={strat_dist}, factor_found={found_strat}")
         
         # Calculate balance (coefficient of variation)
@@ -381,7 +381,7 @@ def example_8_terminal_digit_stratification():
         else:
             cv_strat = float('inf')
         
-        print(f"  Balance (CV): Standard={cv_std:.4f}, Stratified={cv_strat:.4f}")
+        print(f"  Balance (CV): Uniform={cv_std:.4f}, Stratified={cv_strat:.4f}")
         if cv_strat < cv_std:
             print(f"  ✓ Stratified is more balanced ({((cv_std - cv_strat)/cv_std * 100):.1f}% improvement)")
     

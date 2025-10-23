@@ -476,12 +476,17 @@ class FactorizationMonteCarloEnhancer:
         terminal_digits = [1, 3, 7, 9]
         samples_per_digit = num_samples // len(terminal_digits)
         
+        # Safety multiplier for rejection sampling: accounts for coprime filtering
+        # and terminal-digit matching. Value of 100 provides sufficient margin
+        # for most cases while preventing infinite loops in edge cases.
+        MAX_ATTEMPTS_MULTIPLIER = 100
+        
         candidates = []
         
         for digit in terminal_digits:
             digit_candidates = 0
             attempts = 0
-            max_attempts = samples_per_digit * 100  # Increase safety limit
+            max_attempts = samples_per_digit * MAX_ATTEMPTS_MULTIPLIER
             
             while digit_candidates < samples_per_digit and attempts < max_attempts:
                 # Generate random offset around √N
