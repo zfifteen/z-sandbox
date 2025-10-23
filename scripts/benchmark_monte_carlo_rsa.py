@@ -26,6 +26,7 @@ from dataclasses import dataclass, asdict
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'python'))
 
 from monte_carlo import FactorizationMonteCarloEnhancer
+from z5d_predictor import get_factor_candidates
 import numpy as np
 
 
@@ -55,6 +56,8 @@ class BenchmarkResult:
     seed: int
     samples_per_try: int
     numpy_version: str
+    sampling_mode: str = "uniform"  # Mode for variance reduction
+    candidates_per_second: float = 0.0  # Performance metric
 
 
 # RSA Challenge Numbers (from rsa_challenges.csv)
@@ -100,10 +103,11 @@ def benchmark_phi_biased_sampling(
     seed: int = 42,
     max_tries: int = 100,
     samples_per_try: int = 1000,
-    timeout_seconds: float = 300.0
+    timeout_seconds: float = 300.0,
+    sampling_mode: str = "uniform"
 ) -> BenchmarkResult:
     """
-    Benchmark φ-biased Monte Carlo sampling.
+    Benchmark φ-biased Monte Carlo sampling with variance reduction modes.
     
     Args:
         rsa: RSA challenge
@@ -111,6 +115,7 @@ def benchmark_phi_biased_sampling(
         max_tries: Maximum sampling attempts
         samples_per_try: Number of candidates per try
         timeout_seconds: Wall time timeout
+        sampling_mode: Sampling mode ("uniform", "stratified", "qmc")
         
     Returns:
         Benchmark result
@@ -128,10 +133,11 @@ def benchmark_phi_biased_sampling(
         if time.time() - start_time > timeout_seconds:
             break
         
-        # Generate candidates
+        # Generate candidates with specified mode
         candidates = enhancer.biased_sampling_with_phi(
             rsa.N,
-            num_samples=samples_per_try
+            num_samples=samples_per_try,
+            mode=sampling_mode
         )
         total_candidates += len(candidates)
         
@@ -147,9 +153,10 @@ def benchmark_phi_biased_sampling(
             break
     
     wall_time = time.time() - start_time
+    candidates_per_sec = total_candidates / wall_time if wall_time > 0 else 0
     
     return BenchmarkResult(
-        method='phi_biased_monte_carlo',
+        method=f'phi_biased_monte_carlo_{sampling_mode}',
         rsa_id=rsa.id,
         N_decimal=str(rsa.N)[:50] + '...' if len(str(rsa.N)) > 50 else str(rsa.N),
         N_digits=len(str(rsa.N)),
@@ -161,7 +168,9 @@ def benchmark_phi_biased_sampling(
         wall_time_seconds=wall_time,
         seed=seed,
         samples_per_try=samples_per_try,
-        numpy_version=np.__version__
+        numpy_version=np.__version__,
+        sampling_mode=sampling_mode,
+        candidates_per_second=candidates_per_sec
     )
 
 
@@ -218,6 +227,7 @@ def benchmark_standard_sampling(
             break
     
     wall_time = time.time() - start_time
+    candidates_per_sec = total_candidates / wall_time if wall_time > 0 else 0
     
     return BenchmarkResult(
         method='standard_monte_carlo',
@@ -232,14 +242,119 @@ def benchmark_standard_sampling(
         wall_time_seconds=wall_time,
         seed=seed,
         samples_per_try=samples_per_try,
-        numpy_version=np.__version__
+        numpy_version=np.__version__,
+        sampling_mode="uniform",
+        candidates_per_second=candidates_per_sec
+    )
+
+
+def benchmark_z5d_builder(
+    rsa: RSAChallenge,
+    seed: int = 42,
+    max_tries: int = 100,
+    samples_per_try: int = 1000,
+    timeout_seconds: float = 300.0
+) -> BenchmarkResult:
+    """
+    Benchmark Z5D candidate builder (existing production path).
+    
+    Args:
+        rsa: RSA challenge
+        seed: RNG seed (not used by Z5D, included for consistency)
+        max_tries: Maximum sampling attempts (limited by candidate generation)
+        samples_per_try: Not used, Z5D generates fixed candidate set
+        timeout_seconds: Wall time timeout
+        
+    Returns:
+        Benchmark result
+    """
+    start_time = time.time()
+    
+    # Z5D generates candidates once
+    try:
+        candidate_data = get_factor_candidates(rsa.N)
+        candidates = [c for c, _, _ in candidate_data]
+        total_candidates = len(candidates)
+    except Exception as e:
+        # Z5D may fail on very large numbers
+        return BenchmarkResult(
+            method='z5d_builder',
+            rsa_id=rsa.id,
+            N_decimal=str(rsa.N)[:50] + '...' if len(str(rsa.N)) > 50 else str(rsa.N),
+            N_digits=len(str(rsa.N)),
+            N_bits=rsa.N.bit_length(),
+            candidates_tested=0,
+            factor_found=False,
+            factor_value=None,
+            tries_to_hit=None,
+            wall_time_seconds=time.time() - start_time,
+            seed=seed,
+            samples_per_try=samples_per_try,
+            numpy_version=np.__version__,
+            sampling_mode="z5d",
+            candidates_per_second=0
+        )
+    
+    # Check timeout
+    if time.time() - start_time > timeout_seconds:
+        wall_time = time.time() - start_time
+        candidates_per_sec = total_candidates / wall_time if wall_time > 0 else 0
+        return BenchmarkResult(
+            method='z5d_builder',
+            rsa_id=rsa.id,
+            N_decimal=str(rsa.N)[:50] + '...' if len(str(rsa.N)) > 50 else str(rsa.N),
+            N_digits=len(str(rsa.N)),
+            N_bits=rsa.N.bit_length(),
+            candidates_tested=total_candidates,
+            factor_found=False,
+            factor_value=None,
+            tries_to_hit=None,
+            wall_time_seconds=wall_time,
+            seed=seed,
+            samples_per_try=samples_per_try,
+            numpy_version=np.__version__,
+            sampling_mode="z5d",
+            candidates_per_second=candidates_per_sec
+        )
+    
+    # Test candidates
+    factor_found = False
+    factor_value = None
+    
+    for c in candidates:
+        if c > 1 and rsa.N % c == 0:
+            factor_found = True
+            factor_value = c
+            break
+    
+    wall_time = time.time() - start_time
+    candidates_per_sec = total_candidates / wall_time if wall_time > 0 else 0
+    
+    return BenchmarkResult(
+        method='z5d_builder',
+        rsa_id=rsa.id,
+        N_decimal=str(rsa.N)[:50] + '...' if len(str(rsa.N)) > 50 else str(rsa.N),
+        N_digits=len(str(rsa.N)),
+        N_bits=rsa.N.bit_length(),
+        candidates_tested=total_candidates,
+        factor_found=factor_found,
+        factor_value=factor_value,
+        tries_to_hit=1 if factor_found else None,
+        wall_time_seconds=wall_time,
+        seed=seed,
+        samples_per_try=samples_per_try,
+        numpy_version=np.__version__,
+        sampling_mode="z5d",
+        candidates_per_second=candidates_per_sec
     )
 
 
 def run_benchmarks(
     rsa_ids: List[str] = None,
     seeds: List[int] = [42, 12345, 99999],
-    output_file: str = 'monte_carlo_rsa_benchmark.csv'
+    output_file: str = 'monte_carlo_rsa_benchmark.csv',
+    include_builders: bool = True,
+    include_variance_reduction: bool = True
 ) -> List[BenchmarkResult]:
     """
     Run comprehensive benchmarks on RSA challenges.
@@ -248,6 +363,8 @@ def run_benchmarks(
         rsa_ids: List of RSA IDs to benchmark (default: all factored)
         seeds: List of seeds for multiple runs
         output_file: Output CSV file
+        include_builders: Include existing factorization builders (Z5D)
+        include_variance_reduction: Include variance reduction modes (stratified, QMC)
         
     Returns:
         List of benchmark results
@@ -265,6 +382,8 @@ def run_benchmarks(
     print(f"RSA challenges: {rsa_ids}")
     print(f"Seeds: {seeds}")
     print(f"Output file: {output_file}")
+    print(f"Include builders: {include_builders}")
+    print(f"Include variance reduction: {include_variance_reduction}")
     print("=" * 80)
     
     for rsa_id in rsa_ids:
@@ -280,7 +399,7 @@ def run_benchmarks(
             max_tries = 100
             samples_per_try = 1000
             timeout = 60.0
-        elif rsa.N_bits <= 520:  # RSA-155
+        elif N_bits <= 520:  # RSA-155
             max_tries = 200
             samples_per_try = 5000
             timeout = 300.0
@@ -292,17 +411,32 @@ def run_benchmarks(
         for seed in seeds:
             print(f"  Seed {seed}:")
             
-            # Benchmark φ-biased sampling
-            print("    Running φ-biased sampling...")
+            # Benchmark φ-biased sampling (uniform mode)
+            print("    Running φ-biased sampling (uniform)...")
             result_phi = benchmark_phi_biased_sampling(
-                rsa, seed, max_tries, samples_per_try, timeout
+                rsa, seed, max_tries, samples_per_try, timeout, sampling_mode="uniform"
             )
             results.append(result_phi)
             
             print(f"      Factor found: {result_phi.factor_found}")
+            print(f"      Candidates/sec: {result_phi.candidates_per_second:.0f}")
             if result_phi.factor_found:
                 print(f"      Tries to hit: {result_phi.tries_to_hit}")
                 print(f"      Wall time: {result_phi.wall_time_seconds:.2f}s")
+            
+            # Benchmark φ-biased sampling with variance reduction modes
+            if include_variance_reduction:
+                for mode in ["stratified", "qmc"]:
+                    print(f"    Running φ-biased sampling ({mode})...")
+                    result_vr = benchmark_phi_biased_sampling(
+                        rsa, seed, max_tries, samples_per_try, timeout, sampling_mode=mode
+                    )
+                    results.append(result_vr)
+                    
+                    print(f"      Factor found: {result_vr.factor_found}")
+                    print(f"      Candidates/sec: {result_vr.candidates_per_second:.0f}")
+                    if result_vr.factor_found:
+                        print(f"      Tries to hit: {result_vr.tries_to_hit}")
             
             # Benchmark standard sampling
             print("    Running standard sampling...")
@@ -312,9 +446,23 @@ def run_benchmarks(
             results.append(result_std)
             
             print(f"      Factor found: {result_std.factor_found}")
+            print(f"      Candidates/sec: {result_std.candidates_per_second:.0f}")
             if result_std.factor_found:
                 print(f"      Tries to hit: {result_std.tries_to_hit}")
                 print(f"      Wall time: {result_std.wall_time_seconds:.2f}s")
+            
+            # Benchmark existing builders (only once per RSA, not per seed)
+            if include_builders and seed == seeds[0]:
+                print("    Running Z5D builder...")
+                result_z5d = benchmark_z5d_builder(
+                    rsa, seed, max_tries, samples_per_try, timeout
+                )
+                results.append(result_z5d)
+                
+                print(f"      Factor found: {result_z5d.factor_found}")
+                print(f"      Candidates tested: {result_z5d.candidates_tested}")
+                print(f"      Candidates/sec: {result_z5d.candidates_per_second:.0f}")
+                print(f"      Wall time: {result_z5d.wall_time_seconds:.2f}s")
     
     # Write results to CSV
     print(f"\nWriting results to {output_file}...")
@@ -336,35 +484,54 @@ def print_summary(results: List[BenchmarkResult]):
     print("=" * 80)
     
     # Group by method
-    phi_results = [r for r in results if r.method == 'phi_biased_monte_carlo' and r.factor_found]
-    std_results = [r for r in results if r.method == 'standard_monte_carlo' and r.factor_found]
+    methods = set(r.method for r in results)
     
-    print(f"\nφ-biased Monte Carlo:")
-    print(f"  Success rate: {len(phi_results)}/{len([r for r in results if r.method == 'phi_biased_monte_carlo'])}")
-    if phi_results:
-        avg_tries = sum(r.tries_to_hit for r in phi_results) / len(phi_results)
-        avg_time = sum(r.wall_time_seconds for r in phi_results) / len(phi_results)
-        avg_candidates = sum(r.candidates_tested for r in phi_results) / len(phi_results)
-        print(f"  Avg tries to hit: {avg_tries:.1f}")
-        print(f"  Avg wall time: {avg_time:.2f}s")
-        print(f"  Avg candidates tested: {avg_candidates:.0f}")
+    for method in sorted(methods):
+        method_results = [r for r in results if r.method == method]
+        successful = [r for r in method_results if r.factor_found]
+        
+        print(f"\n{method}:")
+        print(f"  Success rate: {len(successful)}/{len(method_results)}")
+        
+        if successful:
+            avg_tries = sum(r.tries_to_hit for r in successful) / len(successful)
+            avg_time = sum(r.wall_time_seconds for r in successful) / len(successful)
+            avg_candidates = sum(r.candidates_tested for r in successful) / len(successful)
+            avg_cand_per_sec = sum(r.candidates_per_second for r in successful) / len(successful)
+            
+            print(f"  Avg tries to hit: {avg_tries:.1f}")
+            print(f"  Avg wall time: {avg_time:.2f}s")
+            print(f"  Avg candidates tested: {avg_candidates:.0f}")
+            print(f"  Avg candidates/sec: {avg_cand_per_sec:.0f}")
+        else:
+            # No factors found, but show perf metrics
+            if method_results:
+                avg_candidates = sum(r.candidates_tested for r in method_results) / len(method_results)
+                avg_time = sum(r.wall_time_seconds for r in method_results) / len(method_results)
+                avg_cand_per_sec = sum(r.candidates_per_second for r in method_results) / len(method_results)
+                
+                print(f"  Avg candidates tested: {avg_candidates:.0f}")
+                print(f"  Avg wall time: {avg_time:.2f}s")
+                print(f"  Avg candidates/sec: {avg_cand_per_sec:.0f}")
     
-    print(f"\nStandard Monte Carlo:")
-    print(f"  Success rate: {len(std_results)}/{len([r for r in results if r.method == 'standard_monte_carlo'])}")
-    if std_results:
-        avg_tries = sum(r.tries_to_hit for r in std_results) / len(std_results)
-        avg_time = sum(r.wall_time_seconds for r in std_results) / len(std_results)
-        avg_candidates = sum(r.candidates_tested for r in std_results) / len(std_results)
-        print(f"  Avg tries to hit: {avg_tries:.1f}")
-        print(f"  Avg wall time: {avg_time:.2f}s")
-        print(f"  Avg candidates tested: {avg_candidates:.0f}")
+    # Compare variance reduction modes for φ-biased sampling
+    phi_uniform = [r for r in results if r.method == 'phi_biased_monte_carlo_uniform' and r.factor_found]
+    phi_stratified = [r for r in results if r.method == 'phi_biased_monte_carlo_stratified' and r.factor_found]
+    phi_qmc = [r for r in results if r.method == 'phi_biased_monte_carlo_qmc' and r.factor_found]
     
-    # Compute improvement
-    if phi_results and std_results:
-        phi_avg_tries = sum(r.tries_to_hit for r in phi_results) / len(phi_results)
-        std_avg_tries = sum(r.tries_to_hit for r in std_results) / len(std_results)
-        improvement = ((std_avg_tries - phi_avg_tries) / std_avg_tries) * 100
-        print(f"\nImprovement: {improvement:.1f}% fewer tries with φ-biased sampling")
+    if phi_uniform and (phi_stratified or phi_qmc):
+        print(f"\nVariance Reduction Comparison:")
+        uniform_avg_tries = sum(r.tries_to_hit for r in phi_uniform) / len(phi_uniform)
+        
+        if phi_stratified:
+            strat_avg_tries = sum(r.tries_to_hit for r in phi_stratified) / len(phi_stratified)
+            improvement = ((uniform_avg_tries - strat_avg_tries) / uniform_avg_tries) * 100
+            print(f"  Stratified vs Uniform: {improvement:+.1f}% change in tries")
+        
+        if phi_qmc:
+            qmc_avg_tries = sum(r.tries_to_hit for r in phi_qmc) / len(phi_qmc)
+            improvement = ((uniform_avg_tries - qmc_avg_tries) / uniform_avg_tries) * 100
+            print(f"  QMC vs Uniform: {improvement:+.1f}% change in tries")
 
 
 def main():
@@ -392,13 +559,41 @@ def main():
         default='monte_carlo_rsa_benchmark.csv',
         help='Output CSV file (default: monte_carlo_rsa_benchmark.csv)'
     )
+    parser.add_argument(
+        '--include-builders',
+        action='store_true',
+        default=True,
+        help='Include existing factorization builders (Z5D) in benchmark (default: True)'
+    )
+    parser.add_argument(
+        '--no-builders',
+        action='store_true',
+        help='Exclude factorization builders from benchmark'
+    )
+    parser.add_argument(
+        '--include-variance-reduction',
+        action='store_true',
+        default=True,
+        help='Include variance reduction modes (stratified, QMC) in benchmark (default: True)'
+    )
+    parser.add_argument(
+        '--no-variance-reduction',
+        action='store_true',
+        help='Exclude variance reduction modes from benchmark'
+    )
     
     args = parser.parse_args()
+    
+    # Handle negative flags
+    include_builders = args.include_builders and not args.no_builders
+    include_variance_reduction = args.include_variance_reduction and not args.no_variance_reduction
     
     results = run_benchmarks(
         rsa_ids=args.rsa_ids,
         seeds=args.seeds,
-        output_file=args.output
+        output_file=args.output,
+        include_builders=include_builders,
+        include_variance_reduction=include_variance_reduction
     )
     
     print_summary(results)

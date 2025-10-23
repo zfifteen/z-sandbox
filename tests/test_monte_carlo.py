@@ -494,6 +494,128 @@ def test_variance_reduction():
     return True
 
 
+def test_variance_reduction_modes_in_factorization():
+    """Test new variance reduction modes in biased_sampling_with_phi (Follow-up #3)."""
+    print("\n=== Test: Variance Reduction Modes in Factorization Sampler ===")
+    
+    enhancer = FactorizationMonteCarloEnhancer(seed=42)
+    N = 143  # 11 × 13
+    num_samples = 100
+    
+    # Test all three modes
+    modes = ["uniform", "stratified", "qmc"]
+    results = {}
+    
+    for mode in modes:
+        candidates = enhancer.biased_sampling_with_phi(N, num_samples=num_samples, mode=mode)
+        results[mode] = candidates
+        
+        print(f"{mode}: {len(candidates)} candidates")
+        assert len(candidates) > 0, f"{mode} mode should generate candidates"
+        assert all(c > 0 for c in candidates), f"{mode} mode: all candidates must be positive"
+        assert all(c < N for c in candidates), f"{mode} mode: all candidates must be < N"
+    
+    # Check that modes produce different candidate sets (due to different sampling)
+    # Reset seed for reproducibility check
+    enhancer2 = FactorizationMonteCarloEnhancer(seed=42)
+    candidates_repeat = enhancer2.biased_sampling_with_phi(N, num_samples=num_samples, mode="uniform")
+    
+    assert results["uniform"] == candidates_repeat, "Same seed should produce identical results"
+    
+    print("✓ All variance reduction modes work in factorization sampler")
+    return True
+
+
+def test_deprecation_warning():
+    """Test deprecation warning on HyperRotationMonteCarloAnalyzer import (Follow-up #4)."""
+    print("\n=== Test: Deprecation Warning on Backwards-Compatible Import ===")
+    
+    import warnings
+    
+    # Import from monte_carlo (old path) should trigger deprecation warning
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        
+        # Import the class
+        from monte_carlo import HyperRotationMonteCarloAnalyzer as OldImport
+        
+        # Instantiate (this should trigger the warning)
+        analyzer = OldImport(seed=42)
+        
+        # Check that warning was issued
+        assert len(w) >= 1, "Should have issued deprecation warning"
+        assert any(issubclass(warning.category, DeprecationWarning) for warning in w), \
+            "Should be a DeprecationWarning"
+        
+        # Check warning message
+        warning_messages = [str(warning.message) for warning in w]
+        assert any("security.hyper_rotation" in msg for msg in warning_messages), \
+            "Warning should mention new import path"
+        
+        print(f"Warning message: {w[0].message}")
+    
+    # Import from security.hyper_rotation (new path) should NOT trigger warning
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        
+        from security.hyper_rotation import HyperRotationMonteCarloAnalyzer as NewImport
+        analyzer2 = NewImport(seed=42)
+        
+        # Filter to only DeprecationWarnings about this import
+        relevant_warnings = [warning for warning in w 
+                           if issubclass(warning.category, DeprecationWarning) 
+                           and "HyperRotation" in str(warning.message)]
+        
+        assert len(relevant_warnings) == 0, "New import path should not trigger warning"
+    
+    print("✓ Deprecation warning works correctly")
+    return True
+
+
+def test_benchmark_csv_fields():
+    """Test that benchmark results include new CSV fields (Follow-up #1, #3, #5)."""
+    print("\n=== Test: Benchmark CSV Fields ===")
+    
+    import sys
+    sys.path.insert(0, 'scripts')
+    from benchmark_monte_carlo_rsa import BenchmarkResult, RSAChallenge, benchmark_phi_biased_sampling
+    
+    # Create a small test case
+    test_rsa = RSAChallenge(id='TEST', N=77, p=7, q=11, factored=True)
+    
+    # Run benchmark with QMC mode
+    result = benchmark_phi_biased_sampling(
+        test_rsa, 
+        seed=42, 
+        max_tries=5, 
+        samples_per_try=50, 
+        timeout_seconds=2,
+        sampling_mode="qmc"
+    )
+    
+    # Check that new fields exist
+    assert hasattr(result, 'sampling_mode'), "Result should have sampling_mode field"
+    assert hasattr(result, 'candidates_per_second'), "Result should have candidates_per_second field"
+    
+    # Check field values
+    assert result.sampling_mode == "qmc", f"Expected 'qmc', got '{result.sampling_mode}'"
+    assert result.candidates_per_second >= 0, "candidates_per_second should be non-negative"
+    assert result.method == "phi_biased_monte_carlo_qmc", f"Method should include mode: {result.method}"
+    
+    print(f"Sampling mode: {result.sampling_mode}")
+    print(f"Method: {result.method}")
+    print(f"Candidates/sec: {result.candidates_per_second:.0f}")
+    
+    # Test that result can be converted to dict (for CSV writing)
+    from dataclasses import asdict
+    result_dict = asdict(result)
+    assert 'sampling_mode' in result_dict
+    assert 'candidates_per_second' in result_dict
+    
+    print("✓ Benchmark CSV fields are correct")
+    return True
+
+
 def run_all_tests():
     """Run all test cases."""
     print("=" * 70)
@@ -515,6 +637,9 @@ def run_all_tests():
         test_rng_pcg64_initialization,
         test_rng_deterministic_replay,
         test_variance_reduction,
+        test_variance_reduction_modes_in_factorization,
+        test_deprecation_warning,
+        test_benchmark_csv_fields,
     ]
     
     passed = 0

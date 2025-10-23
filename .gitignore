@@ -32,6 +32,10 @@ python/batch_run_log.txt
 python/*_targets.json
 python/*_results.json
 
+# ECM checkpoint files (binary state files)
+ckpts/
+*.sav
+
 # OS
 .DS_Store
 
