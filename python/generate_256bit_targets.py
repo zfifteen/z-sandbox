@@ -12,6 +12,7 @@ import time
 from pathlib import Path
 import sympy
 from z5d_predictor import z5d_predict
+from z5d_axioms import Z5DAxioms
 
 # Set random seed for reproducibility
 SEED = 42
@@ -87,6 +88,78 @@ def find_prime_near_z5d_prediction(k, max_search=1000):
     prime = sympy.nextprime(prediction)
     return prime, k, prime - prediction
 
+
+def generate_z5d_biased_prime(target_bits=128, k_resolution=0.3):
+    """
+    Generate a prime biased by Z5D geometric resolution.
+    
+    Applies Z5D axioms:
+    - Discrete domain form: Z = n(Δ_n / Δ_max)
+    - Curvature: κ(n) = d(n) · ln(n+1) / e²
+    - Geometric resolution: θ'(n, k) = φ · ((n mod φ) / φ)^k
+    
+    Args:
+        target_bits: Target bit length (default: 128)
+        k_resolution: Geometric resolution parameter (default: 0.3)
+    
+    Returns:
+        (prime, metadata) where metadata contains Z5D bias factors
+    """
+    axioms = Z5DAxioms()
+    
+    # Target value for prime
+    target_value = 2**(target_bits - 1) + random.randint(0, 2**(target_bits - 2))
+    
+    # Estimate prime index
+    k_estimate = int(target_value / math.log(target_value))
+    
+    # Apply Z5D bias
+    theta_prime, kappa, bias_factor = axioms.z5d_biased_prime_selection(k_estimate, k_resolution)
+    
+    # Use Z5D prediction as starting point
+    z5d_pred = z5d_predict(k_estimate)
+    
+    # Adjust prediction by geometric resolution
+    # θ'(n, k) influences the search direction
+    theta_adjustment = int(float(theta_prime) * math.log(target_value + 1))
+    
+    # Search for prime near Z5D-adjusted prediction
+    search_center = z5d_pred + theta_adjustment
+    
+    # Ensure within bit range
+    min_val = 2**(target_bits - 1)
+    max_val = 2**target_bits - 1
+    search_center = max(min_val, min(max_val, search_center))
+    
+    # Make odd
+    if search_center % 2 == 0:
+        search_center += 1
+    
+    # Search for prime with curvature-adjusted window
+    # κ(n) determines search radius (higher curvature = tighter search)
+    kappa_float = float(kappa)
+    search_radius = int(2**20 * (1.0 / (1.0 + kappa_float)))
+    
+    prime = find_prime_near(search_center, search_radius)
+    
+    # Verify bit length
+    if not (2**(target_bits - 1) <= prime < 2**target_bits):
+        # Fallback to standard method if out of range
+        prime = sympy.randprime(2**(target_bits - 1), 2**target_bits)
+    
+    metadata = {
+        'z5d_biased': True,
+        'k_estimate': k_estimate,
+        'theta_prime': float(theta_prime),
+        'curvature': kappa_float,
+        'bias_factor': float(bias_factor),
+        'k_resolution': k_resolution,
+        'z5d_prediction': z5d_pred,
+        'search_center': search_center
+    }
+    
+    return prime, metadata
+
 def find_prime_near(target, search_radius=2**20):
     """
     Find a prime near the target value within search radius.
@@ -118,39 +191,64 @@ def find_prime_near(target, search_radius=2**20):
     # Fallback: use sympy to find next prime
     return sympy.nextprime(target)
 
-def generate_balanced_128bit_prime_pair(bias_close=False, max_retries=10):
+def generate_balanced_128bit_prime_pair(bias_close=False, use_z5d=True, max_retries=10):
     """
-    Generate a pair of balanced 128-bit primes using Z5D prediction.
+    Generate a pair of balanced 128-bit primes using Z5D-guided selection.
+    
+    Applies Z5D axioms for biased prime selection:
+    - Discrete domain form: Z = n(Δ_n / Δ_max)
+    - Curvature: κ(n) = d(n) · ln(n+1) / e²
+    - Geometric resolution: θ'(n, k) = φ · ((n mod φ) / φ)^k with k ≈ 0.3
     
     Args:
         bias_close: If True, bias toward close p and q for Fermat weakness
+        use_z5d: If True, use Z5D-guided prime generation (default: True)
         max_retries: Maximum number of retries if primes are out of range
     
     Returns:
-        (p, q, metadata) where metadata contains generation info
+        (p, q, metadata) where metadata contains generation info and Z5D factors
     """
-    # For 128-bit primes, we can use sympy directly
-    # This is simpler and more reliable than trying to predict indices
-    
     for attempt in range(max_retries):
-        # Generate 128-bit primes directly
-        p = sympy.randprime(2**127, 2**128)
-        
-        if bias_close:
-            # Generate q close to p
-            gap = random.randint(2**20, 2**24)  # Small gap for Fermat weakness
-            q_start = p + gap if random.random() > 0.5 else max(2**127, p - gap)
-            q = sympy.nextprime(q_start)
+        if use_z5d:
+            # Use Z5D-biased prime generation (AXIOM-BASED)
+            p, p_metadata = generate_z5d_biased_prime(target_bits=128, k_resolution=0.3)
             
-            # Ensure q is still in 128-bit range
-            if q >= 2**128:
-                q = sympy.randprime(2**127, 2**128)
+            if bias_close:
+                # Generate q close to p using Z5D with similar bias
+                # Small gap for Fermat weakness
+                gap = random.randint(2**20, 2**24)
+                q_target = p + gap if random.random() > 0.5 else max(2**127, p - gap)
+                q = find_prime_near(q_target, search_radius=2**22)
+                
+                # Ensure q is in 128-bit range
+                if not (2**127 <= q < 2**128):
+                    q, q_metadata = generate_z5d_biased_prime(target_bits=128, k_resolution=0.3)
+                else:
+                    q_metadata = {'z5d_biased': False, 'note': 'close_to_p'}
+            else:
+                # Generate q independently using Z5D
+                q, q_metadata = generate_z5d_biased_prime(target_bits=128, k_resolution=0.3)
+                
+                # Ensure q != p
+                while q == p:
+                    q, q_metadata = generate_z5d_biased_prime(target_bits=128, k_resolution=0.3)
         else:
-            # Generate q independently
-            q = sympy.randprime(2**127, 2**128)
-            # Ensure q != p
-            while q == p:
+            # Fallback: standard generation without Z5D
+            p = sympy.randprime(2**127, 2**128)
+            
+            if bias_close:
+                gap = random.randint(2**20, 2**24)
+                q_start = p + gap if random.random() > 0.5 else max(2**127, p - gap)
+                q = sympy.nextprime(q_start)
+                if q >= 2**128:
+                    q = sympy.randprime(2**127, 2**128)
+            else:
                 q = sympy.randprime(2**127, 2**128)
+                while q == p:
+                    q = sympy.randprime(2**127, 2**128)
+            
+            p_metadata = {'z5d_biased': False}
+            q_metadata = {'z5d_biased': False}
         
         # Verify 128-bit range using constants
         p_bits = p.bit_length()
@@ -160,19 +258,16 @@ def generate_balanced_128bit_prime_pair(bias_close=False, max_retries=10):
             # Sort so p < q
             if p > q:
                 p, q = q, p
+                p_metadata, q_metadata = q_metadata, p_metadata
             
-            # Calculate approximate k values (for metadata)
-            k1 = int(p / math.log(p)) if p > 2 else 1
-            k2 = int(q / math.log(q)) if q > 2 else 1
-            
+            # Merge metadata
             metadata = {
-                'k1': k1,
-                'k2': k2,
-                'offset1': 0,  # Not using Z5D prediction directly
-                'offset2': 0,
                 'p_bits': p_bits,
                 'q_bits': q_bits,
-                'bias_close': bias_close
+                'bias_close': bias_close,
+                'use_z5d': use_z5d,
+                'p_z5d': p_metadata,
+                'q_z5d': q_metadata
             }
             
             return p, q, metadata
