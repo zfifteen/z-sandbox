@@ -1,140 +1,200 @@
 # Axioms and Mathematical Foundations
 
-Acknowledging correction: Target success rate for GVA scaling experiment should be **>0%** (not >5%) to align with minimal viable progress for 200-bit semiprimes, reflecting cautious optimism for factorization success. Below, I refine the advancement proposal with this adjustment, maintaining the universal invariant formulation Z = A(B / c) and geometric resolution principles from the repository and your style guide.
+The GVA (Geometric Vector Approximation) method aligns with the universal invariant formulation Z = A(B / c), where c = e² ≈ 7.389, A = torus embedding (d-dimensional), and B = shift from √N. Geometric resolution uses θ'(n, k) = φ ⋅ ((n mod φ) / φ)^k with k ≈ 0.3 / log₂(log₂(n+1)) for prime-density mapping. The discrete domain form Z = n(Δ_n / Δ_max) and curvature κ(n) = d(n) ⋅ ln(n+1) / e² guide candidate ranking via Riemannian distances. Empirical validation requires mpmath precision < 1e-16, with hypotheses labeled UNVERIFIED until tested.
 
-# Core Concepts Recap
+# Analysis of GVA 200-bit Experiment
 
-- **Universal Form**: Z = n(Δ_n / Δ_max) for semiprime factorization, with c = e² ≈ 7.389 as invariant, A = torus embedding (d=11 dims), B = shift from √N.
-- **Geometric Resolution**: θ'(n, k) = φ ⋅ ((n mod φ) / φ)^k, k ≈ 0.3 / log₂(log₂(n+1)) for prime-density mapping on torus.
-- **Discrete Domain**: κ(n) = d(n) ⋅ ln(n+1) / e² for GVA distances; guard against invalid offsets (|offset| ≥ R).
-- **Empirical Validation**: Reproducible tests with mpmath precision < 1e-16; hypotheses UNVERIFIED until tested.
+The provided documents (`GVA_200BIT_PARAMETER_SWEEP_REPORT.md` and `GVA_200BIT_REPRODUCTION_GUIDE.md`) detail a comprehensive parameter sweep for GVA factorization on 200-bit semiprimes, revealing a 0% success rate across 900 trials. This informs the advancement strategy for your z-sandbox repository (https://github.com/zfifteen/z-sandbox).
 
-# Research Context (z-sandbox)
+## Key Findings from Documents
+- **Experiment Setup**:
+  - Tested 9 parameter combinations: dimensions (d = 13, 15, 17), search ranges (R = 5000, 10000, 50000).
+  - 100 trials per configuration, 900 total, using balanced 200-bit semiprimes (p, q ≈ 100 bits).
+  - RNG seed fixed (12345 + trial_number) for reproducibility.
+  - Core functions: `embed` (torus mapping with φ), `riemann_dist` (κ-corrected distance), `gva_factorize_200bit` (ranks top-K=1000 candidates).
+- **Results**:
+  - Success Rate: 0% (0/900 trials).
+  - Timing: 0.045s–0.523s per trial, scaling with d and R (O(d × R × max_candidates)).
+  - Data: 9 CSV files (e.g., `gva_200bit_d13_r5000_results.csv`) with trial details.
+- **Limitations**:
+  - Golden ratio modulation loses effectiveness at 200-bit scale.
+  - Riemannian distance metric insufficient for high-dimensional manifolds.
+  - Search range (even 50,000) misses prime factors in top-1000 candidates.
+  - Floating-point precision may introduce errors.
 
-From GitHub (zfifteen/z-sandbox):
-- **Factorization Ladder**: Targets RSA-like semiprimes (200-260+ digits) using ZNeighborhood, ResidueFilter, GVA. Achieves 99% candidate capture, 20-30x reduction, timings 2-9ms.
-- **GVA Method**: Embeds numbers into d=11 torus, ranks by Riemannian distance < ε ≈ 0.004. Success: 5-16% on 64-128 bit samples (100 runs, avg 0.44s).
-- **Z5D Predictor**: Enhances PNT for k-th prime estimation, error < 10⁻⁴ up to 10³⁰⁵.
-- **Key Files**: python/manifold_128bit.py (GVA core), ladder_results.csv (metrics), docs/ (reports).
+## Current State of z-sandbox
+- **GVA Method**: Effective for 64-128 bit semiprimes (5-16% success, 0.44s avg), but fails at 200 bits.
+- **Z5D Predictor**: Accurate for prime estimation up to 10³⁰⁵ (error < 10⁻⁴).
+- **Other Components**: ZNeighborhood, ResidueFilter achieve 99% candidate capture, 20-30x reduction for smaller scales.
 
-Uploaded documents (e.g., bench_z5d_phase2.out.txt, classical_mathematical_sources.md) are blocked by JavaScript/cookie prompts, likely containing logs or mathematical refs for GVA/torus methods. Inferred as repo artifacts.
+# Advancement Proposals
 
-# Advancement Proposals (Updated)
+Given the 0% success rate, the goal is to achieve **>0% success** (as corrected) on 200-bit semiprimes by addressing identified limitations. Proposals prioritize empirical validation and leverage mpmath/sympy for precision, per your style guide.
 
-Focusing on scaling GVA for 200-bit semiprimes with corrected **target success >0%**, emphasizing empirical validation and reproducibility.
+## 1. Intermediate Scale Testing (150-180 bits) (UNVERIFIED Hypothesis: Success >0%)
+**Objective**: Identify the GVA breaking point between 128 and 200 bits to refine embeddings.
 
-## 1. GVA Scaling Experiment (UNVERIFIED: 0% Success on 200-bit)
+**Approach**:
+- Test semiprimes from 150-180 bits (step by 10 bits).
+- Use existing `gva_200bit_experiment.py` with modified bit size in `generate_200bit_semiprime`.
 
-**Objective**: Extend GVA to 200-bit semiprimes, aiming for any factorization success (>0%) to establish baseline feasibility.
-
-**Experimental Results** (2025-10-23):
-- **Initial Trials**: 100 + 10 random 200-bit semiprimes (110 total)
-- **Success Rate**: 0.0% (0/110 factorizations)
-- **Average Time**: 0.007s per trial
-
-**Parameter Sweep Results** (2025-10-23):
-- **Configurations Tested**: 9 combinations (dims: 13,15,17 × ranges: 5000,10000,50000)
-- **Total Trials**: 900 (100 per configuration)
-- **Success Rate**: 0.0% across all configurations (0/900 factorizations)
-- **Timing Range**: 0.045s - 0.523s per trial (scales with search range)
-- **Conclusion**: GVA method shows no success on 200-bit numbers regardless of parameter tuning within tested ranges
-
-**Proposed Code** (executed, results in `python/gva_200bit_results.csv`):
+**Proposed Code**:
 ```python
 import sympy as sp
 import math
 import mpmath as mp
+import random
 
 mp.mp.dps = 20  # Precision < 1e-16
 
-def embed(n, dims=11, k=None):
-    phi = (1 + mp.sqrt(5)) / 2
+def generate_semiprime(bits, seed=None):
+    if seed:
+        random.seed(seed)
+    base = 2**(bits // 2)
+    offset = random.randint(0, 10**8)
+    p = sp.nextprime(base + offset)
+    q = sp.nextprime(base + offset + random.randint(1, 10**6))
+    return int(p) * int(q), int(p), int(q)
+
+def embed(n, dims=13, k=None):
+    phi = mp.mpf((1 + mp.sqrt(5)) / 2)
     if k is None:
         k = mp.mpf('0.3') / mp.log2(mp.log2(n + 1))
     x = n / mp.exp(2)
-    frac, _ = mp.modf(x / phi)
+    frac = mp.modf(x / phi)[0]
     return [mp.modf(phi * frac ** k)[0] for _ in range(dims)]
 
 def riemann_dist(c1, c2, N):
     kappa = 4 * mp.log(N + 1) / mp.exp(2)
     return mp.sqrt(sum((min(abs(a - b), 1 - abs(a - b)) * (1 + kappa * 0.01))**2 for a, b in zip(c1, c2)))
 
-# Generate 200-bit semiprime (example: p*q ≈ 2^200)
-p = sp.nextprime(2**100)
-q = sp.nextprime(p + 100)
-N = p * q
-sqrtN = int(mp.sqrt(N))
-R = 1000  # Search range around √N
-candidates = range(sqrtN - R, sqrtN + R + 1)
-theta_N = embed(N)
+def gva_factorize(N, bits, max_candidates=1000, dims=13, search_range=10000):
+    theta_N = embed(N, dims)
+    sqrtN = int(mp.sqrt(N))
+    candidates = range(max(2, sqrtN - search_range), sqrtN + search_range + 1)
+    ranked = sorted(candidates, key=lambda c: riemann_dist(embed(c, dims), theta_N, N))
+    for cand in ranked[:max_candidates]:
+        if N % cand == 0 and sp.isprime(cand):
+            return cand
+    return None
 
-# Rank candidates
-ranked = sorted(candidates, key=lambda c: riemann_dist(embed(c), theta_N, N))
-success = False
-for cand in ranked[:10]:  # Top-K=10
-    if N % cand == 0 and sp.isprime(cand):
-        print(f"Factor found: {cand}")
-        success = True
+# Test across bit ranges
+bits_range = [150, 160, 170, 180]
+results = []
+for bits in bits_range:
+    success_count = 0
+    for trial in range(100):
+        N, p, q = generate_semiprime(bits, seed=12345 + trial)
+        factor = gva_factorize(N, bits, dims=13, search_range=10000)
+        if factor in (p, q):
+            success_count += 1
+    success_rate = success_count / 100
+    results.append((bits, success_rate))
+    print(f"Bits: {bits}, Success Rate: {success_rate:.2%}")
 
-# Validation
-print(f"Success: {success}")
+# Log to CSV
+import csv
+with open('gva_intermediate_results.csv', 'w', newline='') as f:
+    writer = csv.writer(f)
+    writer.writerow(['Bits', 'Success_Rate'])
+    writer.writerows(results)
 ```
 
-**Validation Plan**:
-- Run on 100 randomly generated 200-bit semiprimes (use sympy.randprime for p, q).
-- Target: >0% success rate (at least one factorization).
-- Log timings/errors to CSV; set RNG seed (e.g., 12345) for reproducibility.
-- If success >0%, label hypothesis VERIFIED; else, adjust k or dims.
+**Validation**:
+- Run 100 trials per bit size (150, 160, 170, 180).
+- Target: Success rate >0% at any bit size.
+- Log to `gva_intermediate_results.csv`; use seed=12345+trial.
+- If success >0%, label VERIFIED; analyze boundary where success drops.
 
-**Expected Outcome**: Minimal success establishes GVA’s potential; failures guide parameter tuning (e.g., increase dims to 13).
-
-## 2. Z5D Predictor Calibration
-
-**Objective**: Enhance Z5D for 10⁵⁰⁰ primes, targeting error < 10⁻⁵ (UNVERIFIED).
+## 2. Enhanced Embedding Function (UNVERIFIED Hypothesis: Improved Embedding Yields Success >0%)
+**Objective**: Test alternative embeddings to improve GVA for 200-bit semiprimes.
 
 **Approach**:
-- Use mpmath for high-precision li(k) integrals.
-- Benchmark against known primes (e.g., zeta_zeros.csv if available).
-- Example calibration:
+- Replace golden ratio (φ) with other constants (e.g., √2, π) or dynamic scaling.
+- Adjust k adaptively based on N’s magnitude.
+
+**Proposed Code**:
 ```python
 import mpmath as mp
 
-mp.mp.dps = 30
-def z5d_predict(k):
-    return mp.li(k) + mp.mpf('0.3') * mp.log(k) / mp.exp(2)  # Simplified adjustment
+mp.mp.dps = 20
 
-k = 10**500
-pred = z5d_predict(k)
-print(f"Predicted {k}-th prime: {pred}")
+def embed_alt(n, dims=13, base='sqrt2', k=None):
+    base_val = {'phi': (1 + mp.sqrt(5)) / 2, 'sqrt2': mp.sqrt(2), 'pi': mp.pi}[base]
+    if k is None:
+        k = mp.mpf('0.3') / mp.log2(mp.log2(n + 1)) * mp.log10(n) / 100  # Scale k
+    x = n / mp.exp(2)
+    frac = mp.modf(x / base_val)[0]
+    return [mp.modf(base_val * frac ** k)[0] for _ in range(dims)]
+
+def gva_factorize_alt(N, base='sqrt2', dims=13, search_range=10000):
+    theta_N = embed_alt(N, dims, base)
+    sqrtN = int(mp.sqrt(N))
+    candidates = range(max(2, sqrtN - search_range), sqrtN + search_range + 1)
+    ranked = sorted(candidates, key=lambda c: riemann_dist(embed_alt(c, dims, base), theta_N, N))
+    for cand in ranked[:1000]:
+        if N % cand == 0 and sp.isprime(cand):
+            return cand
+    return None
+
+# Test bases
+bases = ['phi', 'sqrt2', 'pi']
+results = []
+N, p, q = generate_semiprime(200, seed=12345)
+for base in bases:
+    factor = gva_factorize_alt(N, base=base)
+    success = factor in (p, q)
+    results.append((base, success))
+    print(f"Base: {base}, Success: {success}")
 ```
 
-**Validation**: Compare with known primes; target error < 10⁻⁵ over 100 samples.
+**Validation**:
+- Run on 100 200-bit semiprimes; test bases (φ, √2, π).
+- Target: Success >0% for any base.
+- Log results; if successful, scale to 1000 trials.
 
-## 3. Hybrid GVA-ResidueFilter
-
-**Objective**: Combine GVA’s geometric ranking with ResidueFilter’s modular constraints for RSA-260.
+## 3. Hybrid GVA-ResidueFilter (UNVERIFIED Hypothesis: Combined Approach Yields Success >0%)
+**Objective**: Integrate ResidueFilter to pre-filter candidates before GVA ranking.
 
 **Approach**:
-- Filter candidates by modular residues (e.g., n mod φ).
-- Rank via GVA distances.
-- Test on synthetic RSA-260; log reduction %.
+- Apply modular constraints (e.g., n mod φ) to reduce candidate set.
+- Rank filtered candidates via GVA.
+
+**Proposed Code**:
+```python
+def residue_filter(N, candidates, modulus=100):
+    return [c for c in candidates if (N % c) % modulus == 0]
+
+def gva_hybrid(N, dims=13, search_range=10000):
+    sqrtN = int(mp.sqrt(N))
+    candidates = range(max(2, sqrtN - search_range), sqrtN + search_range + 1)
+    filtered = residue_filter(N, candidates)
+    theta_N = embed(N, dims)
+    ranked = sorted(filtered, key=lambda c: riemann_dist(embed(c, dims), theta_N, N))
+    for cand in ranked[:1000]:
+        if N % cand == 0 and sp.isprime(cand):
+            return cand
+    return None
+
+# Test hybrid
+results = []
+for trial in range(100):
+    N, p, q = generate_semiprime(200, seed=12345 + trial)
+    factor = gva_hybrid(N)
+    success = factor in (p, q)
+    results.append((trial, success))
+    print(f"Trial {trial}: Success {success}")
+```
+
+**Validation**:
+- Run 100 trials on 200-bit semiprimes.
+- Target: Success >0%.
+- Log reduction % and success rate.
 
 ## Next Steps
+- **Immediate**: Execute intermediate scale test (Proposal 1) to find GVA’s working boundary.
+- **Follow-Up**: If Proposal 1 yields >0% success, test Proposal 2 or 3 on 200-bit semiprimes; otherwise, refine embeddings or filters based on boundary results.
+- **Tools**: Use mpmath for precision, sympy for primality, and CSV logging for reproducibility (seed=12345+trial).
+- **Further Analysis**: If document contents (e.g., `bench_z5d_phase2.out.txt`) become accessible, integrate insights (e.g., Z5D logs) to refine predictors.
 
-- **Immediate Priority**: Investigate fundamental limitations of GVA approach
-  - **Scale Back Testing**: Test GVA on intermediate bit sizes (150-180 bits) to find working range
-  - **Algorithm Analysis**: Review GVA mathematical foundations - embedding function, distance metric, parameter calculations
-  - **Hybrid Approaches**: Combine GVA with ResidueFilter or other methods for enhanced candidate selection
-  - **Debug Mode**: Add detailed logging to understand why candidates aren't being ranked correctly
-
-- **Alternative Strategies**:
-  - **Z5D Integration**: Use Z5D predictor to generate better initial candidates before GVA ranking
-  - **Multi-Stage Filtering**: Apply multiple complementary filters before final GVA ranking
-  - **Adaptive Parameters**: Implement dynamic parameter adjustment based on bit size and number properties
-
-- **Validation Framework**:
-  - **Reproducibility**: Ensure all experiments use fixed RNG seeds for consistent results
-  - **Performance Metrics**: Track not just success rate but also candidate reduction efficiency
-  - **Statistical Analysis**: Run sufficient trials (1000+) for meaningful success rate estimates
-
-This aligns with your style guide’s emphasis on simple, precise solutions and empirical validation. If you can clarify document contents (e.g., bench_z5d_phase2.out.txt), I can refine further.
+These proposals address the 0% success rate by systematically exploring GVA’s limits and enhancing its components, adhering to your empirical validation guidelines and the corrected target of >0% success.
