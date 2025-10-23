@@ -403,13 +403,25 @@ Comprehensive performance analysis:
 
 **Inspired by military frequency-hopping radio COMSEC (SINCGARS, HAVE QUICK)**, TRANSEC adapts time-synchronized key rotation to software-defined networking, eliminating handshake latency in tactical/industrial scenarios.
 
+### Unique Properties
+
+TRANSEC provides a property set **absent from TLS 1.3/QUIC, IKEv2, and Signal**: true **zero-handshake, first-contact, replay-bounded AEAD** using only pre-shared key + synchronized time.
+
+- **TLS 1.3 0-RTT**: Requires prior PSK/resumption; no inherent replay protection ([RFC 8446](https://datatracker.ietf.org/doc/html/rfc8446))
+- **QUIC 0-RTT**: Inherits TLS 1.3 limitations; requires prior connection ([RFC 9000](https://datatracker.ietf.org/doc/html/rfc9000))
+- **IKEv2**: Requires explicit authenticated handshake (1-4 RTT) before protected data ([RFC 7296](https://datatracker.ietf.org/doc/html/rfc7296))
+- **Signal**: Requires X3DH key-agreement handshake before messaging ([Signal Specs](https://signal.org/docs/))
+
+See [Protocol Comparison](docs/TRANSEC_PROTOCOL_COMPARISON.md) for detailed analysis.
+
 ### Key Features
 
 - **Zero-RTT Communication**: No handshake overhead after initial bootstrap
-- **Time-Sliced Keying**: Deterministic key rotation based on time epochs
-- **Military-Grade Design**: Adapted from TRANSEC/COMSEC paradigms
+- **Time-Sliced Keying**: Deterministic key rotation based on time epochs (HKDF-SHA256)
+- **Military-Grade Design**: Adapted from TRANSEC/COMSEC paradigms (HAVE QUICK/SINCGARS)
 - **Sub-millisecond Latency**: ~0.3ms RTT for encrypted UDP packets
-- **3,000+ msg/sec Throughput**: High-performance AEAD encryption
+- **3,000+ msg/sec Throughput**: High-performance AEAD encryption (ChaCha20-Poly1305)
+- **Inherent Replay Protection**: Slot index + sequence number tracking
 
 ### Quick Start
 
@@ -454,6 +466,7 @@ python3 python/transec_udp_demo.py benchmark --count 100
 
 ### Documentation
 
+- [Protocol Comparison](docs/TRANSEC_PROTOCOL_COMPARISON.md) - **NEW!** Comprehensive comparison with TLS 1.3, QUIC, IKEv2, and Signal
 - [TRANSEC Specification](docs/TRANSEC.md) - Full protocol specification with security model
 - [Usage Guide](docs/TRANSEC_USAGE.md) - API reference, examples, and best practices
 - [Test Suite](tests/test_transec.py) - Comprehensive test coverage (25 tests)
