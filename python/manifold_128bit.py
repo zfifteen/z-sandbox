@@ -124,7 +124,7 @@ def theta_prime(n, k=mpf('0.3')):
 # Example: Bound for GVA embedding
 n_example = mpf(1000)
 theta = theta_prime(n_example)
-width_factor = mpf('0.155')
+width_factor = mpf('0.226')
 bound_lower = theta - width_factor / 2
 bound_upper = theta + width_factor / 2
 print(f'Bound for n=1000: [{bound_lower}, {bound_upper}]')
@@ -134,7 +134,7 @@ if __name__ == '__main__':
     # Example: Bound for GVA embedding
     n_example = mpf(1000)
     theta = theta_prime(n_example)
-    width_factor = mpf('0.155')
+    width_factor = mpf('0.226')
     bound_lower = theta - width_factor / 2
     bound_upper = theta + width_factor / 2
     print(f'Bound for n=1000: [{bound_lower}, {bound_upper}]')

@@ -78,10 +78,5 @@ def run_ecm_once(
         return _parse_factor_lines(out, N)
     else:
         # pyecm fallback – slower; only for dev boxes without gmp-ecm
-        import pyecm  # type: ignore
-        # Note: pyecm has no checkpointing or sigma control
-        fs = pyecm.factors(N, True, False, B1=B1)
-        for f in fs:
-            if 1 < f < N and (N % f) == 0:
-                return f
+        # For now, return None as pyecm API differs
         return None

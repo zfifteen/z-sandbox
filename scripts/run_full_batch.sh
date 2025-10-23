@@ -17,13 +17,12 @@ if ! command -v parallel >/dev/null 2>&1; then
   fi
 fi
 
-python3 - <<'PY'
+python3 - <<PY
 from pathlib import Path; import json
 ts = Path("python/targets_filtered.json")
-T = [int(x) for x in json.loads(ts.read_text())["targets"][:100]]
+T = [int(x['N']) for x in json.loads(ts.read_text())["targets"][:int("$COUNT")]]
 for n in T: print(n)
-PY \
-| parallel -j "$J" --halt soon,fail=1 \
-  'ECM_CKDIR='"$ECM_CKDIR"' ECM_SIGMA='"$ECM_SIGMA"' python3 python/scaling_test.py --single {} --timeout-per-stage '"$TIMEOUT"' --checkpoint-dir '"$ECM_CKDIR"' '"$( [ "$ECM_SIGMA" = "1" ] && echo --use-sigma )"'
+PY | parallel -j "$J" --halt soon,fail=1 'ECM_CKDIR='"$ECM_CKDIR"' ECM_SIGMA='"$ECM_SIGMA"' python3 python/scaling_test.py --single {} --timeout-per-stage '"$TIMEOUT"' --checkpoint-dir '"$ECM_CKDIR"' --use-sigma'
 
 echo "DONE"
+PY
