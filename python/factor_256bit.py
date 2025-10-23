@@ -53,10 +53,6 @@ def factor_256bit(
     if N.bit_length() < 250:
         raise ValueError(f"N too small for 256-bit path: {N.bit_length()} bits")
 
-    # quick exit for trivial cases
-    # Optional P-1 sweep for easy wins
-    # (placeholder; GMP-ECM supports -pm1)
-    pass  # Skip for now    if is_probable_prime(N):
         return None, None
 
     # Resolve checkpoint directory (env overrides)

@@ -49,3 +49,13 @@
 {"i": 1, "bits": 256, "N_head": "10660678358734909176", "timeout_stage": 120, "theta_gate": null, "status": "not_factored", "time_sec": 0.14}
 {"backend": "pyecm", "version": null, "meta": "RUN", "timestamp": "2025-10-23T02:20:40.611407Z", "schedule_B1": [1000000, 3000000, 11000000, 43000000], "schedule_curves": [1800, 5100, 10600, 19300], "timeout_per_stage": 120, "use_sigma": true, "checkpoint_dir": "ckpts"}
 {"i": 1, "bits": 255, "N_head": "35711358799353391440", "timeout_stage": 120, "theta_gate": null, "status": "not_factored", "time_sec": 0.13}
+{"backend": "pyecm", "version": null, "meta": "RUN", "timestamp": "2025-10-23T02:23:39.659820Z", "schedule_B1": [1000000, 3000000, 11000000, 43000000], "schedule_curves": [1800, 5100, 10600, 19300], "timeout_per_stage": 60, "use_sigma": true, "checkpoint_dir": "ckpts"}
+{"backend": "pyecm", "version": null, "meta": "RUN", "timestamp": "2025-10-23T02:23:39.659808Z", "schedule_B1": [1000000, 3000000, 11000000, 43000000], "schedule_curves": [1800, 5100, 10600, 19300], "timeout_per_stage": 60, "use_sigma": true, "checkpoint_dir": "ckpts"}
+{"backend": "pyecm", "version": null, "meta": "RUN", "timestamp": "2025-10-23T02:23:39.659810Z", "schedule_B1": [1000000, 3000000, 11000000, 43000000], "schedule_curves": [1800, 5100, 10600, 19300], "timeout_per_stage": 60, "use_sigma": true, "checkpoint_dir": "ckpts"}
+{"backend": "pyecm", "version": null, "meta": "RUN", "timestamp": "2025-10-23T02:23:39.659808Z", "schedule_B1": [1000000, 3000000, 11000000, 43000000], "schedule_curves": [1800, 5100, 10600, 19300], "timeout_per_stage": 60, "use_sigma": true, "checkpoint_dir": "ckpts"}
+{"i": 1, "bits": 255, "N_head": "45851376759703663945", "timeout_stage": 60, "theta_gate": null, "status": "not_factored", "time_sec": 0.234}
+{"i": 1, "bits": 256, "N_head": "74408788840462336407", "timeout_stage": 60, "theta_gate": null, "status": "not_factored", "time_sec": 0.234}
+{"i": 1, "bits": 255, "N_head": "47226728284697738668", "timeout_stage": 60, "theta_gate": null, "status": "not_factored", "time_sec": 0.234}
+{"i": 1, "bits": 256, "N_head": "98366833218689399751", "timeout_stage": 60, "theta_gate": null, "status": "not_factored", "time_sec": 0.234}
+{"backend": "pyecm", "version": null, "meta": "RUN", "timestamp": "2025-10-23T02:23:39.985583Z", "schedule_B1": [1000000, 3000000, 11000000, 43000000], "schedule_curves": [1800, 5100, 10600, 19300], "timeout_per_stage": 60, "use_sigma": true, "checkpoint_dir": "ckpts"}
+{"i": 1, "bits": 256, "N_head": "78101812996806916799", "timeout_stage": 60, "theta_gate": null, "status": "not_factored", "time_sec": 0.13}
