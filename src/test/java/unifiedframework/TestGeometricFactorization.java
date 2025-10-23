@@ -5,6 +5,7 @@ import static org.junit.Assert.*;
 import gva.GaussLegendreQuadrature;
 import gva.SphericalFluxDistance;
 import gva.Embedding;
+import unifiedframework.RiemannianDistance;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.MathContext;
@@ -283,5 +284,78 @@ public class TestGeometricFactorization {
     // Distance should scale with log²N (larger N → smaller normalized distance)
     assertTrue("Distance should scale with N", 
                distSmall.compareTo(distLarge) > 0);
+  }
+
+  @Test
+  public void testRiemannianDistanceFluxMethod() {
+    BigDecimal[] coords1 = {
+      new BigDecimal("0.25"), new BigDecimal("0.5"),
+      new BigDecimal("0.75"), new BigDecimal("0.25")
+    };
+    
+    BigDecimal[] coords2 = {
+      new BigDecimal("0.3"), new BigDecimal("0.6"),
+      new BigDecimal("0.7"), new BigDecimal("0.3")
+    };
+    
+    BigDecimal N = new BigDecimal("100003");
+    
+    BigDecimal distFlux = RiemannianDistance.calculateFlux(coords1, coords2, N);
+    
+    assertTrue("Flux distance should be positive", distFlux.compareTo(BigDecimal.ZERO) > 0);
+    assertTrue("Flux distance should be finite", distFlux.compareTo(new BigDecimal("1000")) < 0);
+  }
+
+  @Test
+  public void testRiemannianDistanceHybrid() {
+    BigDecimal[] coords1 = {
+      new BigDecimal("0.2"), new BigDecimal("0.3"),
+      new BigDecimal("0.7"), new BigDecimal("0.8")
+    };
+    
+    BigDecimal[] coords2 = {
+      new BigDecimal("0.25"), new BigDecimal("0.35"),
+      new BigDecimal("0.65"), new BigDecimal("0.75")
+    };
+    
+    BigDecimal N = new BigDecimal("50021");
+    
+    // Test hybrid with different weights
+    BigDecimal distPureRiemann = RiemannianDistance.calculateHybrid(coords1, coords2, N, 1.0);
+    BigDecimal distPureFlux = RiemannianDistance.calculateHybrid(coords1, coords2, N, 0.0);
+    BigDecimal distHalf = RiemannianDistance.calculateHybrid(coords1, coords2, N, 0.5);
+    
+    // Verify standard distance matches pure Riemannian
+    BigDecimal distStandard = RiemannianDistance.calculate(coords1, coords2, N);
+    assertEquals("Pure Riemannian should match standard", 
+                 distStandard.doubleValue(), distPureRiemann.doubleValue(), 1e-10);
+    
+    // Hybrid should be between the two extremes
+    assertTrue("Hybrid should be between pure metrics", 
+               distHalf.compareTo(distPureRiemann.min(distPureFlux)) >= 0 &&
+               distHalf.compareTo(distPureRiemann.max(distPureFlux)) <= 0);
+  }
+
+  @Test
+  public void testFluxDistanceOddDimensions() {
+    // Test flux distance with odd-length coordinate array (falls back to weighted Riemannian)
+    BigDecimal[] coords1 = {
+      new BigDecimal("0.3"),
+      new BigDecimal("0.5"),
+      new BigDecimal("0.7")
+    };
+    
+    BigDecimal[] coords2 = {
+      new BigDecimal("0.35"),
+      new BigDecimal("0.55"),
+      new BigDecimal("0.65")
+    };
+    
+    BigDecimal N = new BigDecimal("10007");
+    
+    BigDecimal distFlux = RiemannianDistance.calculateFlux(coords1, coords2, N);
+    
+    assertTrue("Flux distance should be positive for odd dims", 
+               distFlux.compareTo(BigDecimal.ZERO) > 0);
   }
 }
