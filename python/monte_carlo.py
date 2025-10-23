@@ -46,15 +46,21 @@ class MonteCarloEstimator:
     
     def __init__(self, seed: Optional[int] = 42, precision: int = 50):
         """
-        Initialize with reproducible seed.
+        Initialize with reproducible seed using PCG64 RNG.
         
         Args:
             seed: RNG seed for reproducibility (axiom requirement)
             precision: mpmath decimal places (target < 1e-16 error)
+            
+        RNG Policy (MC-RNG-002):
+        - Uses NumPy PCG64 for reproducibility across versions
+        - Stream splitting supported for parallel workers
+        - Deterministic replay guaranteed with same seed
         """
         self.seed = seed
         random.seed(seed)
-        np.random.seed(seed)
+        # Use PCG64 for reproducible, high-quality random numbers
+        self.rng = np.random.Generator(np.random.PCG64(seed))
         mp.dps = precision
         
     def estimate_pi(self, N: int = 1000000) -> Tuple[float, float, float]:
@@ -144,8 +150,15 @@ class Z5DMonteCarloValidator:
     """
     
     def __init__(self, seed: Optional[int] = 42):
+        """
+        Initialize with reproducible seed using PCG64 RNG.
+        
+        Args:
+            seed: RNG seed for reproducibility (MC-RNG-002)
+        """
         self.seed = seed
         random.seed(seed)
+        self.rng = np.random.Generator(np.random.PCG64(seed))
         
     def sample_interval_primes(self, a: int, b: int, num_samples: int = 10000) -> Tuple[float, float]:
         """
@@ -258,8 +271,15 @@ class FactorizationMonteCarloEnhancer:
     """
     
     def __init__(self, seed: Optional[int] = 42):
+        """
+        Initialize with reproducible seed using PCG64 RNG.
+        
+        Args:
+            seed: RNG seed for reproducibility (MC-RNG-002)
+        """
         self.seed = seed
         random.seed(seed)
+        self.rng = np.random.Generator(np.random.PCG64(seed))
         
     def sample_near_sqrt(self, N: int, num_samples: int = 10000, 
                         spread_factor: float = 0.01) -> List[int]:
@@ -287,7 +307,7 @@ class FactorizationMonteCarloEnhancer:
         candidates = []
         for _ in range(num_samples):
             # Z5D-biased sampling: prefer candidates with specific residues
-            offset = int(np.random.normal(0, spread))
+            offset = int(self.rng.normal(0, spread))
             candidate = sqrt_N + offset
             
             # Filter: only odd numbers if N is odd
@@ -343,8 +363,15 @@ class HyperRotationMonteCarloAnalyzer:
     """
     
     def __init__(self, seed: Optional[int] = 42):
+        """
+        Initialize with reproducible seed using PCG64 RNG.
+        
+        Args:
+            seed: RNG seed for reproducibility (MC-RNG-002)
+        """
         self.seed = seed
         random.seed(seed)
+        self.rng = np.random.Generator(np.random.PCG64(seed))
         
     def sample_rotation_times(self, num_samples: int = 10000, 
                              window_min: float = 1.0,
