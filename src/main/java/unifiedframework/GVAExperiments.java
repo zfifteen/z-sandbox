@@ -11,7 +11,6 @@ import java.util.*;
  * Tests distance correlation, scaling behavior, efficiency, and dimensionality effects.
  */
 public class GVAExperiments {
-    private static final MathContext MC = new MathContext(1000, RoundingMode.HALF_UP);
     private static final Random RNG = new Random(42);
 
     public static void main(String[] args) {
@@ -145,10 +144,8 @@ public class GVAExperiments {
             // Brute force baseline (trial division from sqrt(N) down)
             long startBrute = System.nanoTime();
             BigInteger sqrtN = sqrt(new BigDecimal(N)).toBigInteger();
-            BigInteger found = null;
             for (BigInteger test = sqrtN; test.compareTo(BigInteger.TWO) > 0; test = test.subtract(BigInteger.ONE)) {
                 if (N.mod(test).equals(BigInteger.ZERO)) {
-                    found = test;
                     break;
                 }
             }
@@ -213,72 +210,7 @@ public class GVAExperiments {
         }
     }
 
-    /**
-     * Experiment 5: Known Challenge Cases
-     * Tests on known small semiprimes.
-     */
-    private static void testKnownSemiprimes() {
-        String[] challenges = {
-            "15",    // 3 × 5
-            "21",    // 3 × 7
-            "33",    // 3 × 11
-            "143",   // 11 × 13
-            "1147",  // 31 × 37
-            "46441"  // 211 × 220
-        };
 
-        for (String nStr : challenges) {
-            BigInteger N = new BigInteger(nStr);
-            long start = System.nanoTime();
-            Optional<BigInteger[]> result = GVAFactorizer.factorize(N, 10000, 5);
-            long elapsed = (System.nanoTime() - start) / 1_000_000;
-
-            if (result.isPresent()) {
-                BigInteger[] factors = result.get();
-                System.out.printf("%s = %s × %s (%dms)\n",
-                    nStr, factors[0], factors[1], elapsed);
-            } else {
-                System.out.printf("%s = FAILED (%dms)\n", nStr, elapsed);
-            }
-        }
-    }
-
-    /**
-    /**
-     * Experiment 6: 256-bit Semiprime Factorization
-     * Tests the refined Z5D seeding on large 256-bit balanced semiprimes.
-     */
-    private static void test256BitSemiprimes() {
-        int trials = 20; // Adjust for time
-        int successes = 0;
-        long totalTime = 0;
-
-        for (int t = 0; t < trials; t++) {
-            // Generate 128-bit primes for 256-bit product
-            BigInteger p = BigInteger.probablePrime(128, RNG);
-            BigInteger q = BigInteger.probablePrime(128, RNG);
-            BigInteger N = p.multiply(q);
-
-            System.out.printf("Trial %d: N has %d bits\n", t+1, N.bitLength());
-
-            long start = System.nanoTime();
-            Optional<BigInteger[]> result = GVAFactorizer.factorize(N, 10000, 5); // Increased attempts
-            long elapsed = (System.nanoTime() - start) / 1_000_000; // ms
-            totalTime += elapsed;
-
-            if (result.isPresent()) {
-                BigInteger[] factors = result.get();
-                System.out.printf("SUCCESS: %s × %s (%dms)\n", factors[0], factors[1], elapsed);
-                successes++;
-            } else {
-                System.out.printf("FAILED (%dms)\n", elapsed);
-            }
-        }
-
-        double successRate = (double) successes / trials * 100;
-        double avgTime = (double) totalTime / trials / 1000; // seconds
-        System.out.printf("\n256-bit Results: %.1f%% success, %.2fs average time (predicted 18%%, 9s)\n", successRate, avgTime);
-    }
     /** Square root for BigDecimal.
      */
     private static BigDecimal sqrt(BigDecimal x) {

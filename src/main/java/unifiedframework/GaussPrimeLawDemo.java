@@ -126,7 +126,6 @@ public class GaussPrimeLawDemo {
     System.out.println();
 
     Embedding embedding = new Embedding(MC);
-    SphericalFluxDistance fluxCalc = new SphericalFluxDistance(MC);
 
     BigInteger p = new BigInteger("10007");
     BigInteger q = new BigInteger("10009");
@@ -185,8 +184,6 @@ public class GaussPrimeLawDemo {
     int dims = 8;
 
     BigDecimal[] embN = embedding.embedTorusSpherical(N, dims);
-    BigDecimal[] embP = embedding.embedTorusSpherical(p, dims);
-    BigDecimal[] embQ = embedding.embedTorusSpherical(q, dims);
 
     // Test candidates: true factors + random primes
     BigInteger[] candidates = {

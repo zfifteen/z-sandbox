@@ -19,7 +19,6 @@ import java.util.Optional;
 public class GVAFactorizer {
     private static final MathContext MC = new MathContext(2000, RoundingMode.HALF_UP);
     private static final int TORUS_DIMS = 17;
-    private static final int PROJ_BLOCKS = 4; // (x,y,z,w) blocks
     private static final double[] W_LEVELS = {0.0, 1.0}; // Blue/Red cubes
 
     // Unicursal 4D→3D projection: (x,y,z,w) → (x',y',z') in ℝ³
@@ -205,43 +204,29 @@ public class GVAFactorizer {
         BigDecimal[] emb_N = curve_N.get(0);
 
         List<BigInteger> candidates;
-        if (false) {
-            // For smaller N, use brute force around sqrt(N) with safe limits
-            BigDecimal sqrtN = sqrt(N_bd, MC);
-            BigInteger start = sqrtN.toBigInteger().subtract(BigInteger.valueOf(10000));
-            if (start.compareTo(BigInteger.TWO) < 0) start = BigInteger.TWO;
-            BigInteger end = start.add(BigInteger.valueOf(20000));
-            candidates = new java.util.ArrayList<>();
-            for (BigInteger candidate = start; candidate.compareTo(end) <= 0; candidate = candidate.add(BigInteger.ONE)) {
-                if (isPrime(candidate)) {
-                    candidates.add(candidate);
+        // Use Gauss-Legendre quadrature seeding for optimal prime density sampling
+        // Falls back to e₄ intersection seeding if GL produces insufficient candidates
+        BigDecimal sqrtN = sqrt(N_bd, MC);
+        int bitLength = N.bitLength();
+
+        // For larger numbers (>256 bits), use Gauss-Legendre quadrature
+        // This provides +40% prime hit rate in high-density bands
+        if (bitLength > 256) {
+            int quadOrder = bitLength > 512 ? 32 : 16; // Higher order for larger numbers
+            candidates = seedZ5DWithGaussLegendre(sqrtN, N_bd, quadOrder);
+
+            // If insufficient candidates, supplement with e₄ intersections
+            if (candidates.size() < 10) {
+                List<BigInteger> e4Seeds = seedZ5DAtE4Intersections(sqrtN, N_bd);
+                for (BigInteger seed : e4Seeds) {
+                    if (!candidates.contains(seed)) {
+                        candidates.add(seed);
+                    }
                 }
             }
         } else {
-            // Use Gauss-Legendre quadrature seeding for optimal prime density sampling
-            // Falls back to e₄ intersection seeding if GL produces insufficient candidates
-            BigDecimal sqrtN = sqrt(N_bd, MC);
-            int bitLength = N.bitLength();
-            
-            // For larger numbers (>256 bits), use Gauss-Legendre quadrature
-            // This provides +40% prime hit rate in high-density bands
-            if (bitLength > 256) {
-                int quadOrder = bitLength > 512 ? 32 : 16; // Higher order for larger numbers
-                candidates = seedZ5DWithGaussLegendre(sqrtN, N_bd, quadOrder);
-                
-                // If insufficient candidates, supplement with e₄ intersections
-                if (candidates.size() < 10) {
-                    List<BigInteger> e4Seeds = seedZ5DAtE4Intersections(sqrtN, N_bd);
-                    for (BigInteger seed : e4Seeds) {
-                        if (!candidates.contains(seed)) {
-                            candidates.add(seed);
-                        }
-                    }
-                }
-            } else {
-                // For smaller numbers, use original e₄ intersection method
-                candidates = seedZ5DAtE4Intersections(sqrtN, N_bd);
-            }
+            // For smaller numbers, use original e₄ intersection method
+            candidates = seedZ5DAtE4Intersections(sqrtN, N_bd);
         }
 
 
@@ -251,7 +236,7 @@ public class GVAFactorizer {
             if (p.compareTo(BigInteger.ONE) <= 0 || p.compareTo(N) >= 0) continue;
             if (!N.mod(p).equals(BigInteger.ZERO)) continue;
             BigInteger q = N.divide(p);
-            if (!isPrime(q)) continue;
+            if (!isPrimeMR(q)) continue;
 
             // Check balance
             if (!isBalanced(p, q)) continue;
@@ -296,24 +281,6 @@ public class GVAFactorizer {
     }
 
     /**
-     * Generate candidate primes around prime index k using Z5D.
-     * Protected from double/long overflow and large loops.
-     */
-    private static List<BigInteger> generateCandidatesWithZ5D(double k, int range) {
-        List<BigInteger> candidates = new java.util.ArrayList<>();
-        int start = Math.max(2, (int) Math.max(2, Math.floor(k - range)));
-        int end = (int) Math.ceil(k + range);
-        for (int i = start; i <= end; i++) {
-            double est = Z5dPredictor.z5dPrime(i, 0, 0, 0, true);
-            if (!Double.isFinite(est) || est <= 2) continue;
-            BigInteger candidate = BigInteger.valueOf((long) Math.round(est));
-            if (candidate.bitLength() > 62) continue; // avoid bad casts
-            if (isPrime(candidate)) candidates.add(candidate);
-        }
-        return candidates;
-    }
-
-    /**
      * Check if p and q are balanced: |log2(p/q)| ≤ 1
      * Uses bitLength for safety on large inputs.
      */
@@ -324,22 +291,7 @@ public class GVAFactorizer {
         return (p.compareTo(q.shiftLeft(1)) <= 0) && (q.compareTo(p.shiftLeft(1)) <= 0);
     }
 
-    /**
-     * Probable primality check using BigInteger.isProbablePrime.
-     */
-    private static boolean isPrime(BigInteger n) {
-        if (n == null) return false;
-        return n.isProbablePrime(50); // 2^-50 error probability
-    }
-
-    /**
-     * Get dimensions for embedding based on bit size.
-     */
-    private static int getDimsForBitSize(int bits) {
-        return 17; // Fixed to 17-torus
-    }
-
-    /**
+     /**
      * Square root for BigDecimal using Newton's method with relative tolerance.
      */
     private static BigDecimal sqrt(BigDecimal x, MathContext mc) {
