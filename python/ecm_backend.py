@@ -16,18 +16,17 @@ def backend_info() -> dict:
     if BACKEND != "gmp-ecm":
         return {"backend": BACKEND, "version": None}
     try:
-        # Run ECM with a simple number to get version info from stdout
-        # ECM prints version info on first line like "GMP-ECM 7.0.5 [configured with...]"
-        p = subprocess.Popen(
-            ["ecm", "1000"],
-            stdin=subprocess.PIPE,
+        # Use 'ecm --version' to get version info
+        result = subprocess.run(
+            ["ecm", "--version"],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            text=True
+            text=True,
+            timeout=5
         )
-        out, _ = p.communicate(input="123\n", timeout=5)
+        out = result.stdout
         first = out.strip().splitlines()[0] if out else ""
-        # Extract just the version line
+        # Extract just the version line (e.g., "GMP-ECM 7.0.5 [configured with...]")
         if "GMP-ECM" in first:
             return {"backend": BACKEND, "version": first}
         return {"backend": BACKEND, "version": None}

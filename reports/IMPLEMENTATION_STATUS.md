@@ -176,10 +176,12 @@ Stage 35d: B1=11,000,000,    curves=20
 
 ### Environment
 ```bash
-ECM_SIGMA=1            # Enable deterministic seeding
+ECM_SIGMA=1            # Enable deterministic seeding (boolean flag)
 ECM_CKDIR=ckpts        # Checkpoint directory
-sigma=2147483647       # Actual sigma value (Mersenne prime 2^31-1)
+sigma=2147483647       # Actual sigma value used by ECM (Mersenne prime 2^31-1)
 ```
+
+**Note:** `ECM_SIGMA=1` is a boolean flag that enables deterministic sigma seeding. The actual sigma value passed to ECM is 2147483647, not 1.
 
 ## Performance Characteristics
 

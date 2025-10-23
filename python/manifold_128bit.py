@@ -1,4 +1,3 @@
-print("Starting manifold_128bit.py")
 # DEPRECATED: This Python prototype has been superseded by the Java BigDecimal implementation in unifiedframework.* classes.
 #!/usr/bin/env python3
 """
@@ -169,15 +168,6 @@ def theta_gate(N, width_factor=0.155, k=0.3):
     except Exception:
         # On any error, default to False (no special treatment)
         return False
-
-
-# Example: Bound for GVA embedding
-n_example = mpf(1000)
-theta = theta_prime(n_example)
-width_factor = mpf('0.226')
-bound_lower = theta - width_factor / 2
-bound_upper = theta + width_factor / 2
-print(f'Bound for n=1000: [{bound_lower}, {bound_upper}]')
 
 
 if __name__ == '__main__':

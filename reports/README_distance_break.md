@@ -114,7 +114,7 @@ python3 python/run_distance_break.py \
 - `--log`: Log file path in JSONL format (default: logs/distance_break.jsonl)
 
 **Environment Variables:**
-- `ECM_SIGMA`: Enable sigma/gating (set to 1)
+- `ECM_SIGMA`: Enable sigma/gating (set to 1 as a boolean flag; actual sigma value used is 2147483647)
 - `ECM_CKDIR`: Override checkpoint directory
 
 **Output:** JSONL log file with run metadata and per-target results

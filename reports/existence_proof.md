@@ -27,9 +27,11 @@ Version: GMP-ECM 7.0.5 [configured with GMP 6.3.0, --enable-asm-redc] [ECM]
 ### Environment
 
 ```bash
-ECM_SIGMA=2147483647  # Deterministic seeding (Mersenne prime 2^31-1)
-ECM_CKDIR=ckpts       # Checkpoint directory for ECM state persistence
+ECM_SIGMA=1       # Enable deterministic sigma seeding (boolean flag; actual sigma value is 2147483647)
+ECM_CKDIR=ckpts   # Checkpoint directory for ECM state persistence
 ```
+
+**Note:** The environment variable `ECM_SIGMA=1` acts as a boolean flag to enable deterministic seeding. When enabled, the actual sigma value used is 2147483647 (Mersenne prime 2^31-1), not 1, as sigma=1 is invalid for ECM.
 
 ## Gate Definition
 
