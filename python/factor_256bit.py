@@ -1,5 +1,7 @@
-import os, time, math, random
+import os, time
+import hashlib, math, random
 from pathlib import Path
+from ecm_backend import run_ecm_once, backend_info
 from ecm_backend import run_ecm_once
 import pyecm
 
@@ -28,6 +30,13 @@ def is_probable_prime(n, k=12):
             return False
     return True
 
+def _compute_sigma_u64(N: int, B1: int) -> int:
+    """
+    Deterministic curve seed from blake2b(N||B1). Keep within uint64.
+    """
+    h = hashlib.blake2b(f"{N}:{B1}".encode(), digest_size=16).digest()
+    # take lower 8 bytes as unsigned 64-bit
+    return int.from_bytes(h[-8:], "little") or 1
     """
     Returns a nontrivial factor or None.
     Uses: ecm -q -one -c {curves} {B1}
@@ -56,10 +65,22 @@ def is_probable_prime(n, k=12):
         raise ValueError(f"N too small for 256-bit path: {N.bit_length()} bits")
 
     # quick exit for trivial cases
-    if is_probable_prime(N):
+    # Resolve checkpoint directory (env overrides)
+    if checkpoint_dir is None:
+        checkpoint_dir = os.environ.get("ECM_CKDIR", "checkpoints")
+    # Resolve sigma mode (env overrides)
+    if not use_sigma:
+        use_sigma = os.environ.get("ECM_SIGMA", "0") == "1"    if is_probable_prime(N):
         return None, None
 
     for (_, B1, curves) in ECM_SCHEDULE:
+        sigma = _compute_sigma_u64(N, B1) if use_sigma else None
+        f = run_ecm_once(
+            N, B1, curves, per_stage_timeout_sec,
+            checkpoint_dir=checkpoint_dir,
+            sigma=sigma,
+            allow_resume=True,
+        )
         f = run_ecm_once(N, B1, curves, per_stage_timeout_sec)
         if f:
             p, q = f, N // f
