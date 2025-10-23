@@ -26,14 +26,23 @@ def backend_info() -> dict:
 def _parse_factor_lines(output: str, N: int) -> Optional[int]:
     """
     Parse ECM stdout: factors are typically printed as bare decimal integers
-    on their own line (quiet mode). We conservatively accept only pure digits.
+    on their own line (quiet mode), or space-separated on one line.
+    We accept decimal integers either on separate lines or space-separated on one line.
     """
     for line in output.splitlines():
         s = line.strip()
+        # Try the full line first
         if s.isdigit():
             f = int(s)
             if 1 < f < N and (N % f) == 0:
                 return f
+        # Try space-separated factors on same line
+        parts = s.split()
+        for part in parts:
+            if part.isdigit():
+                f = int(part)
+                if 1 < f < N and (N % f) == 0:
+                    return f
     return None
 
 def run_ecm_once(
