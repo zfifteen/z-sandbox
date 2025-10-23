@@ -1,224 +1,278 @@
 #!/usr/bin/env python3
 """
-Summarize distance-based ECM factorization results.
-Generates reports and CSV summaries.
+Summarize ECM distance break results and generate report.
 """
 
 import argparse
 import json
-import sys
+import csv
 from pathlib import Path
 from collections import defaultdict
 
 
-def load_log(log_path):
+def load_log(log_file):
     """Load JSONL log file."""
-    results = []
-    with open(log_path, 'r') as f:
+    entries = []
+    metadata = None
+    
+    with open(log_file, 'r') as f:
         for line in f:
-            if line.strip():
-                results.append(json.loads(line))
-    return results
+            line = line.strip()
+            if not line:
+                continue
+            
+            entry = json.loads(line)
+            
+            if entry.get('meta') == 'RUN':
+                metadata = entry
+            else:
+                entries.append(entry)
+    
+    return metadata, entries
 
 
-def generate_summary_stats(results):
-    """Generate summary statistics."""
-    total = len(results)
-    factored = [r for r in results if r["status"] == "factored"]
-    not_factored = [r for r in results if r["status"] != "factored"]
-    
-    gated = [r for r in results if r["gated"]]
-    ungated = [r for r in results if not r["gated"]]
-    
-    gated_factored = [r for r in factored if r["gated"]]
-    ungated_factored = [r for r in factored if not r["gated"]]
-    
-    # By tier
-    by_tier = defaultdict(list)
-    for r in results:
-        by_tier[r["tier"]].append(r)
-    
+def analyze_results(entries):
+    """Analyze results and compute statistics."""
     stats = {
-        "total": total,
-        "factored": len(factored),
-        "not_factored": len(not_factored),
-        "gated": len(gated),
-        "ungated": len(ungated),
-        "gated_factored": len(gated_factored),
-        "ungated_factored": len(ungated_factored),
-        "by_tier": {}
+        'total': len(entries),
+        'factored': sum(1 for e in entries if e.get('status') == 'factored'),
+        'not_factored': sum(1 for e in entries if e.get('status') == 'not_factored'),
+        'gated': sum(1 for e in entries if e.get('gate') is True),
+        'ungated': sum(1 for e in entries if e.get('gate') is False),
+        'no_gate': sum(1 for e in entries if e.get('gate') is None),
+        'gated_factored': sum(1 for e in entries if e.get('gate') is True and e.get('status') == 'factored'),
+        'ungated_factored': sum(1 for e in entries if e.get('gate') is False and e.get('status') == 'factored'),
+        'full_schedule': sum(1 for e in entries if e.get('schedule_type') == 'full'),
+        'light_schedule': sum(1 for e in entries if e.get('schedule_type') == 'light'),
     }
     
-    for tier, tier_results in by_tier.items():
-        tier_factored = [r for r in tier_results if r["status"] == "factored"]
-        tier_gated = [r for r in tier_results if r["gated"]]
-        tier_gated_factored = [r for r in tier_factored if r["gated"]]
-        
-        stats["by_tier"][tier] = {
-            "total": len(tier_results),
-            "factored": len(tier_factored),
-            "gated": len(tier_gated),
-            "gated_factored": len(tier_gated_factored),
-            "ratio": tier_results[0]["tier_ratio"] if tier_results else None
+    # Group by tier
+    by_tier = defaultdict(list)
+    for e in entries:
+        tier = e.get('tier') or e.get('fermat_tier', 'unknown')
+        by_tier[tier].append(e)
+    
+    # Compute per-tier stats
+    tier_stats = {}
+    for tier, tier_entries in by_tier.items():
+        tier_stats[tier] = {
+            'total': len(tier_entries),
+            'factored': sum(1 for e in tier_entries if e.get('status') == 'factored'),
+            'gated': sum(1 for e in tier_entries if e.get('gate') is True),
+            'gated_factored': sum(1 for e in tier_entries if e.get('gate') is True and e.get('status') == 'factored'),
         }
     
-    return stats, gated_factored
+    # Find exemplar gated success
+    exemplar = None
+    for e in entries:
+        if e.get('gate') is True and e.get('status') == 'factored' and e.get('integrity', False):
+            exemplar = e
+            break
+    
+    return stats, tier_stats, exemplar
 
 
-def generate_markdown_report(results, stats, gated_factored, out_path):
+def generate_report(metadata, entries, stats, tier_stats, exemplar, output_file):
     """Generate markdown report."""
-    with open(out_path, 'w') as f:
-        f.write("# Distance-Based ECM Factorization Report\n\n")
+    lines = []
+    
+    lines.append("# ECM Distance Break Report")
+    lines.append("")
+    lines.append("## Run Configuration")
+    lines.append("")
+    
+    if metadata:
+        lines.append(f"- **Timestamp**: {metadata.get('timestamp', 'N/A')}")
+        lines.append(f"- **Backend**: {metadata.get('backend', {}).get('backend', 'N/A')}")
+        if metadata.get('backend', {}).get('version'):
+            lines.append(f"- **ECM Version**: {metadata['backend']['version']}")
+        lines.append(f"- **Targets File**: {metadata.get('targets_file', 'N/A')}")
+        lines.append(f"- **Target Bits**: {metadata.get('target_bits', 'N/A')}")
+        lines.append(f"- **Timeout per Stage**: {metadata.get('timeout_per_stage', 'N/A')}s")
+        lines.append(f"- **Checkpoint Dir**: {metadata.get('checkpoint_dir', 'N/A')}")
+        lines.append(f"- **Use Sigma**: {metadata.get('use_sigma', 'N/A')}")
+        lines.append(f"- **Theta Gate Available**: {metadata.get('theta_gate_available', 'N/A')}")
+        lines.append("")
         
-        # Overall statistics
-        f.write("## Overall Statistics\n\n")
-        f.write(f"- **Total targets**: {stats['total']}\n")
-        f.write(f"- **Factored**: {stats['factored']} ({stats['factored']*100/stats['total']:.1f}%)\n")
-        f.write(f"- **Not factored**: {stats['not_factored']}\n")
-        f.write("\n")
+        lines.append("### ECM Schedules")
+        lines.append("")
+        lines.append("**Full Schedule (gated targets):**")
+        lines.append("")
+        for stage in metadata.get('full_schedule', []):
+            lines.append(f"- {stage['stage']}: B1={stage['B1']}, curves={stage['curves']}")
+        lines.append("")
         
-        f.write("### By Gate Status\n\n")
-        gated_pct = (stats['gated_factored']*100/stats['gated'] if stats['gated'] > 0 else 0)
-        ungated_pct = (stats['ungated_factored']*100/stats['ungated'] if stats['ungated'] > 0 else 0)
-        f.write(f"- **Gated targets**: {stats['gated']}\n")
-        f.write(f"  - Factored: {stats['gated_factored']} ({gated_pct:.1f}%)\n")
-        f.write(f"- **Ungated targets**: {stats['ungated']}\n")
-        f.write(f"  - Factored: {stats['ungated_factored']} ({ungated_pct:.1f}%)\n")
-        f.write("\n")
+        lines.append("**Light Schedule (ungated targets):**")
+        lines.append("")
+        for stage in metadata.get('light_schedule', []):
+            lines.append(f"- {stage['stage']}: B1={stage['B1']}, curves={stage['curves']}")
+        lines.append("")
+    
+    lines.append("## Overall Results")
+    lines.append("")
+    lines.append(f"- **Total Targets**: {stats['total']}")
+    lines.append(f"- **Factored**: {stats['factored']} ({100*stats['factored']/max(stats['total'],1):.1f}%)")
+    lines.append(f"- **Not Factored**: {stats['not_factored']} ({100*stats['not_factored']/max(stats['total'],1):.1f}%)")
+    lines.append("")
+    lines.append(f"- **Gated (full schedule)**: {stats['gated']}")
+    lines.append(f"- **Ungated (light schedule)**: {stats['ungated']}")
+    lines.append(f"- **No gate info**: {stats['no_gate']}")
+    lines.append("")
+    lines.append(f"- **Gated & Factored**: {stats['gated_factored']} ({100*stats['gated_factored']/max(stats['gated'],1):.1f}% of gated)")
+    lines.append(f"- **Ungated & Factored**: {stats['ungated_factored']} ({100*stats['ungated_factored']/max(stats['ungated'],1):.1f}% of ungated)")
+    lines.append("")
+    
+    lines.append("## Per-Tier Results")
+    lines.append("")
+    lines.append("| Tier | Total | Factored | Gated | Gated & Factored |")
+    lines.append("|------|-------|----------|-------|------------------|")
+    
+    for tier in sorted(tier_stats.keys(), key=lambda x: (isinstance(x, str), x)):
+        ts = tier_stats[tier]
+        lines.append(f"| {tier} | {ts['total']} | {ts['factored']} | {ts['gated']} | {ts['gated_factored']} |")
+    
+    lines.append("")
+    
+    if exemplar:
+        lines.append("## ✓ Exemplar Gated Success")
+        lines.append("")
+        lines.append("> **This is the existence proof: a θ′-gated target was factored by ECM.**")
+        lines.append("")
+        lines.append(f"**Target ID**: {exemplar.get('id', 'N/A')}")
+        lines.append("")
+        lines.append(f"- **N** (first 24 digits): `{exemplar.get('N_head', 'N/A')}`")
+        lines.append(f"- **N** (last 24 digits): `{exemplar.get('N_tail', 'N/A')}`")
+        lines.append(f"- **N bits**: {exemplar.get('N_bits', 'N/A')}")
+        lines.append(f"- **p bits**: {exemplar.get('p_bits', 'N/A')}")
+        lines.append(f"- **q bits**: {exemplar.get('q_bits', 'N/A')}")
+        lines.append("")
         
-        # By tier
-        f.write("## Results by Tier\n\n")
-        f.write("| Tier | Ratio | Total | Factored | Gated | Gated Factored |\n")
-        f.write("|------|-------|-------|----------|-------|----------------|\n")
-        for tier in sorted(stats["by_tier"].keys()):
-            tier_stats = stats["by_tier"][tier]
-            f.write(f"| {tier} | {tier_stats['ratio']:.6f} | {tier_stats['total']} | "
-                   f"{tier_stats['factored']} | {tier_stats['gated']} | "
-                   f"{tier_stats['gated_factored']} |\n")
-        f.write("\n")
+        if exemplar.get('tier_type') == 'ratio':
+            lines.append(f"- **Tier**: {exemplar.get('tier', 'N/A')} (ratio-based)")
+            lines.append(f"- **Ratio Target**: {exemplar.get('ratio_target', 'N/A')}")
+            lines.append(f"- **Ratio Actual**: {exemplar.get('ratio_actual', 'N/A'):.8f}")
+        elif exemplar.get('tier_type') == 'fermat':
+            lines.append(f"- **Fermat Tier**: {exemplar.get('tier', 'N/A')}")
+            lines.append(f"- **Fermat Gap**: {exemplar.get('fermat_gap', 'N/A')}")
         
-        # Exemplar cases
-        if gated_factored:
-            f.write("## Exemplar Gated Success Cases\n\n")
-            for i, result in enumerate(gated_factored[:3], 1):  # Show up to 3
-                f.write(f"### Case {i}\n\n")
-                f.write(f"- **N**: {result['N_first_24']}...{result['N_last_24']} ({result['p_bits'] + result['q_bits']} bits)\n")
-                f.write(f"- **p**: {result['p_bits']} bits\n")
-                f.write(f"- **q**: {result['q_bits']} bits\n")
-                f.write(f"- **Tier**: {result['tier']} (ratio={result['tier_ratio']:.6f})\n")
-                f.write(f"- **Fermat normal**: {result['fermat_normal']}\n")
-                f.write(f"- **Gate**: {result['gated']} (full schedule used)\n")
-                f.write(f"- **Status**: {result['status']}\n")
-                f.write(f"- **Integrity**: {result['integrity']}\n")
-                f.write(f"- **Elapsed**: {result['elapsed_seconds']:.1f}s\n")
-                f.write(f"- **Stages completed**: {result['stages_completed']}/{result['stages_total']}\n")
-                f.write("\n")
-                
-                gate_meta = result["gate_metadata"]
-                f.write("**Gate metadata:**\n")
-                f.write(f"- θ′(N) = {gate_meta['theta_N']:.6f}\n")
-                f.write(f"- θ′(p) = {gate_meta['theta_p']:.6f} (in bounds: {gate_meta['p_in_bounds']})\n")
-                f.write(f"- θ′(q) = {gate_meta['theta_q']:.6f} (in bounds: {gate_meta['q_in_bounds']})\n")
-                f.write(f"- Bounds: [{gate_meta['bound_lower']:.6f}, {gate_meta['bound_upper']:.6f}]\n")
-                f.write(f"- Width factor: {gate_meta['width_factor']}\n")
-                f.write("\n")
-                
-                # Show JSON log line
-                f.write("**Log line:**\n")
-                f.write("```json\n")
-                f.write(json.dumps(result, indent=2))
-                f.write("\n```\n\n")
-        else:
-            f.write("## Exemplar Cases\n\n")
-            f.write("*No gated targets were successfully factored.*\n\n")
+        lines.append("")
+        lines.append(f"- **Gate Result**: {exemplar.get('gate', 'N/A')} (enabled full schedule)")
+        lines.append(f"- **Schedule Type**: {exemplar.get('schedule_type', 'N/A')}")
+        lines.append(f"- **Factored at Stage**: {exemplar.get('stage', 'N/A')}")
+        lines.append(f"- **Time**: {exemplar.get('time_sec', 'N/A')}s")
+        lines.append(f"- **Integrity**: {exemplar.get('integrity', 'N/A')}")
+        lines.append("")
         
-        # Acceptance criteria
-        f.write("## Acceptance Criteria\n\n")
-        if stats['gated_factored'] > 0:
-            f.write("✅ **PASSED**: At least one 192-bit semiprime was factored where θ′ gated it.\n\n")
-            f.write("The existence proof is established:\n")
-            f.write("- Geometry (θ′) determined ECM spend strategy\n")
-            f.write("- Gated targets received full schedule (35d→50d)\n")
-            f.write("- Ungated targets received light schedule (35d only)\n")
-            f.write("- At least one gated target was successfully factored\n")
-        else:
-            f.write("❌ **NOT PASSED**: No gated targets were factored.\n\n")
-            f.write("Consider:\n")
-            f.write("- Adjusting gate width factor\n")
-            f.write("- Running with more targets\n")
-            f.write("- Using smaller bit sizes (128-bit)\n")
+        lines.append("**Stages Attempted:**")
+        lines.append("")
+        for stage in exemplar.get('stages_attempted', []):
+            status = "✓ FOUND" if stage.get('found_factor') else "✗"
+            lines.append(f"- {stage['stage']}: B1={stage['B1']}, curves={stage['curves']}, time={stage['time_sec']}s {status}")
+        lines.append("")
+        
+        lines.append("**Raw Log Entry:**")
+        lines.append("")
+        lines.append("```json")
+        lines.append(json.dumps(exemplar, indent=2))
+        lines.append("```")
+        lines.append("")
+    else:
+        lines.append("## ⚠ No Gated Success Found")
+        lines.append("")
+        lines.append("No target with `gate=true` and `status=factored` was found.")
+        lines.append("")
+    
+    lines.append("## All Factored Targets")
+    lines.append("")
+    
+    factored = [e for e in entries if e.get('status') == 'factored']
+    
+    if factored:
+        lines.append("| ID | N bits | Gate | Schedule | Stage | Time (s) | Integrity |")
+        lines.append("|----|--------|------|----------|-------|----------|-----------|")
+        
+        for e in factored:
+            lines.append(f"| {e.get('id', 'N/A')} | {e.get('N_bits', 'N/A')} | {e.get('gate', 'N/A')} | {e.get('schedule_type', 'N/A')} | {e.get('stage', 'N/A')} | {e.get('time_sec', 'N/A'):.2f} | {e.get('integrity', 'N/A')} |")
+        
+        lines.append("")
+    else:
+        lines.append("No targets were factored.")
+        lines.append("")
+    
+    # Write report
+    output_path = Path(output_file)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    with open(output_path, 'w') as f:
+        f.write('\n'.join(lines))
+    
+    print(f"✓ Report written to {output_file}")
 
 
-def generate_csv(results, out_path):
+def generate_csv(entries, output_file):
     """Generate CSV summary."""
-    with open(out_path, 'w') as f:
-        # Header
-        f.write("N_first_24,N_last_24,bits,tier,tier_ratio,fermat_normal,gated,")
-        f.write("schedule,status,integrity,elapsed_seconds,stages_completed,stages_total,")
-        f.write("theta_N,theta_p,theta_q,p_in_bounds,q_in_bounds\n")
+    output_path = Path(output_file)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    fieldnames = [
+        'id', 'N_bits', 'tier', 'tier_type', 'ratio_target', 'ratio_actual',
+        'fermat_gap', 'gate', 'schedule_type', 'status', 'stage',
+        'time_sec', 'integrity', 'p_bits', 'q_bits'
+    ]
+    
+    with open(output_path, 'w', newline='') as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction='ignore')
+        writer.writeheader()
         
-        # Rows
-        for r in results:
-            gate_meta = r["gate_metadata"]
-            f.write(f"{r['N_first_24']},{r['N_last_24']},{r['p_bits'] + r['q_bits']},")
-            f.write(f"{r['tier']},{r['tier_ratio']},{r['fermat_normal']},{r['gated']},")
-            f.write(f"{r['schedule']},{r['status']},{r['integrity']},{r['elapsed_seconds']:.1f},")
-            f.write(f"{r['stages_completed']},{r['stages_total']},")
-            f.write(f"{gate_meta['theta_N']:.6f},{gate_meta['theta_p']:.6f},{gate_meta['theta_q']:.6f},")
-            f.write(f"{gate_meta['p_in_bounds']},{gate_meta['q_in_bounds']}\n")
+        for entry in entries:
+            writer.writerow(entry)
+    
+    print(f"✓ CSV written to {output_file}")
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Summarize distance-based ECM results"
+        description='Summarize ECM distance break results'
     )
-    parser.add_argument(
-        "--log",
-        type=str,
-        required=True,
-        help="Path to JSONL log file"
-    )
-    parser.add_argument(
-        "--out",
-        type=str,
-        required=True,
-        help="Path to output markdown report"
-    )
-    parser.add_argument(
-        "--emit-csv",
-        type=str,
-        help="Path to output CSV summary"
-    )
+    parser.add_argument('--log', type=str, required=True,
+                       help='Path to JSONL log file')
+    parser.add_argument('--out', type=str, default='reports/distance_break_report.md',
+                       help='Output markdown report (default: reports/distance_break_report.md)')
+    parser.add_argument('--emit-csv', type=str, default=None,
+                       help='Also emit CSV summary (optional)')
     
     args = parser.parse_args()
     
-    # Load results
-    print(f"Loading log from {args.log}...")
-    results = load_log(args.log)
-    print(f"Loaded {len(results)} results")
+    print("="*70)
+    print("Summarize Distance Break Results")
+    print("="*70)
+    print(f"Log file: {args.log}")
     
-    # Generate stats
-    print("Generating statistics...")
-    stats, gated_factored = generate_summary_stats(results)
+    # Load log
+    metadata, entries = load_log(args.log)
+    print(f"Loaded {len(entries)} result entries")
+    
+    # Analyze
+    stats, tier_stats, exemplar = analyze_results(entries)
     
     # Generate report
-    print(f"Writing report to {args.out}...")
-    generate_markdown_report(results, stats, gated_factored, args.out)
+    generate_report(metadata, entries, stats, tier_stats, exemplar, args.out)
     
     # Generate CSV if requested
     if args.emit_csv:
-        print(f"Writing CSV to {args.emit_csv}...")
-        generate_csv(results, args.emit_csv)
+        generate_csv(entries, args.emit_csv)
     
-    print("\nSummary:")
+    print("="*70)
+    print("Summary:")
     print(f"  Total: {stats['total']}")
     print(f"  Factored: {stats['factored']}")
-    print(f"  Gated factored: {stats['gated_factored']}")
+    print(f"  Gated & Factored: {stats['gated_factored']}")
+    print(f"  Exemplar found: {exemplar is not None}")
     
-    if stats['gated_factored'] > 0:
-        print("\n✓ SUCCESS: At least one gated target was factored!")
+    if exemplar:
+        print(f"\n✓ EXISTENCE PROOF: Target {exemplar['id']} was gated and factored!")
     else:
-        print("\n✗ No gated targets were factored.")
+        print(f"\n⚠ No gated factorization found yet.")
 
 
 if __name__ == "__main__":

@@ -1,4 +1,3 @@
-print("Starting manifold_128bit.py")
 # DEPRECATED: This Python prototype has been superseded by the Java BigDecimal implementation in unifiedframework.* classes.
 #!/usr/bin/env python3
 """
@@ -121,13 +120,54 @@ def theta_prime(n, k=mpf('0.3')):
     mod_phi = fmod(n, phi)
     return phi * (mod_phi / phi) ** k
 
-# Example: Bound for GVA embedding
-n_example = mpf(1000)
-theta = theta_prime(n_example)
-width_factor = mpf('0.226')
-bound_lower = theta - width_factor / 2
-bound_upper = theta + width_factor / 2
-print(f'Bound for n=1000: [{bound_lower}, {bound_upper}]')
+
+def theta_gate(N, width_factor=0.155, k=0.3):
+    """
+    Geometric gate function: returns True if N's geometry suggests
+    it's worth full ECM schedule, False otherwise.
+    
+    The gate checks if factors are likely close to sqrt(N) based on
+    theta-prime geometry.
+    
+    Args:
+        N: The semiprime to evaluate
+        width_factor: Width of the acceptance region (default: 0.155)
+        k: Exponent for theta_prime (default: 0.3)
+    
+    Returns:
+        True if geometry suggests full schedule, False for light pass only
+    """
+    if N < 4:
+        return False
+    
+    try:
+        # Convert to mpmath for precision
+        n_mp = mpf(N)
+        k_mp = mpf(k)
+        
+        # Compute theta_prime
+        theta = theta_prime(n_mp, k_mp)
+        
+        # Compute bounds
+        width = mpf(width_factor)
+        bound_lower = theta - width / 2
+        bound_upper = theta + width / 2
+        
+        # Check if sqrt(N) falls within theta bounds
+        # This is a proxy for "factors are close to sqrt(N)"
+        sqrt_n = n_mp.sqrt()
+        
+        # Normalize sqrt_n to [0, phi) range like theta_prime does
+        sqrt_n_norm = fmod(sqrt_n, phi)
+        
+        # Check if normalized sqrt(N) is within bounds
+        in_bounds = bound_lower <= sqrt_n_norm <= bound_upper
+        
+        return bool(in_bounds)
+    
+    except Exception:
+        # On any error, default to False (no special treatment)
+        return False
 
 
 if __name__ == '__main__':

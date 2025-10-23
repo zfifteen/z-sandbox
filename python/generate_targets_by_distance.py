@@ -1,250 +1,367 @@
 #!/usr/bin/env python3
 """
-Generate targets by distance from sqrt(N) for ECM factorization experiments.
-Creates batches with specific distance ratios and Fermat-normal forms.
+Generate balanced semiprime targets organized by distance tiers and Fermat normals.
+Creates test cases where factors are positioned at specific ratios from sqrt(N).
 """
 
 import argparse
 import json
-import random
 import math
-from mpmath import mp, mpf, sqrt as mpsqrt, log as mplog, frac, exp as mpexp, fmod
+import random
+import time
+from pathlib import Path
 import sympy
 
-mp.dps = 100
 
-PHI = (1 + mpf(5).sqrt()) / 2
-
-
-def generate_semiprime(bits, ratio_target=1.0, fermat_normal=0, seed=None):
+def generate_semiprime_at_ratio(bits, ratio_target, seed):
     """
-    Generate a semiprime N = p*q of the given bit size.
+    Generate a semiprime N = p*q where p/sqrt(N) ≈ ratio_target.
+    
+    For a target ratio r, we want p/sqrt(N) = r
+    Since N = p*q, we have sqrt(N) = sqrt(p*q)
+    So p/sqrt(p*q) = r => p = r*sqrt(p*q) => p^2 = r^2*p*q => p = r^2*q
+    
+    Therefore: p ≈ r^2 * q
     
     Args:
         bits: Target bit size for N
-        ratio_target: Ratio p/sqrt(N), where 1.0 means p ~ sqrt(N)
-        fermat_normal: Fermat normal form bias (2^k for factors near 2^k ± small)
-        seed: Random seed for reproducibility
+        ratio_target: Target ratio p/sqrt(N) (should be close to 1.0)
+        seed: Random seed
     
     Returns:
-        (N, p, q, metadata)
+        Dictionary with N, p, q and metadata
     """
-    if seed is not None:
-        random.seed(seed)
+    random.seed(seed)
     
-    # Target N size
-    target_N_bits = bits
+    # For balanced semiprimes, each factor should be around bits//2
+    target_p_bits = bits // 2
     
-    # For ratio_target ~ 1.0, we want p ~ sqrt(N), so p has ~ bits/2 bits
-    # For ratio_target > 1.0, p is larger than sqrt(N)
-    # For ratio_target < 1.0, p is smaller than sqrt(N)
+    # Adjust for the ratio: if ratio > 1, p should be slightly larger
+    # p_bits ≈ target_p_bits + log2(ratio_target)
+    adjustment = math.log2(ratio_target) if ratio_target > 0 else 0
+    p_bits_target = target_p_bits + int(adjustment)
     
-    # Start with balanced case
-    p_bits = target_N_bits // 2
+    # Generate p in the appropriate bit range
+    p_min = 2 ** (p_bits_target - 1)
+    p_max = 2 ** p_bits_target
     
-    # Adjust for ratio
-    if ratio_target != 1.0:
-        # log2(p) = log2(sqrt(N)) + log2(ratio_target)
-        # log2(p) = (log2(N)/2) + log2(ratio_target)
-        adjustment = int(math.log2(ratio_target) * target_N_bits / 2)
-        p_bits = p_bits + adjustment
+    # Generate a prime p
+    p = sympy.randprime(p_min, p_max)
     
-    # Generate p
-    if fermat_normal > 0:
-        # Generate p near 2^p_bits ± small offset
-        base = 2 ** p_bits
-        offset = random.randint(1, min(2**20, base // 100))
-        if random.random() > 0.5:
-            p = sympy.nextprime(base + offset)
+    # Calculate target q based on ratio
+    # From p = r^2 * q, we get q = p / r^2
+    r_squared = ratio_target ** 2
+    q_estimate = int(p / r_squared)
+    
+    # Find a prime near q_estimate
+    q = sympy.nextprime(q_estimate)
+    
+    # Fine-tune: ensure N has the right bit size
+    N = p * q
+    actual_bits = N.bit_length()
+    
+    # If not in range, adjust q
+    max_attempts = 50
+    attempt = 0
+    while (actual_bits < bits - 1 or actual_bits > bits + 1) and attempt < max_attempts:
+        if actual_bits < bits:
+            # N too small, increase q
+            q = sympy.nextprime(q)
         else:
-            p = sympy.prevprime(base - offset)
-    else:
-        # Standard random prime
-        p_min = 2 ** (p_bits - 1)
-        p_max = 2 ** p_bits - 1
-        p = sympy.randprime(p_min, p_max)
+            # N too large, decrease q
+            q = sympy.prevprime(q)
+            if q < 2:
+                break
+        N = p * q
+        actual_bits = N.bit_length()
+        attempt += 1
     
-    p = int(p)
+    # Verify primality
+    if not sympy.isprime(p) or not sympy.isprime(q):
+        # Retry with different seed
+        return generate_semiprime_at_ratio(bits, ratio_target, seed + 1)
     
-    # Generate q to achieve target bit size for N
-    # We want N = p*q to have target_N_bits bits
-    # So q ~ N/p ~ 2^target_N_bits / p
-    q_bits = target_N_bits - p.bit_length()
+    # Calculate actual ratio
+    sqrt_N = math.sqrt(N)
+    actual_ratio = p / sqrt_N
     
-    if fermat_normal > 0:
-        base = 2 ** q_bits
-        offset = random.randint(1, min(2**20, base // 100))
-        if random.random() > 0.5:
-            q = sympy.nextprime(base + offset)
-        else:
-            q = sympy.prevprime(base - offset)
-    else:
-        q_min = 2 ** (q_bits - 1)
-        q_max = 2 ** q_bits - 1
-        q = sympy.randprime(q_min, q_max)
+    return {
+        'N': str(N),
+        'p': str(p),
+        'q': str(q),
+        'N_bits': N.bit_length(),
+        'p_bits': p.bit_length(),
+        'q_bits': q.bit_length(),
+        'ratio_target': ratio_target,
+        'ratio_actual': actual_ratio,
+        'sqrt_N': sqrt_N,
+        'distance_from_sqrt': abs(p - sqrt_N),
+        'seed': seed
+    }
+
+
+def generate_fermat_vulnerable(bits, fermat_gap, seed):
+    """
+    Generate a semiprime with |p - q| = fermat_gap, making it Fermat-vulnerable.
     
-    q = int(q)
+    Args:
+        bits: Target bit size for N
+        fermat_gap: Target |p - q|
+        seed: Random seed
+    
+    Returns:
+        Dictionary with N, p, q and metadata
+    """
+    random.seed(seed)
+    
+    # For balanced semiprimes, each factor should be around bits//2
+    target_bits = bits // 2
+    
+    # Start with a base prime
+    p_min = 2 ** (target_bits - 1)
+    p_max = 2 ** target_bits
+    p = sympy.randprime(p_min, p_max)
+    
+    # q should be close to p
+    q_target = p + fermat_gap if random.random() > 0.5 else p - fermat_gap
+    
+    # Ensure q is in valid range
+    if q_target < p_min:
+        q_target = p + fermat_gap
+    elif q_target > p_max:
+        q_target = p - fermat_gap
+    
+    # Find nearest prime
+    q = sympy.nextprime(q_target)
+    
+    # Verify q is still in range and gap is reasonable
+    max_attempts = 50
+    attempt = 0
+    while (q < p_min or q > p_max or abs(p - q) > fermat_gap * 2) and attempt < max_attempts:
+        if q < p_min:
+            q = sympy.nextprime(p_min)
+        elif q > p_max:
+            q = sympy.prevprime(p_max)
+        elif abs(p - q) > fermat_gap * 2:
+            # Try different base p
+            p = sympy.randprime(p_min, p_max)
+            q_target = p + fermat_gap if random.random() > 0.5 else p - fermat_gap
+            q = sympy.nextprime(q_target)
+        attempt += 1
+    
     N = p * q
     
-    # Compute metadata
-    sqrt_N = mpsqrt(mpf(N))
-    actual_ratio = mpf(p) / sqrt_N
-    distance = abs(mpf(p) - sqrt_N)
+    # Ensure p < q for consistency
+    if p > q:
+        p, q = q, p
     
-    metadata = {
-        "bits": N.bit_length(),
-        "p_bits": p.bit_length(),
-        "q_bits": q.bit_length(),
-        "ratio_target": float(ratio_target),
-        "actual_ratio": float(actual_ratio),
-        "distance": float(distance),
-        "fermat_normal": fermat_normal,
-        "seed": seed
+    sqrt_N = math.sqrt(N)
+    
+    return {
+        'N': str(N),
+        'p': str(p),
+        'q': str(q),
+        'N_bits': N.bit_length(),
+        'p_bits': p.bit_length(),
+        'q_bits': q.bit_length(),
+        'fermat_gap': abs(p - q),
+        'fermat_target': fermat_gap,
+        'sqrt_N': sqrt_N,
+        'distance_from_sqrt': abs(p - sqrt_N),
+        'seed': seed
     }
-    
-    return N, p, q, metadata
 
 
-def parse_tier_spec(spec):
+def parse_tier_spec(tier_str):
     """
-    Parse tier specification like "1.0+2^-32" into a float.
+    Parse tier specification like "1.0+2^-32" or "1.125" into a numeric value.
     
     Examples:
         "1.0" -> 1.0
         "1.0+2^-32" -> 1.0 + 2^-32
         "1.125" -> 1.125
     """
-    if '+' in spec:
-        parts = spec.split('+')
+    tier_str = tier_str.strip()
+    
+    # Check if it contains a "+"
+    if '+' in tier_str:
+        parts = tier_str.split('+')
         base = float(parts[0])
-        offset_spec = parts[1]
-        if '^' in offset_spec:
-            # Parse "2^-32"
-            base_exp, exp = offset_spec.split('^')
-            offset = float(base_exp) ** float(exp)
+        
+        # Parse the additive part (may contain "^")
+        additive_str = parts[1]
+        if '^' in additive_str:
+            # Parse "2^-32" format
+            exp_parts = additive_str.split('^')
+            base_num = float(exp_parts[0])
+            exponent = float(exp_parts[1])
+            additive = base_num ** exponent
         else:
-            offset = float(offset_spec)
-        return base + offset
+            additive = float(additive_str)
+        
+        return base + additive
     else:
-        return float(spec)
+        return float(tier_str)
 
 
-def parse_fermat_spec(spec):
+def parse_fermat_spec(fermat_str):
     """
-    Parse Fermat normal specification like "2^24" into an integer.
+    Parse Fermat gap specification like "2^24" or "1000000" into a numeric value.
     
     Examples:
         "2^24" -> 16777216
-        "0" -> 0
+        "1000000" -> 1000000
     """
-    if '^' in spec:
-        base, exp = spec.split('^')
-        return int(base) ** int(exp)
+    fermat_str = fermat_str.strip()
+    
+    if '^' in fermat_str:
+        parts = fermat_str.split('^')
+        base = float(parts[0])
+        exponent = float(parts[1])
+        return int(base ** exponent)
     else:
-        return int(spec)
+        return int(fermat_str)
+
+
+def generate_targets_by_distance(bits, tiers, fermats, per_tier, seed):
+    """
+    Generate targets organized by distance tiers and Fermat gaps.
+    
+    Args:
+        bits: Target bit size for N
+        tiers: List of ratio targets (e.g., [1.0, 1.125, 1.25])
+        fermats: List of Fermat gaps (e.g., [2^24, 2^28])
+        per_tier: Number of targets per tier
+        seed: Base random seed
+    
+    Returns:
+        Dictionary with metadata and categorized targets
+    """
+    targets = []
+    target_id = 0
+    
+    print(f"Generating targets:")
+    print(f"  Bit size: {bits}")
+    print(f"  Tiers: {tiers}")
+    print(f"  Fermats: {fermats}")
+    print(f"  Per tier: {per_tier}")
+    
+    # Generate ratio-based targets
+    for tier_idx, ratio in enumerate(tiers):
+        print(f"\n  Generating tier {tier_idx + 1}/{len(tiers)}: ratio={ratio:.10f}")
+        for i in range(per_tier):
+            target_seed = seed + target_id
+            try:
+                target = generate_semiprime_at_ratio(bits, ratio, target_seed)
+                target['id'] = f"T{tier_idx + 1:02d}-{i + 1:03d}"
+                target['tier'] = tier_idx + 1
+                target['tier_type'] = 'ratio'
+                targets.append(target)
+                target_id += 1
+                
+                if (i + 1) % 5 == 0:
+                    print(f"    Generated {i + 1}/{per_tier}")
+            except Exception as e:
+                print(f"    Error generating target {i}: {e}")
+    
+    # Generate Fermat-vulnerable targets
+    for fermat_idx, fermat_gap in enumerate(fermats):
+        print(f"\n  Generating Fermat tier {fermat_idx + 1}/{len(fermats)}: gap={fermat_gap}")
+        for i in range(per_tier):
+            target_seed = seed + target_id + 10000
+            try:
+                target = generate_fermat_vulnerable(bits, fermat_gap, target_seed)
+                target['id'] = f"F{fermat_idx + 1:02d}-{i + 1:03d}"
+                target['fermat_tier'] = fermat_idx + 1
+                target['tier_type'] = 'fermat'
+                targets.append(target)
+                target_id += 1
+                
+                if (i + 1) % 5 == 0:
+                    print(f"    Generated {i + 1}/{per_tier}")
+            except Exception as e:
+                print(f"    Error generating Fermat target {i}: {e}")
+    
+    return {
+        'metadata': {
+            'generated_at': time.strftime('%Y-%m-%d %H:%M:%S'),
+            'bits': bits,
+            'tiers': tiers,
+            'fermats': [int(f) for f in fermats],
+            'per_tier': per_tier,
+            'seed': seed,
+            'total_targets': len(targets)
+        },
+        'targets': targets
+    }
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Generate targets by distance for ECM experiments"
+        description='Generate balanced semiprimes organized by distance tiers'
     )
-    parser.add_argument(
-        "--bits",
-        type=int,
-        required=True,
-        help="Target bit size for semiprimes"
-    )
-    parser.add_argument(
-        "--per-tier",
-        type=int,
-        default=25,
-        help="Number of targets per tier"
-    )
-    parser.add_argument(
-        "--tiers",
-        type=str,
-        required=True,
-        help="Comma-separated list of ratio tiers (e.g., '1.0+2^-32,1.0+2^-24,1.125')"
-    )
-    parser.add_argument(
-        "--fermats",
-        type=str,
-        default="0",
-        help="Comma-separated list of Fermat normal forms (e.g., '0,2^24,2^28')"
-    )
-    parser.add_argument(
-        "--out",
-        type=str,
-        required=True,
-        help="Output JSON file path"
-    )
-    parser.add_argument(
-        "--seed",
-        type=int,
-        default=42,
-        help="Random seed for reproducibility"
-    )
+    parser.add_argument('--bits', type=int, default=192,
+                       help='Target bit size for N (default: 192)')
+    parser.add_argument('--per-tier', type=int, default=25,
+                       help='Number of targets per tier (default: 25)')
+    parser.add_argument('--tiers', type=str,
+                       default='1.0+2^-32,1.0+2^-24,1.0+2^-16,1.0+2^-12,1.125,1.25',
+                       help='Comma-separated ratio tiers (default: 1.0+2^-32,...)')
+    parser.add_argument('--fermats', type=str, default='2^24,2^28',
+                       help='Comma-separated Fermat gaps (default: 2^24,2^28)')
+    parser.add_argument('--out', type=str, default='python/targets_by_distance.json',
+                       help='Output JSON file (default: python/targets_by_distance.json)')
+    parser.add_argument('--seed', type=int, default=42,
+                       help='Random seed for reproducibility (default: 42)')
     
     args = parser.parse_args()
     
-    # Parse tiers and fermats
-    tier_ratios = [parse_tier_spec(t.strip()) for t in args.tiers.split(',')]
-    fermat_normals = [parse_fermat_spec(f.strip()) for f in args.fermats.split(',')]
+    # Parse tier specifications
+    tier_strs = args.tiers.split(',')
+    tiers = [parse_tier_spec(t) for t in tier_strs]
     
-    print(f"Generating targets with {args.bits} bits")
-    print(f"Tiers: {tier_ratios}")
-    print(f"Fermat normals: {fermat_normals}")
-    print(f"Per tier: {args.per_tier}")
+    # Parse Fermat specifications
+    fermat_strs = args.fermats.split(',')
+    fermats = [parse_fermat_spec(f) for f in fermat_strs]
+    
+    print("="*70)
+    print("Generate Targets by Distance")
+    print("="*70)
     
     # Generate targets
-    targets = []
-    seed_base = args.seed
+    result = generate_targets_by_distance(
+        bits=args.bits,
+        tiers=tiers,
+        fermats=fermats,
+        per_tier=args.per_tier,
+        seed=args.seed
+    )
     
-    for tier_idx, ratio in enumerate(tier_ratios):
-        for fermat in fermat_normals:
-            for i in range(args.per_tier):
-                seed = seed_base + tier_idx * 10000 + fermat + i
-                N, p, q, metadata = generate_semiprime(
-                    args.bits, 
-                    ratio_target=ratio, 
-                    fermat_normal=fermat,
-                    seed=seed
-                )
-                
-                target = {
-                    "N": str(N),
-                    "p": str(p),
-                    "q": str(q),
-                    "tier": tier_idx,
-                    "tier_ratio": ratio,
-                    "fermat_normal": fermat,
-                    **metadata
-                }
-                targets.append(target)
+    # Save to file
+    output_path = Path(args.out)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     
-    # Write to JSON
-    output = {
-        "config": {
-            "bits": args.bits,
-            "per_tier": args.per_tier,
-            "tiers": tier_ratios,
-            "fermats": fermat_normals,
-            "seed": args.seed
-        },
-        "targets": targets
-    }
+    with open(output_path, 'w') as f:
+        json.dump(result, f, indent=2)
     
-    with open(args.out, 'w') as f:
-        json.dump(output, f, indent=2)
+    print(f"\n✓ Generated {result['metadata']['total_targets']} targets")
+    print(f"✓ Saved to {output_path}")
     
-    print(f"Generated {len(targets)} targets")
-    print(f"Saved to {args.out}")
+    # Print summary statistics
+    ratio_targets = [t for t in result['targets'] if t.get('tier_type') == 'ratio']
+    fermat_targets = [t for t in result['targets'] if t.get('tier_type') == 'fermat']
     
-    # Show summary
-    print("\nSummary by tier:")
-    for tier_idx, ratio in enumerate(tier_ratios):
-        tier_targets = [t for t in targets if t['tier'] == tier_idx]
-        print(f"  Tier {tier_idx} (ratio={ratio}): {len(tier_targets)} targets")
+    print(f"\nSummary:")
+    print(f"  Ratio-based targets: {len(ratio_targets)}")
+    print(f"  Fermat-vulnerable targets: {len(fermat_targets)}")
+    
+    if ratio_targets:
+        actual_ratios = [t['ratio_actual'] for t in ratio_targets]
+        print(f"  Ratio range: [{min(actual_ratios):.6f}, {max(actual_ratios):.6f}]")
+    
+    if fermat_targets:
+        actual_gaps = [t['fermat_gap'] for t in fermat_targets]
+        print(f"  Fermat gap range: [{min(actual_gaps)}, {max(actual_gaps)}]")
 
 
 if __name__ == "__main__":

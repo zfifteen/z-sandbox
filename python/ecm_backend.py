@@ -16,10 +16,20 @@ def backend_info() -> dict:
     if BACKEND != "gmp-ecm":
         return {"backend": BACKEND, "version": None}
     try:
-        # 'ecm -v' prints version and table info
-        out = subprocess.check_output(["ecm", "-v"], text=True, timeout=5)
+        # Use 'ecm --version' to get version info
+        result = subprocess.run(
+            ["ecm", "--version"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            timeout=5
+        )
+        out = result.stdout
         first = out.strip().splitlines()[0] if out else ""
-        return {"backend": BACKEND, "version": first}
+        # Extract just the version line (e.g., "GMP-ECM 7.0.5 [configured with...]")
+        if "GMP-ECM" in first:
+            return {"backend": BACKEND, "version": first}
+        return {"backend": BACKEND, "version": None}
     except Exception:
         return {"backend": BACKEND, "version": None}
 
