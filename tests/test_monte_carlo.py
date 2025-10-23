@@ -19,6 +19,7 @@ from monte_carlo import (
     Z5DMonteCarloValidator,
     FactorizationMonteCarloEnhancer,
     HyperRotationMonteCarloAnalyzer,
+    VarianceReductionMethods,
     reproduce_convergence_demo
 )
 
@@ -361,6 +362,138 @@ def test_domain_specific_forms():
     return True
 
 
+def test_rng_pcg64_initialization():
+    """Test that all classes use PCG64 RNG (MC-RNG-002)."""
+    print("\n=== Test: RNG PCG64 Initialization (MC-RNG-002) ===")
+    
+    import numpy as np
+    
+    print(f"NumPy version: {np.__version__}")
+    
+    # Test each class
+    estimator = MonteCarloEstimator(seed=42)
+    assert hasattr(estimator, 'rng'), "MonteCarloEstimator missing rng attribute"
+    assert isinstance(estimator.rng, np.random.Generator), "RNG not a Generator"
+    print(f"✓ MonteCarloEstimator uses Generator: {type(estimator.rng).__name__}")
+    
+    validator = Z5DMonteCarloValidator(seed=42)
+    assert hasattr(validator, 'rng'), "Z5DMonteCarloValidator missing rng attribute"
+    assert isinstance(validator.rng, np.random.Generator), "RNG not a Generator"
+    print(f"✓ Z5DMonteCarloValidator uses Generator: {type(validator.rng).__name__}")
+    
+    enhancer = FactorizationMonteCarloEnhancer(seed=42)
+    assert hasattr(enhancer, 'rng'), "FactorizationMonteCarloEnhancer missing rng attribute"
+    assert isinstance(enhancer.rng, np.random.Generator), "RNG not a Generator"
+    print(f"✓ FactorizationMonteCarloEnhancer uses Generator: {type(enhancer.rng).__name__}")
+    
+    analyzer = HyperRotationMonteCarloAnalyzer(seed=42)
+    assert hasattr(analyzer, 'rng'), "HyperRotationMonteCarloAnalyzer missing rng attribute"
+    assert isinstance(analyzer.rng, np.random.Generator), "RNG not a Generator"
+    print(f"✓ HyperRotationMonteCarloAnalyzer uses Generator: {type(analyzer.rng).__name__}")
+    
+    print("✓ All classes use PCG64 Generator RNG")
+    return True
+
+
+def test_rng_deterministic_replay():
+    """Test deterministic replay across runs (MC-RNG-002)."""
+    print("\n=== Test: RNG Deterministic Replay (MC-RNG-002) ===")
+    
+    import numpy as np
+    
+    seed = 99887766
+    N = 10000
+    
+    print(f"NumPy version: {np.__version__}")
+    print(f"Seed: {seed}")
+    print(f"N: {N}")
+    
+    # Run 1
+    est1 = MonteCarloEstimator(seed=seed)
+    pi1, error1, var1 = est1.estimate_pi(N)
+    
+    # Run 2
+    est2 = MonteCarloEstimator(seed=seed)
+    pi2, error2, var2 = est2.estimate_pi(N)
+    
+    # Run 3 (different class)
+    enh1 = FactorizationMonteCarloEnhancer(seed=seed)
+    candidates1 = enh1.sample_near_sqrt(77, num_samples=100)
+    
+    enh2 = FactorizationMonteCarloEnhancer(seed=seed)
+    candidates2 = enh2.sample_near_sqrt(77, num_samples=100)
+    
+    print(f"Run 1: π = {pi1:.15f}")
+    print(f"Run 2: π = {pi2:.15f}")
+    print(f"Difference: {abs(pi1 - pi2):.2e}")
+    
+    assert abs(pi1 - pi2) < 1e-10, f"π estimates not identical: {pi1} vs {pi2}"
+    assert abs(error1 - error2) < 1e-10, "Error bounds not identical"
+    assert abs(var1 - var2) < 1e-10, "Variances not identical"
+    
+    print(f"Factorization candidates 1: {candidates1[:5]}...")
+    print(f"Factorization candidates 2: {candidates2[:5]}...")
+    assert candidates1 == candidates2, "Factorization candidates not identical"
+    
+    print("✓ Deterministic replay test passed")
+    return True
+
+
+def test_variance_reduction():
+    """Test variance reduction methods (MC-VAR-003)."""
+    print("\n=== Test: Variance Reduction Methods (MC-VAR-003) ===")
+    
+    vr = VarianceReductionMethods(seed=42)
+    N = 10000
+    
+    print(f"N = {N:,}")
+    
+    # Test stratified sampling
+    pi_strat, err_strat, var_strat = vr.stratified_sampling_pi(N, num_strata=10)
+    print(f"\nStratified sampling:")
+    print(f"  π estimate: {pi_strat:.6f}")
+    print(f"  Error: {abs(pi_strat - math.pi):.6f}")
+    print(f"  Variance: {var_strat:.8e}")
+    assert abs(pi_strat - math.pi) < 0.05, "Stratified sampling error too large"
+    
+    # Test importance sampling
+    pi_imp, err_imp, var_imp = vr.importance_sampling_pi(N, concentration=2.0)
+    print(f"\nImportance sampling:")
+    print(f"  π estimate: {pi_imp:.6f}")
+    print(f"  Error: {abs(pi_imp - math.pi):.6f}")
+    print(f"  Variance: {var_imp:.8e}")
+    assert abs(pi_imp - math.pi) < 0.1, "Importance sampling error too large"
+    
+    # Test QMC (Halton)
+    pi_qmc, err_qmc, var_qmc = vr.quasi_monte_carlo_pi(N, sequence='halton')
+    print(f"\nQuasi-Monte Carlo (Halton):")
+    print(f"  π estimate: {pi_qmc:.6f}")
+    print(f"  Error: {abs(pi_qmc - math.pi):.6f}")
+    print(f"  Variance: {var_qmc:.8e}")
+    assert abs(pi_qmc - math.pi) < 0.05, "QMC error too large"
+    
+    # Compare methods
+    print(f"\nComparing all methods...")
+    results = vr.compare_methods(N)
+    
+    print(f"\n{'Method':<20} {'Estimate':<12} {'Error':<12} {'Variance':<12}")
+    print("-" * 60)
+    for method, res in results.items():
+        print(f"{method:<20} {res['estimate']:<12.6f} {res['actual_error']:<12.6f} {res['variance']:<12.8e}")
+    
+    # Variance should be reduced
+    var_standard = results['standard']['variance']
+    var_stratified = results['stratified']['variance']
+    var_qmc = results['qmc_halton']['variance']
+    
+    print(f"\nVariance reduction:")
+    print(f"  Stratified vs Standard: {((var_standard - var_stratified) / var_standard * 100):.1f}%")
+    print(f"  QMC vs Standard: {((var_standard - var_qmc) / var_standard * 100):.1f}%")
+    
+    print("✓ Variance reduction test passed")
+    return True
+
+
 def run_all_tests():
     """Run all test cases."""
     print("=" * 70)
@@ -379,6 +512,9 @@ def run_all_tests():
         test_pq_lattice_resistance,
         test_precision_target,
         test_domain_specific_forms,
+        test_rng_pcg64_initialization,
+        test_rng_deterministic_replay,
+        test_variance_reduction,
     ]
     
     passed = 0

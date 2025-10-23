@@ -120,9 +120,15 @@ candidates_phi = enhancer.biased_sampling_with_phi(N, num_samples=500)
 
 ### 4. HyperRotationMonteCarloAnalyzer
 
+**Moved to `python/security/` submodule (MC-SCOPE-005)**
+
 Monte Carlo analysis for hyper-rotation protocol security.
 
 ```python
+# New import location (backwards-compatible import still works from monte_carlo)
+from security.hyper_rotation import HyperRotationMonteCarloAnalyzer
+
+# Or use backwards-compatible import
 from monte_carlo import HyperRotationMonteCarloAnalyzer
 
 analyzer = HyperRotationMonteCarloAnalyzer(seed=42)
@@ -138,6 +144,8 @@ print(f"Mean rotation time: {risk_analysis['mean_rotation_time']:.2f}s")
 print(f"Compromise rate: {risk_analysis['compromise_rate']:.4f}")
 print(f"Safe threshold: {risk_analysis['safe_threshold']:.2f}s")
 ```
+
+**Note**: This component is now in the `security/` submodule to keep math/factorization surfaces lean. The old import path from `monte_carlo` still works for backwards compatibility.
 
 **Application**: Informs 1-10s rotation windows for hyper-rotation protocol (PR #38)
 
