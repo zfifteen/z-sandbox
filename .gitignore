@@ -76,4 +76,6 @@ bin/
 # 100-sample workflow artifacts
 python/checkpoint_*.json
 python/*checkpoint*.json
+ckpts/
+ckpts/**/*.sav
 python/ANALYSIS_*.md
