@@ -139,7 +139,7 @@
 
 ## Acceptance Criteria
 
-✅ **PASSED**: At least one 192-bit semiprime was factored where θ′ gated it.
+✅ **PASSED**: At least one 128-bit semiprime was factored where θ′ gated it.
 
 The existence proof is established:
 - Geometry (θ′) determined ECM spend strategy
