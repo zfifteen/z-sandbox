@@ -1,0 +1,5 @@
+- {'i': 1, 'bits': 256, 'N_head': '82770616202645286199', 'timeout_stage': 30, 'status': 'not_factored', 'time_sec': 0.0}
+- {'i': 2, 'bits': 256, 'N_head': '67116493453318234660', 'timeout_stage': 30, 'status': 'not_factored', 'time_sec': 0.0}
+- {'i': 3, 'bits': 256, 'N_head': '70366854032454787016', 'timeout_stage': 30, 'status': 'not_factored', 'time_sec': 0.0}
+- {'i': 4, 'bits': 256, 'N_head': '10660678358734909176', 'timeout_stage': 30, 'status': 'not_factored', 'time_sec': 0.0}
+- {'i': 5, 'bits': 255, 'N_head': '35711358799353391440', 'timeout_stage': 30, 'status': 'not_factored', 'time_sec': 0.0}
