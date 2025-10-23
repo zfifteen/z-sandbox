@@ -78,10 +78,12 @@ def generate_markdown_report(results, stats, gated_factored, out_path):
         f.write("\n")
         
         f.write("### By Gate Status\n\n")
+        gated_pct = (stats['gated_factored']*100/stats['gated'] if stats['gated'] > 0 else 0)
+        ungated_pct = (stats['ungated_factored']*100/stats['ungated'] if stats['ungated'] > 0 else 0)
         f.write(f"- **Gated targets**: {stats['gated']}\n")
-        f.write(f"  - Factored: {stats['gated_factored']} ({stats['gated_factored']*100/stats['gated']:.1f}%)\n")
+        f.write(f"  - Factored: {stats['gated_factored']} ({gated_pct:.1f}%)\n")
         f.write(f"- **Ungated targets**: {stats['ungated']}\n")
-        f.write(f"  - Factored: {stats['ungated_factored']} ({stats['ungated_factored']*100/stats['ungated']:.1f}% if stats['ungated'] > 0 else 0)\n")
+        f.write(f"  - Factored: {stats['ungated_factored']} ({ungated_pct:.1f}%)\n")
         f.write("\n")
         
         # By tier

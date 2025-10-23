@@ -102,20 +102,40 @@ def factorize_target(target, args, log_file):
     print(f"    θ′(q) = {gate_metadata['theta_q']:.6f} (in bounds: {gate_metadata['q_in_bounds']})")
     
     # Choose schedule based on gate
-    if gated:
-        # Full schedule: 35d → 50d
-        schedule = [
-            (int(10**35), 100),  # 35 digits, 100 curves
-            (int(10**40), 100),  # 40 digits, 100 curves
-            (int(10**45), 100),  # 45 digits, 100 curves
-            (int(10**50), 100),  # 50 digits, 100 curves
+    # For 192-bit numbers (58-59 decimal digits), appropriate B1 values are:
+    # - 25-30 digits: ~10^6 to 10^7
+    # - 30-35 digits: ~10^8 to 10^9
+    # - 35-40 digits: ~10^10 to 10^11
+    # - 40-50 digits: ~10^12 to 10^14
+    
+    # Scale B1 based on bit size
+    bits = target.get("bits", 192)
+    if bits <= 64:
+        # Small targets
+        light_B1 = [(11000, 100)]
+        full_B1 = [(11000, 200), (50000, 200), (250000, 200)]
+    elif bits <= 128:
+        # Medium targets (30-39 decimal digits)
+        light_B1 = [(10**6, 100)]
+        full_B1 = [(10**6, 200), (10**7, 200), (5 * 10**7, 200)]
+    else:
+        # Large targets (192-bit = ~58 decimal digits)
+        # Factors are ~29 decimal digits
+        light_B1 = [(10**7, 100)]  # Light: 35d equivalent
+        full_B1 = [
+            (10**7, 200),    # ~30 digits
+            (5 * 10**7, 200),  # ~35 digits
+            (10**9, 200),    # ~40 digits
+            (10**10, 200),   # ~45 digits
         ]
+    
+    if gated:
+        # Full schedule
+        schedule = full_B1
         schedule_name = "full"
     else:
-        # Light schedule: 35d only
-        schedule = [
-            (int(10**35), 100),  # 35 digits, 100 curves
-        ]
+        # Light schedule
+        schedule = light_B1
         schedule_name = "light"
     
     print(f"  Schedule: {schedule_name} ({len(schedule)} stages)")
@@ -292,9 +312,11 @@ def main():
     print(f"Factored: {factored} ({factored*100/total:.1f}%)")
     print()
     print(f"Gated targets: {gated}")
-    print(f"  Factored: {gated_factored} ({gated_factored*100/gated:.1f}% if gated > 0 else 0)")
+    gated_pct = (gated_factored*100/gated if gated > 0 else 0)
+    print(f"  Factored: {gated_factored} ({gated_pct:.1f}%)")
     print(f"Ungated targets: {ungated}")
-    print(f"  Factored: {ungated_factored} ({ungated_factored*100/ungated:.1f}% if ungated > 0 else 0)")
+    ungated_pct = (ungated_factored*100/ungated if ungated > 0 else 0)
+    print(f"  Factored: {ungated_factored} ({ungated_pct:.1f}%)")
     print()
     print(f"Log saved to: {args.log_file}")
     
