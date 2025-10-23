@@ -1,3 +1,4 @@
+print("Starting manifold_128bit.py")
 # DEPRECATED: This Python prototype has been superseded by the Java BigDecimal implementation in unifiedframework.* classes.
 #!/usr/bin/env python3
 """
@@ -113,4 +114,28 @@ if __name__ == "__main__":
         result = gva_factorize_128bit(N, dims)
         print(f"Time: {end - start:.2f}s")
     end = time.time()
+
+
+def theta_prime(n, k=mpf('0.3')):
+    if n < 2: raise ValueError('n must be >=2')
+    mod_phi = fmod(n, phi)
+    return phi * (mod_phi / phi) ** k
+
+# Example: Bound for GVA embedding
+n_example = mpf(1000)
+theta = theta_prime(n_example)
+width_factor = mpf('0.155')
+bound_lower = theta - width_factor / 2
+bound_upper = theta + width_factor / 2
+print(f'Bound for n=1000: [{bound_lower}, {bound_upper}]')
+
+
+if __name__ == '__main__':
+    # Example: Bound for GVA embedding
+    n_example = mpf(1000)
+    theta = theta_prime(n_example)
+    width_factor = mpf('0.155')
+    bound_lower = theta - width_factor / 2
+    bound_upper = theta + width_factor / 2
+    print(f'Bound for n=1000: [{bound_lower}, {bound_upper}]')
 
