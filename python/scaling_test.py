@@ -1,4 +1,4 @@
-import json, time, math
+import json, time, math, argparse
 from pathlib import Path
 from factor_256bit import factor_256bit
 
@@ -9,7 +9,7 @@ def log_row(result):
     with open(LOG, "a") as f:
         f.write(f"- {result}\n")
 
-def run_batch(max_targets=100, timeout_per_stage=1200):
+def run_batch(max_targets=100, timeout_per_stage=1200, single_N=None):
     with open('python/targets_filtered.json', 'r') as f:
         data = json.load(f)
     T = [int(t['N']) for t in data['targets'][:max_targets]]
@@ -37,3 +37,11 @@ def run_batch(max_targets=100, timeout_per_stage=1200):
 
 if __name__ == "__main__":
     run_batch(max_targets=5, timeout_per_stage=30)
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--single", help="Run single N")
+    parser.add_argument("--timeout-per-stage", type=int, default=1200)
+    args = parser.parse_args()
+    run_batch(single_N=args.single, timeout_per_stage=args.timeout_per_stage)
+

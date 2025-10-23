@@ -1,5 +1,6 @@
 import os, time, math, random
 from pathlib import Path
+from ecm_backend import run_ecm_once
 import pyecm
 
 def is_probable_prime(n, k=12):
@@ -50,30 +51,6 @@ def is_probable_prime(n, k=12):
         return f
     return None
 
-def run_ecm_once(N: int, B1: int, curves: int, timeout_sec: int) -> int | None:
-    """
-    Returns a nontrivial factor or None.
-    Uses pyecm.ecm
-    """
-    try:
-        factors = pyecm.ecm(N, B1=B1, curves=curves, timeout=timeout_sec)
-        if factors:
-            for f in factors:
-                if 1 < f < N and N % f == 0:
-                    return f
-    except:
-        pass
-    return None
-
-ECM_SCHEDULE = [
-    # (target_digits, B1, curves)
-    (35,   1_000_000,   1800),
-    (40,   3_000_000,   5100),
-    (45,  11_000_000,  10600),
-    (50,  43_000_000,  19300),
-]
-
-def factor_256bit(N: int, per_stage_timeout_sec=1200):
     # Guards against false positives
     if N.bit_length() < 250:
         raise ValueError(f"N too small for 256-bit path: {N.bit_length()} bits")
