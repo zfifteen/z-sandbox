@@ -37,6 +37,8 @@ jobs:
   monte-carlo-tests:
     name: Monte Carlo Tests
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
