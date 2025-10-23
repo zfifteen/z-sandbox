@@ -13,6 +13,11 @@ from matplotlib.patches import FancyBboxPatch, FancyArrowPatch
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import os
+from pathlib import Path
+
+# Get repository root for consistent plot paths
+REPO_ROOT = Path(__file__).parent.parent.parent
+PLOTS_DIR = REPO_ROOT / 'plots'
 
 
 def plot_system_architecture(output_path=None):
