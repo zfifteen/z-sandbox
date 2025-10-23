@@ -2,6 +2,8 @@
 
 A comprehensive Java framework for testing and benchmarking integer factorization methods against RSA challenges, featuring a "ladder" approach that incrementally scales from 200 to 260+ digits. Includes RSA challenge validation, pluggable candidate builders, performance metrics, and BigDecimal support for ultra-high scale computations.
 
+**Also includes:** TRANSEC - Time-Synchronized Encryption for zero-handshake encrypted messaging, inspired by military frequency-hopping COMSEC.
+
 > **Highlights**
 >
 > - **RSA Challenge Harness:** Validates factored entries (RSA-100 to RSA-250) with strict integrity checks
@@ -9,16 +11,19 @@ A comprehensive Java framework for testing and benchmarking integer factorizatio
 > - **Candidate Builders:** ZNeighborhood, ResidueFilter, HybridGcd, MetaSelection strategies
 > - **Performance Metrics:** CSV logging, plotting, and BigDecimal timings up to 10^1233
 > - **BigDecimal Support:** Ultra-high scale computations with stable accuracy
+> - **TRANSEC Protocol:** Zero-RTT encrypted messaging for tactical/industrial applications
 
 ---
 
 ## Table of Contents
 - [Quick Start](#quick-start)
+- [Monte Carlo Integration](#monte-carlo-integration)
 - [RSA Challenge Framework](#rsa-challenge-framework)
 - [Factorization Ladder](#factorization-ladder)
 - [Candidate Builders](#candidate-builders)
 - [BigDecimal / Ultra-High Scale](#bigdecimal--ultra-high-scale)
 - [Benchmarks & Metrics](#benchmarks--metrics)
+- [TRANSEC - Zero-Handshake Encryption](#transec---zero-handshake-encryption)
 - [Tests](#tests)
 - [Continuous Integration](#continuous-integration)
 - [Documentation](#documentation)
@@ -70,6 +75,48 @@ java -cp build/libs/z5d-0.0.1.jar tools.BenchLadder --rsa260
 ```
 
 Results are logged to `ladder_results.csv` and `test_output.log`.
+
+---
+
+## Monte Carlo Integration
+
+Stochastic methods for Z5D validation, factorization enhancement, and hyper-rotation analysis.
+
+### Features
+- **π Estimation:** Basic Monte Carlo integration with O(1/√N) convergence
+- **Z5D Validation:** Prime density sampling with error bounds for Z5D predictions
+- **Factorization Enhancement:** φ-biased sampling near √N for candidate generation
+- **Hyper-Rotation Analysis:** Security risk assessment via timing simulations
+- **High Precision:** mpmath with target error < 1e-16
+- **Axiom Compliance:** Domain-specific forms Z = A(B / c) throughout
+
+### Quick Start
+
+```bash
+# Run Monte Carlo demo
+PYTHONPATH=python python3 python/monte_carlo.py
+
+# Run comprehensive tests
+PYTHONPATH=python python3 tests/test_monte_carlo.py
+
+# Run integration examples
+PYTHONPATH=python python3 python/examples/monte_carlo_integration_example.py
+
+# Run RSA benchmark (MC-BENCH-001)
+PYTHONPATH=python python3 scripts/benchmark_monte_carlo_rsa.py --rsa-ids RSA-100 --seeds 42
+```
+
+### Empirical Results (seed=42)
+| N | π estimate | Error | Time |
+|---|------------|-------|------|
+| 100 | 3.200 | 0.058 | 0.1ms |
+| 10,000 | 3.136 | 0.006 | 6ms |
+| 1,000,000 | 3.140180 | 0.001 | 378ms |
+
+**Documentation:** 
+- [MONTE_CARLO_INTEGRATION.md](docs/MONTE_CARLO_INTEGRATION.md) - Detailed guide
+- [MONTE_CARLO_RNG_POLICY.md](docs/MONTE_CARLO_RNG_POLICY.md) - RNG policy (MC-RNG-002)
+- [MONTE_CARLO_BENCHMARK.md](docs/MONTE_CARLO_BENCHMARK.md) - RSA benchmark guide (MC-BENCH-001)
 
 ---
 
@@ -181,6 +228,83 @@ Comprehensive performance analysis:
 
 ---
 
+## TRANSEC - Zero-Handshake Encryption
+
+**Inspired by military frequency-hopping radio COMSEC (SINCGARS, HAVE QUICK)**, TRANSEC adapts time-synchronized key rotation to software-defined networking, eliminating handshake latency in tactical/industrial scenarios where zero-RTT encryption is required.
+
+### Key Features
+
+- **Zero-RTT Communication**: No handshake overhead after initial bootstrap
+- **Time-Sliced Keying**: Deterministic key rotation based on time epochs
+- **Military-Grade Design**: Adapted from TRANSEC/COMSEC paradigms
+- **Sub-millisecond Latency**: ~0.3ms RTT for encrypted UDP packets
+- **3,000+ msg/sec Throughput**: High-performance AEAD encryption
+
+### Quick Start
+
+```python
+from transec import TransecCipher, generate_shared_secret
+
+# Generate or provision shared secret
+secret = generate_shared_secret()
+
+# Create cipher instances
+cipher = TransecCipher(secret, slot_duration=5, drift_window=2)
+
+# Encrypt message (no handshake needed!)
+packet = cipher.seal(b"Hello, TRANSEC!", sequence=1)
+
+# Decrypt message
+plaintext = cipher.open(packet)
+```
+
+### UDP Demo
+
+```bash
+# Terminal 1: Start server
+python3 python/transec_udp_demo.py server
+
+# Terminal 2: Run benchmark
+python3 python/transec_udp_demo.py benchmark --count 100
+```
+
+**Benchmark Results** (localhost UDP):
+- Success rate: 100%
+- Average RTT: 0.34ms
+- Throughput: 2,942 msg/sec
+
+### Use Cases
+
+- **Tactical Communications**: Drone swarms, battlefield mesh networks
+- **Critical Infrastructure**: SCADA/power grid telemetry where TLS latency is unacceptable
+- **Autonomous Systems**: V2V messaging, vehicle platoons
+- **Edge Computing**: Low-latency IoT mesh networks
+- **High-Frequency Trading**: Sub-millisecond encrypted market data feeds
+
+### Documentation
+
+- [TRANSEC Specification](docs/TRANSEC.md) - Full protocol specification with security model
+- [Usage Guide](docs/TRANSEC_USAGE.md) - API reference, examples, and best practices
+- [Test Suite](tests/test_transec.py) - Comprehensive test coverage (25 tests)
+- [UDP Demo](python/transec_udp_demo.py) - Working client/server example
+
+### Security Model
+
+**Protected Against:**
+- ✓ Passive eavesdropping (ChaCha20-Poly1305 AEAD)
+- ✓ Replay attacks (sequence number tracking)
+- ✓ Packet injection (authenticated encryption)
+- ✓ Tampered messages (AEAD integrity verification)
+
+**Tradeoffs (COMSEC model):**
+- Shared secret compromise requires network-wide rekey (no forward secrecy without ratcheting)
+- Requires time synchronization (±2 slots tolerance by default)
+- Not suitable for long-term perfect forward secrecy use cases
+
+**Best for:** Systems that prioritize zero-latency encryption over PFS, where handshake overhead is unacceptable (tactical, real-time control, autonomous systems).
+
+---
+
 ## Tests
 
 Comprehensive test suite:
@@ -190,9 +314,11 @@ Comprehensive test suite:
 - **Builder Verification:** Candidate generation and filtering
 - **BigDecimal Validation:** Ultra-high scale accuracy
 - **Integration Tests:** RSA-260 attempts (opt-in)
+- **TRANSEC Tests:** Encryption, replay protection, drift tolerance (25 tests)
+- **Monte Carlo Tests:** Stochastic methods validation with reproducibility
 
 ```bash
-# Run all tests
+# Run all Java tests
 ./gradlew test
 
 # Run integration tests
@@ -200,6 +326,14 @@ Comprehensive test suite:
 
 # Run specific test class
 ./gradlew test --tests "unifiedframework.TestRSAChallenges"
+
+# Run TRANSEC tests
+python3 tests/test_transec.py -v
+# Run Python Monte Carlo tests
+PYTHONPATH=python python3 tests/test_monte_carlo.py
+
+# Run specific Python test
+PYTHONPATH=python python3 tests/test_gva_128.py
 ```
 
 ---
@@ -215,6 +349,12 @@ GitHub Actions workflow (`.github/workflows/ci.yml`) runs:
 ## Documentation
 
 This section provides links to detailed documentation in the `docs/` folder, organized by category.
+
+### TRANSEC (Time-Synchronized Encryption)
+- [TRANSEC Specification](docs/TRANSEC.md): Full protocol specification with security model, threat analysis, and cryptographic primitives.
+- [TRANSEC Usage Guide](docs/TRANSEC_USAGE.md): Complete API reference, examples, configuration options, and best practices.
+### Monte Carlo Integration
+- [Monte Carlo Integration Documentation](docs/MONTE_CARLO_INTEGRATION.md): Comprehensive guide to stochastic methods for Z5D validation, factorization enhancement, and hyper-rotation protocol analysis.
 
 ### GVA (Geodesic Validation Assault) Research
 - [GVA Mathematical Framework](docs/GVA_Mathematical_Framework.md): Formal mathematical foundations and algorithm overview for GVA factorization.
