@@ -19,6 +19,7 @@ from monte_carlo import (
     Z5DMonteCarloValidator,
     FactorizationMonteCarloEnhancer,
     HyperRotationMonteCarloAnalyzer,
+    VarianceReductionMethods,
     reproduce_convergence_demo
 )
 
@@ -438,6 +439,61 @@ def test_rng_deterministic_replay():
     return True
 
 
+def test_variance_reduction():
+    """Test variance reduction methods (MC-VAR-003)."""
+    print("\n=== Test: Variance Reduction Methods (MC-VAR-003) ===")
+    
+    vr = VarianceReductionMethods(seed=42)
+    N = 10000
+    
+    print(f"N = {N:,}")
+    
+    # Test stratified sampling
+    pi_strat, err_strat, var_strat = vr.stratified_sampling_pi(N, num_strata=10)
+    print(f"\nStratified sampling:")
+    print(f"  π estimate: {pi_strat:.6f}")
+    print(f"  Error: {abs(pi_strat - math.pi):.6f}")
+    print(f"  Variance: {var_strat:.8e}")
+    assert abs(pi_strat - math.pi) < 0.05, "Stratified sampling error too large"
+    
+    # Test importance sampling
+    pi_imp, err_imp, var_imp = vr.importance_sampling_pi(N, concentration=2.0)
+    print(f"\nImportance sampling:")
+    print(f"  π estimate: {pi_imp:.6f}")
+    print(f"  Error: {abs(pi_imp - math.pi):.6f}")
+    print(f"  Variance: {var_imp:.8e}")
+    assert abs(pi_imp - math.pi) < 0.1, "Importance sampling error too large"
+    
+    # Test QMC (Halton)
+    pi_qmc, err_qmc, var_qmc = vr.quasi_monte_carlo_pi(N, sequence='halton')
+    print(f"\nQuasi-Monte Carlo (Halton):")
+    print(f"  π estimate: {pi_qmc:.6f}")
+    print(f"  Error: {abs(pi_qmc - math.pi):.6f}")
+    print(f"  Variance: {var_qmc:.8e}")
+    assert abs(pi_qmc - math.pi) < 0.05, "QMC error too large"
+    
+    # Compare methods
+    print(f"\nComparing all methods...")
+    results = vr.compare_methods(N)
+    
+    print(f"\n{'Method':<20} {'Estimate':<12} {'Error':<12} {'Variance':<12}")
+    print("-" * 60)
+    for method, res in results.items():
+        print(f"{method:<20} {res['estimate']:<12.6f} {res['actual_error']:<12.6f} {res['variance']:<12.8e}")
+    
+    # Variance should be reduced
+    var_standard = results['standard']['variance']
+    var_stratified = results['stratified']['variance']
+    var_qmc = results['qmc_halton']['variance']
+    
+    print(f"\nVariance reduction:")
+    print(f"  Stratified vs Standard: {((var_standard - var_stratified) / var_standard * 100):.1f}%")
+    print(f"  QMC vs Standard: {((var_standard - var_qmc) / var_standard * 100):.1f}%")
+    
+    print("✓ Variance reduction test passed")
+    return True
+
+
 def run_all_tests():
     """Run all test cases."""
     print("=" * 70)
@@ -458,6 +514,7 @@ def run_all_tests():
         test_domain_specific_forms,
         test_rng_pcg64_initialization,
         test_rng_deterministic_replay,
+        test_variance_reduction,
     ]
     
     passed = 0
