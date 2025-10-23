@@ -95,8 +95,9 @@ def factor_with_ecm(N, schedule, timeout_per_stage, checkpoint_dir, use_sigma):
     for stage_name, B1, curves in schedule:
         stage_start = time.time()
         
-        # Use sigma=1 if enabled (deterministic)
-        sigma = 1 if use_sigma else None
+        # Use a valid sigma value for determinism (any large number works)
+        # Sigma=1 is invalid, use a large prime-like number instead
+        sigma = 2147483647 if use_sigma else None  # Mersenne prime 2^31-1
         
         # Try to factor
         factor = run_ecm_once(
