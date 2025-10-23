@@ -62,6 +62,59 @@ PYTHONPATH=python python3 scripts/benchmark_monte_carlo_rsa.py \
 
 This requires integration with existing candidate builders (future work).
 
+## Replay Winning Seed/Method
+
+After running a benchmark, you can replay the exact winning configuration from the CSV to dump candidates for debugging or verification:
+
+```python
+# Read the benchmark CSV
+import pandas as pd
+df = pd.read_csv('monte_carlo_rsa_benchmark.csv')
+
+# Find the best result (e.g., fastest factorization)
+best = df[df['factor_found'] == True].sort_by('wall_time_seconds').iloc[0]
+
+# Replay with exact parameters
+from monte_carlo import FactorizationMonteCarloEnhancer
+
+enhancer = FactorizationMonteCarloEnhancer(seed=int(best['seed']))
+candidates = enhancer.biased_sampling_with_phi(
+    N=int(best['N_decimal'].replace('...', '')),  # Use actual N from your test
+    num_samples=int(best['samples_per_try']),
+    mode=best['sampling_mode']
+)
+
+print(f"Replayed {best['method']} with seed {best['seed']}")
+print(f"Generated {len(candidates)} candidates")
+print(f"First 10: {candidates[:10]}")
+
+# Verify factor is in candidates
+if best['factor_value'] in candidates:
+    print(f"✓ Factor {best['factor_value']} confirmed in candidates")
+```
+
+### One-Liner Replay
+
+For quick verification without pandas:
+
+```bash
+# Extract winning row from CSV (example: row 3 found RSA-100 in 15.2s)
+SEED=42 MODE=qmc N=77 SAMPLES=1000
+
+# Replay
+PYTHONPATH=python python3 -c "
+from monte_carlo import FactorizationMonteCarloEnhancer
+e = FactorizationMonteCarloEnhancer(seed=$SEED)
+c = e.biased_sampling_with_phi(N=$N, num_samples=$SAMPLES, mode='$MODE')
+print(f'Replayed: {len(c)} candidates, first 10: {c[:10]}')
+"
+```
+
+This is useful for:
+- Bug reports: "Seed 42 with QMC mode on N=899 produces..."
+- Paper citations: "Using the published seed/mode from the benchmark..."
+- Regression testing: "Version X.Y still produces the same candidates..."
+
 ## Output Format
 
 CSV columns:
