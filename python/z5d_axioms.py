@@ -38,6 +38,10 @@ class Z5DAxioms:
     - Geometric resolution: θ'(n, k)
     """
     
+    # Class constants for better encapsulation
+    PHI = PHI  # Golden ratio (reference to module constant)
+    E2 = E2    # e² invariant (reference to module constant)
+    
     def __init__(self, precision_dps: int = 50):
         """
         Initialize Z5D axioms with specified precision.
@@ -138,15 +142,15 @@ class Z5DAxioms:
         """
         n_mpf = mpf(n)
         
-        # Compute (n mod φ)
-        n_mod_phi = n_mpf % PHI
+        # Compute (n mod φ) using class constant
+        n_mod_phi = n_mpf % Z5DAxioms.PHI
         
         # Compute ((n mod φ) / φ)^k
-        ratio = n_mod_phi / PHI
+        ratio = n_mod_phi / Z5DAxioms.PHI
         ratio_pow = ratio ** mpf(k)
         
         # Final: φ · ((n mod φ) / φ)^k
-        return PHI * ratio_pow
+        return Z5DAxioms.PHI * ratio_pow
     
     @staticmethod
     def prime_density_approximation(n: int) -> mpf:
@@ -196,7 +200,7 @@ class Z5DAxioms:
         # Δ_n represents the geometric resolution influence
         # Δ_max is normalized to 1 for prime mapping
         delta_n = theta_prime * (1 + kappa)  # Curvature-enhanced resolution
-        delta_max = PHI  # Normalized maximum
+        delta_max = Z5DAxioms.PHI  # Normalized maximum (using class constant)
         
         bias_factor = self.discrete_domain_form(target_index, delta_n, delta_max)
         

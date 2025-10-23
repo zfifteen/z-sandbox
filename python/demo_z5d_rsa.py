@@ -8,8 +8,12 @@ Shows empirical validation, prime generation, and factorization enhancement.
 
 import time
 import sympy
-from z5d_axioms import Z5DAxioms, z5d_enhanced_prime_search, PHI
+from z5d_axioms import Z5DAxioms, z5d_enhanced_prime_search
 from generate_256bit_targets import generate_z5d_biased_prime, generate_balanced_128bit_prime_pair
+
+# Define PHI locally to avoid tight coupling with z5d_axioms module
+# This is the golden ratio: φ = (1 + √5) / 2 ≈ 1.618034
+PHI = (1 + 5**0.5) / 2
 
 def print_section(title):
     """Print formatted section header."""
@@ -156,7 +160,7 @@ def demo_discrete_domain():
     
     # Δ_n is enhanced by geometric resolution and curvature
     delta_n = float(theta_prime) * (1 + float(kappa))
-    delta_max = float(PHI)  # Normalized maximum (use module-level constant)
+    delta_max = PHI  # Golden ratio, defined locally in this module
     
     Z = axioms.discrete_domain_form(n, delta_n, delta_max)
     

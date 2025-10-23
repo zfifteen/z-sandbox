@@ -12,23 +12,23 @@ Successfully implemented the Z5D-Guided RSA Factorization Enhancement as specifi
 
 ### New Files Created
 
-1. **`python/z5d_axioms.py`** (440 lines)
+1. **`python/z5d_axioms.py`** (371 lines)
    - Core Z5D mathematical framework
    - All 4 axioms implemented with high-precision arithmetic
    - Empirical validation functions
    - Prime search enhancement utilities
 
-2. **`python/test_z5d_axioms.py`** (370 lines)
+2. **`python/test_z5d_axioms.py`** (307 lines)
    - Comprehensive test suite with 24 tests
    - Tests all axioms, numerical stability, and integration
    - All tests passing (100% success rate)
 
-3. **`python/demo_z5d_rsa.py`** (250 lines)
+3. **`python/demo_z5d_rsa.py`** (223 lines)
    - Interactive demonstration of Z5D integration
    - Shows all axioms in action
    - Real-world usage examples
 
-4. **`docs/Z5D_RSA_FACTORIZATION.md`** (470 lines)
+4. **`docs/Z5D_RSA_FACTORIZATION.md`** (432 lines)
    - Complete mathematical framework documentation
    - Usage examples and code samples
    - Performance characteristics

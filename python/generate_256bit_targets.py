@@ -26,6 +26,12 @@ P_BIT_MAX = 128
 Q_BIT_MIN = 127
 Q_BIT_MAX = 128
 
+# Z5D prime search constants
+# Base search radius for prime finding (2^20 = 1,048,576)
+# This value provides a reasonable balance between search space coverage
+# and computational efficiency for 128-bit prime generation
+BASE_SEARCH_RADIUS = 2**20
+
 def assert_256_balance(target_dict):
     """
     Single source of truth for 256-bit balanced semiprime validation.
@@ -138,7 +144,7 @@ def generate_z5d_biased_prime(target_bits=128, k_resolution=0.3):
     # Search for prime with curvature-adjusted window
     # κ(n) determines search radius (higher curvature = tighter search)
     kappa_float = float(kappa)
-    search_radius = int(2**20 * (1.0 / (1.0 + kappa_float)))
+    search_radius = int(BASE_SEARCH_RADIUS * (1.0 / (1.0 + kappa_float)))
     
     prime = find_prime_near(search_center, search_radius)
     
@@ -160,7 +166,7 @@ def generate_z5d_biased_prime(target_bits=128, k_resolution=0.3):
     
     return prime, metadata
 
-def find_prime_near(target, search_radius=2**20):
+def find_prime_near(target, search_radius=BASE_SEARCH_RADIUS):
     """
     Find a prime near the target value within search radius.
     
