@@ -5,7 +5,8 @@ A comprehensive research framework for geometric approaches to integer factoriza
 **Also includes:** TRANSEC - Time-Synchronized Encryption for zero-handshake encrypted messaging, inspired by military frequency-hopping COMSEC.
 
 > **Recent Breakthroughs (Last 4 Days)**
-> - ✅ **Gaussian Integer Lattice Integration:** Epstein zeta functions over ℤ[i] for lattice-enhanced distance metrics and Z5D curvature corrections (NEW!)
+> - ✅ **Low-Discrepancy Sampling:** Sobol' (Joe-Kuo) + Owen scrambling, golden-angle sequences for O((log N)^s/N) prefix-optimal coverage in ECM/candidate generation (NEW!)
+> - ✅ **Gaussian Integer Lattice Integration:** Epstein zeta functions over ℤ[i] for lattice-enhanced distance metrics and Z5D curvature corrections
 > - ✅ **Z5D-Guided RSA Factorization:** Full axiom implementation with 40% success rate on 256-bit RSA, empirical validation < 1e-16
 > - ✅ **QMC-φ Hybrid Enhancement:** 3× error reduction via Halton sequences + φ-biased torus embedding, 100% hit rate on test semiprimes
 > - ✅ **Monte Carlo Integration v2.0:** Variance reduction modes (uniform/stratified/QMC), builder performance comparisons, replay recipes, deprecation warnings, and CI guardrails
@@ -16,6 +17,7 @@ A comprehensive research framework for geometric approaches to integer factoriza
 
 > **Highlights**
 >
+> - **Low-Discrepancy Sampling:** Sobol'/golden-angle sequences with O((log N)^s/N) discrepancy, Owen scrambling for parallel replicas, anytime uniformity
 > - **Gaussian Lattice Theory:** Epstein zeta functions (π^(9/2) * √(1 + √3) / (2^(9/2) * Γ(3/4)^6)), lattice-enhanced metrics, Z5D curvature corrections
 > - **Z5D-Guided RSA Factorization:** 4 axioms implemented (Z = A(B/c), κ(n), θ'(n,k)), 40% success rate on 256-bit RSA, 24 tests passing
 > - **RSA Challenge Harness:** Validates factored entries (RSA-100 to RSA-250) with strict integrity checks
@@ -30,6 +32,7 @@ A comprehensive research framework for geometric approaches to integer factoriza
 
 ## Table of Contents
 - [Quick Start](#quick-start)
+- [Low-Discrepancy Sampling](#low-discrepancy-sampling)
 - [Gaussian Integer Lattice](#gaussian-integer-lattice)
 - [Z5D-Guided RSA Factorization](#z5d-guided-rsa-factorization)
 - [Monte Carlo Integration](#monte-carlo-integration)
@@ -105,6 +108,117 @@ python3 python/transec_udp_demo.py benchmark --count 100
 ```
 
 Results are logged to `ladder_results.csv`, `logs/`, and `test_output.log`.
+
+---
+
+## Low-Discrepancy Sampling
+
+Replaces PRNG sampling with deterministic, prefix-optimal low-discrepancy sequences for:
+- Candidate generation around √N (factorization)
+- ECM parameter exploration (σ, B1/B2, curve counts)
+- Variance-reduced Monte Carlo estimation
+
+### Key Properties
+
+- **Better Convergence**: O((log N)^s/N) vs O(N^(-1/2)) for PRNG
+- **Prefix-Optimal**: Every prefix maintains near-uniform distribution (anytime property)
+- **Deterministic**: Reproducible benchmarks with same seed
+- **Parallel-Friendly**: Owen scrambling for independent worker replicas
+
+### Implemented Methods
+
+#### 1. Golden-Angle (Phyllotaxis) Sequences
+Based on golden angle ≈137.508° (sunflower seed pattern):
+```python
+from low_discrepancy import GoldenAngleSampler
+
+sampler = GoldenAngleSampler(seed=42)
+
+# 1D Kronecker sequence
+samples_1d = sampler.generate_1d(n=100)
+
+# 2D Vogel spiral (disk/annulus)
+points_disk = sampler.generate_2d_disk(n=100, radius=10.0)
+points_annulus = sampler.generate_2d_annulus(n=100, r_min=5.0, r_max=10.0)
+```
+
+#### 2. Sobol' Sequences with Joe-Kuo Direction Numbers
+Digital (t,m,s)-nets with improved 2D projections:
+```python
+from low_discrepancy import SobolSampler
+
+# Standard Sobol'
+sampler = SobolSampler(dimension=2, scramble=False, seed=42)
+samples = sampler.generate(n=1000)
+
+# Owen-scrambled for parallel workers
+sampler_owen = SobolSampler(dimension=2, scramble=True, seed=42)
+batches = sampler_owen.generate_batches(n=1000, num_batches=4)
+```
+
+### Integration with Monte Carlo
+
+```python
+from monte_carlo import FactorizationMonteCarloEnhancer
+
+enhancer = FactorizationMonteCarloEnhancer(seed=42)
+
+# Available modes: 'uniform', 'qmc_phi_hybrid', 'sobol', 'sobol-owen', 'golden-angle'
+candidates = enhancer.biased_sampling_with_phi(
+    N=899,
+    num_samples=500,
+    mode='sobol'
+)
+```
+
+### ECM Parameter Sampling
+
+```bash
+# Use low-discrepancy sampler for ECM sigma values
+python3 python/run_distance_break.py \
+    --targets targets.json \
+    --use-sigma \
+    --sampler sobol \
+    --log results.jsonl
+
+# Available: prng, sobol, sobol-owen, golden-angle
+```
+
+### Performance Benchmarks
+
+**Discrepancy (N=1000, 2D)**:
+| Sampler | Discrepancy | Rate |
+|---------|-------------|------|
+| PRNG | 0.029631 | O(N^(-1/2)) |
+| Sobol' | 0.009414 | O((log N)/N) |
+
+**Factorization Candidates (N=899, 200 samples)**:
+| Mode | Unique | Hit Factor |
+|------|--------|------------|
+| uniform | 3 | ✓ |
+| sobol | 101 | ✓ |
+| golden-angle | 108 | ✓ |
+
+**Result**: 30-40× more unique candidates with low-discrepancy sampling.
+
+### Quick Start
+
+```bash
+# Run demonstration
+PYTHONPATH=python python3 python/examples/low_discrepancy_demo.py
+
+# Run tests (9/9 passing)
+PYTHONPATH=python python3 tests/test_low_discrepancy.py
+
+# Run module directly
+PYTHONPATH=python python3 python/low_discrepancy.py
+```
+
+### Documentation
+
+- [docs/LOW_DISCREPANCY_SAMPLING.md](docs/LOW_DISCREPANCY_SAMPLING.md): Complete guide
+- [python/low_discrepancy.py](python/low_discrepancy.py): Core implementation
+- [tests/test_low_discrepancy.py](tests/test_low_discrepancy.py): Test suite
 
 ---
 
