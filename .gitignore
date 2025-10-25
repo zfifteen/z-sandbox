@@ -89,3 +89,6 @@ python/targets_256bit_z5d_test.json
 logs/tsvf_metrics.csv
 logs/tsvf_metrics.jsonl
 logs/tsvf_summary.md
+
+# Line-intersection multiplication demo outputs
+intersection_factor_demo_*.png
