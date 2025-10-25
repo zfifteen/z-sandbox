@@ -222,25 +222,21 @@ class TransecCipher:
         # The slot_index in the packet is already normalized by sender
         current_slot = self.get_current_slot()
         
-        # For prime normalization, we need to check drift based on raw time values
-        # rather than normalized slot indices, since prime gaps vary
+        # For prime normalization, we need to check drift properly
+        # by comparing normalized slots to normalized slots
         if self.prime_strategy != "none" and PRIME_OPTIMIZATION_AVAILABLE:
             # Get raw current slot (before normalization)
             raw_current = self.get_raw_current_slot()
             
-            # For checking, we need to consider that both sender and receiver
-            # normalize their slots. The packet contains a normalized slot,
-            # so we need to check if it's close enough in raw time terms.
-            # We approximate by checking if the difference in the actual
-            # slot indices (which are primes) corresponds to an acceptable
-            # time drift.
+            # Normalize the current slot using the same function as the sender
+            normalized_current = self._normalize_slot(raw_current)
             
-            # Simple heuristic: allow wider window for prime-normalized slots
-            # because prime spacing increases logarithmically
-            effective_window = self.drift_window * 3
+            # Compare normalized slots for drift
+            slot_diff = abs(normalized_current - slot_index)
             
-            # Check against raw current slot
-            if abs(raw_current - slot_index) > effective_window:
+            # The drift window applies to the semantic drift between normalized slots
+            # We use the standard drift_window since we're comparing like-to-like now
+            if slot_diff > self.drift_window:
                 return None
         else:
             # Standard drift check for non-normalized slots

@@ -133,18 +133,13 @@ def find_next_prime(n: int) -> int:
     # Start with odd number
     candidate = n if n % 2 == 1 else n + 1
     
-    # For efficiency, limit search to reasonable range
-    max_search = min(candidate + 1000, candidate * 2)  # Limit search range
-    
-    while candidate < max_search:
+    # Search indefinitely until a prime is found
+    # Prime gaps grow as O(log n), so this will terminate
+    while True:
         if is_prime(candidate):
             _prime_cache[n] = candidate
             return candidate
         candidate += 2
-    
-    # Fallback: return n itself if no prime found in range
-    # This shouldn't happen for reasonable n values
-    return n
 
 
 def find_nearest_prime(n: int) -> int:
@@ -172,9 +167,9 @@ def find_nearest_prime(n: int) -> int:
     # Find next prime
     next_p = find_next_prime(n)
     
-    # Find previous prime by searching backwards (limited range)
+    # Find previous prime by searching backwards (search all the way to 2)
     prev_p = n - 1 if n > 2 else 2
-    search_limit = max(2, n - 100)  # Don't search too far back
+    search_limit = 2  # Search all the way back to 2 to ensure correctness
     
     while prev_p >= search_limit:
         if is_prime(prev_p):
