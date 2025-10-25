@@ -6,6 +6,7 @@ A comprehensive research framework for geometric approaches to integer factoriza
 
 > **Recent Breakthroughs (Last 4 Days)**
 > - ✅ **Barycentric Coordinates Enhancement:** Affine-invariant geometric operations with curvature weighting for improved GVA/Monte Carlo integration (NEW!)
+> - ✅ **Gaussian Integer Lattice Integration:** Epstein zeta functions over ℤ[i] for lattice-enhanced distance metrics and Z5D curvature corrections (NEW!)
 > - ✅ **Z5D-Guided RSA Factorization:** Full axiom implementation with 40% success rate on 256-bit RSA, empirical validation < 1e-16
 > - ✅ **QMC-φ Hybrid Enhancement:** 3× error reduction via Halton sequences + φ-biased torus embedding, 100% hit rate on test semiprimes
 > - ✅ **Monte Carlo Integration v2.0:** Variance reduction modes (uniform/stratified/QMC/barycentric), builder performance comparisons, replay recipes
@@ -16,6 +17,7 @@ A comprehensive research framework for geometric approaches to integer factoriza
 
 > **Highlights**
 >
+> - **Gaussian Lattice Theory:** Epstein zeta functions (π^(9/2) * √(1 + √3) / (2^(9/2) * Γ(3/4)^6)), lattice-enhanced metrics, Z5D curvature corrections
 > - **Z5D-Guided RSA Factorization:** 4 axioms implemented (Z = A(B/c), κ(n), θ'(n,k)), 40% success rate on 256-bit RSA, 24 tests passing
 > - **Barycentric Coordinates:** Affine-invariant geometric framework with curvature weighting, simplicial stratification, 26 tests passing
 > - **RSA Challenge Harness:** Validates factored entries (RSA-100 to RSA-250) with strict integrity checks
@@ -30,6 +32,7 @@ A comprehensive research framework for geometric approaches to integer factoriza
 
 ## Table of Contents
 - [Quick Start](#quick-start)
+- [Gaussian Integer Lattice](#gaussian-integer-lattice)
 - [Z5D-Guided RSA Factorization](#z5d-guided-rsa-factorization)
 - [Monte Carlo Integration](#monte-carlo-integration)
 - [Geometric Factorization (GVA)](#geometric-factorization-gva)
@@ -104,6 +107,104 @@ python3 python/transec_udp_demo.py benchmark --count 100
 ```
 
 Results are logged to `ladder_results.csv`, `logs/`, and `test_output.log`.
+
+---
+
+## Gaussian Integer Lattice
+
+Novel integration of analytic number theory and lattice-based geometric methods for enhanced factorization. Implements Epstein zeta functions over Gaussian integers ℤ[i] to provide lattice-enhanced distance metrics, Z5D curvature corrections, and Monte Carlo integration improvements.
+
+### Mathematical Foundation
+
+**Gaussian Integer Lattice**:
+```
+ℤ[i] = {a + bi : a, b ∈ ℤ}
+```
+
+**Epstein Zeta Function** at s = 9/4:
+```
+E_2(9/4) = Σ_{(m,n) ≠ (0,0)} 1/(m² + n²)^(9/4)
+```
+
+**Closed-Form Identity**:
+```
+π^(9/2) * √(1 + √3) / (2^(9/2) * Γ(3/4)^6) ≈ 3.7246
+```
+
+### Key Features
+
+- ✅ **Lattice-enhanced distance metrics** for GVA candidate ranking
+- ✅ **Z5D curvature corrections** (8-14% enhancement) via lattice structure
+- ✅ **Monte Carlo integration** with lattice-aware sampling
+- ✅ **π estimation** via Gauss circle problem (Monte Carlo validation)
+- ✅ **9/9 unit tests passing** with reproducible results
+
+### Quick Start
+
+```bash
+# Run Gaussian lattice demonstration
+PYTHONPATH=python python3 python/gaussian_lattice.py
+
+# Run comprehensive examples
+PYTHONPATH=python python3 python/examples/gaussian_lattice_demo.py
+
+# Run unit tests
+PYTHONPATH=python python3 tests/test_gaussian_lattice.py
+```
+
+### Example Usage
+
+```python
+from gaussian_lattice import GaussianIntegerLattice
+
+lattice = GaussianIntegerLattice(precision_dps=50)
+
+# Compute Epstein zeta closed form
+closed_form = lattice.epstein_zeta_closed_form()
+print(f"Closed form: {closed_form}")
+
+# Validate with numerical sum
+result = lattice.validate_identity(max_n=100)
+print(f"Numerical sum: {result['numerical']}")
+print(f"Number of terms: {result['num_terms']}")
+
+# Lattice-enhanced distance for factorization
+z1 = complex(29, 0)  # Factor candidate
+z2 = complex(31, 0)  # Adjacent candidate
+distance = lattice.lattice_enhanced_distance(z1, z2, lattice_scale=0.5)
+print(f"Lattice distance: {distance}")
+
+# Z5D curvature enhancement
+kappa_enhanced = lattice.z5d_lattice_curvature(1000, max_lattice=10)
+print(f"Enhanced curvature: {kappa_enhanced}")
+```
+
+### Applications to Factorization
+
+1. **Enhanced GVA Distance Metrics**: Incorporate lattice structure for better candidate ranking
+2. **Z5D Curvature Corrections**: More accurate geometric weighting in prime-density mapping
+3. **Monte Carlo Error Bounds**: Theoretical baselines from closed-form expressions
+4. **Lattice-Based Sampling**: φ-biased integration with reduced variance
+
+### Performance
+
+Convergence analysis (Epstein zeta sum):
+```
+max_n   Time (s)   Terms      Error/Term
+  20      0.021     1,680     1.03e-03
+  50      0.138    10,200     1.70e-04
+ 100      0.592    40,400     4.29e-05
+ 200      2.295   160,800     1.08e-05
+```
+
+**Recommendation**: Use max_n ≈ 100-200 for practical applications.
+
+### Documentation
+
+- [GAUSSIAN_LATTICE_INTEGRATION.md](docs/GAUSSIAN_LATTICE_INTEGRATION.md) - Complete mathematical framework
+- `gaussian_lattice.py` - Core implementation (450+ lines)
+- `gaussian_lattice_demo.py` - 7 comprehensive examples
+- `test_gaussian_lattice.py` - 9 unit tests (all passing)
 
 ---
 
@@ -252,10 +353,16 @@ candidates = enhancer.biased_sampling_with_phi(
 ### Quick Start
 
 ```bash
+# Run N=899 QMC benchmark (generates CSV with metrics) - NEW!
+PYTHONPATH=python python3 python/benchmark_qmc_899.py
+
+# Run simple QMC example - NEW!
+PYTHONPATH=python python3 python/examples/qmc_simple_example.py
+
 # Run Monte Carlo demo with variance reduction
 PYTHONPATH=python python3 python/monte_carlo.py
 
-# Run QMC-φ hybrid demo (NEW!)
+# Run QMC-φ hybrid demo
 PYTHONPATH=python python3 python/examples/qmc_phi_hybrid_demo.py
 
 # Run comprehensive tests (17 tests)
@@ -293,7 +400,9 @@ print(f'Replayed: {len(c)} candidates')
 | Z5D builder | ~74,000 | Deterministic | Production baseline |
 
 **Documentation:**
-- [QMC_PHI_HYBRID_ENHANCEMENT.md](docs/QMC_PHI_HYBRID_ENHANCEMENT.md) - **NEW!** QMC-φ hybrid enhancement guide
+- [QMC_README.md](QMC_README.md) - **NEW!** Quick start for QMC variance reduction with N=899 benchmark
+- [QMC_RSA_FACTORIZATION_APPLICATION.md](docs/QMC_RSA_FACTORIZATION_APPLICATION.md) - **NEW!** First documented QMC application to RSA factorization
+- [QMC_PHI_HYBRID_ENHANCEMENT.md](docs/QMC_PHI_HYBRID_ENHANCEMENT.md) - QMC-φ hybrid enhancement guide
 - [BARYCENTRIC_COORDINATES.md](docs/BARYCENTRIC_COORDINATES.md) - **NEW!** Barycentric coordinates integration
 - [MONTE_CARLO_INTEGRATION.md](docs/MONTE_CARLO_INTEGRATION.md) - Detailed guide
 - [MONTE_CARLO_RNG_POLICY.md](docs/MONTE_CARLO_RNG_POLICY.md) - RNG policy (PCG64)
@@ -588,13 +697,25 @@ Comprehensive performance analysis:
 
 **Inspired by military frequency-hopping radio COMSEC (SINCGARS, HAVE QUICK)**, TRANSEC adapts time-synchronized key rotation to software-defined networking, eliminating handshake latency in tactical/industrial scenarios.
 
+### Unique Properties
+
+TRANSEC provides a property set **absent from TLS 1.3/QUIC, IKEv2, and Signal**: true **zero-handshake, first-contact, replay-bounded AEAD** using only pre-shared key + synchronized time.
+
+- **TLS 1.3 0-RTT**: Requires prior PSK/resumption; no inherent replay protection ([RFC 8446](https://datatracker.ietf.org/doc/html/rfc8446))
+- **QUIC 0-RTT**: Inherits TLS 1.3 limitations; requires prior connection ([RFC 9000](https://datatracker.ietf.org/doc/html/rfc9000))
+- **IKEv2**: Requires explicit authenticated handshake (1-4 RTT) before protected data ([RFC 7296](https://datatracker.ietf.org/doc/html/rfc7296))
+- **Signal**: Requires X3DH key-agreement handshake before messaging ([Signal Specs](https://signal.org/docs/))
+
+See [Protocol Comparison](docs/TRANSEC_PROTOCOL_COMPARISON.md) for detailed analysis.
+
 ### Key Features
 
 - **Zero-RTT Communication**: No handshake overhead after initial bootstrap
-- **Time-Sliced Keying**: Deterministic key rotation based on time epochs
-- **Military-Grade Design**: Adapted from TRANSEC/COMSEC paradigms
+- **Time-Sliced Keying**: Deterministic key rotation based on time epochs (HKDF-SHA256)
+- **Military-Grade Design**: Adapted from TRANSEC/COMSEC paradigms (HAVE QUICK/SINCGARS)
 - **Sub-millisecond Latency**: ~0.3ms RTT for encrypted UDP packets
-- **3,000+ msg/sec Throughput**: High-performance AEAD encryption
+- **3,000+ msg/sec Throughput**: High-performance AEAD encryption (ChaCha20-Poly1305)
+- **Inherent Replay Protection**: Slot index + sequence number tracking
 
 ### Quick Start
 
@@ -639,6 +760,8 @@ python3 python/transec_udp_demo.py benchmark --count 100
 
 ### Documentation
 
+- [Zero-Handshake Property Analysis](docs/ZERO_HANDSHAKE_PROPERTY_ANALYSIS.md) - **NEW!** Verification that TRANSEC property set is absent from other protocols
+- [Protocol Comparison](docs/TRANSEC_PROTOCOL_COMPARISON.md) - **NEW!** Comprehensive comparison with TLS 1.3, QUIC, IKEv2, and Signal
 - [TRANSEC Specification](docs/TRANSEC.md) - Full protocol specification with security model
 - [Usage Guide](docs/TRANSEC_USAGE.md) - API reference, examples, and best practices
 - [Test Suite](tests/test_transec.py) - Comprehensive test coverage (25 tests)
@@ -722,6 +845,8 @@ This section provides links to detailed documentation in the `docs/` and root fo
 - [Existence Proof](reports/existence_proof.md): Formal geometric gating demonstration
 
 ### TRANSEC Protocol
+- [Zero-Handshake Property Analysis](docs/ZERO_HANDSHAKE_PROPERTY_ANALYSIS.md): **NEW!** Verification of unique properties vs TLS 1.3, QUIC, IKEv2, Signal
+- [TRANSEC Protocol Comparison](docs/TRANSEC_PROTOCOL_COMPARISON.md): Comprehensive comparison with Internet standards and RFCs
 - [TRANSEC Specification](docs/TRANSEC.md): Full protocol with security model
 - [TRANSEC Usage Guide](docs/TRANSEC_USAGE.md): API reference and examples
 - [TRANSEC Examples](python/transec_examples.py): Code examples and use cases
