@@ -288,8 +288,14 @@ def main():
     print("  • Accelerating cryptographic key audits")
     print("  • Optimizing prime density predictions")
     print("  • Post-quantum algorithm vulnerability assessment")
+    print("\nFoundational Support:")
+    print("  • coordinate_geometry module: Euclidean distance formulas for")
+    print("    computing initial proximities before curvature in stratified sampling")
+    print("  • Midpoint calculations for stratified region partitioning")
+    print("  • Area calculations for variance-reduced stratum sizing")
     print("\nDocumentation: docs/QMC_PHI_HYBRID_ENHANCEMENT.md")
     print("Tests: tests/test_qmc_phi_hybrid.py (7/7 passing)")
+    print("Related: python/coordinate_geometry.py, examples/coordinate_geometry_demo.py")
     print("=" * 70)
 
 
