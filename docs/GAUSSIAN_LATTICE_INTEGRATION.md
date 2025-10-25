@@ -124,9 +124,12 @@ The closed-form Epstein zeta value provides exact reference:
 
 ## Examples
 
+All examples should be run from the repository root directory with `PYTHONPATH=python` to ensure proper module imports.
+
 ### Example 1: Identity Validation
 
 ```bash
+# Run from repository root
 PYTHONPATH=python python3 python/gaussian_lattice.py
 ```
 
