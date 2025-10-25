@@ -264,7 +264,8 @@ def curvature_weighted_barycentric(point: np.ndarray,
 
 
 def simplicial_stratification(vertices: List[np.ndarray], 
-                              n_strata: int = 10) -> List[np.ndarray]:
+                              n_strata: int = 10,
+                              rng: Optional[np.random.Generator] = None) -> List[np.ndarray]:
     """
     Generate stratified sampling points within a simplex using barycentric coordinates.
     
@@ -274,6 +275,7 @@ def simplicial_stratification(vertices: List[np.ndarray],
     Args:
         vertices: Simplex vertices
         n_strata: Number of stratified sample points
+        rng: Optional numpy random generator for reproducibility
         
     Returns:
         List of sample points uniformly distributed in simplex
@@ -281,12 +283,16 @@ def simplicial_stratification(vertices: List[np.ndarray],
     bc = BarycentricCoordinates(vertices)
     n_vertices = len(vertices)
     
+    # Use provided RNG or default numpy random
+    if rng is None:
+        rng = np.random.default_rng()
+    
     samples = []
     for _ in range(n_strata):
         # Generate random barycentric coordinates using Dirichlet distribution
         # This ensures uniform sampling over simplex
         alphas = np.ones(n_vertices)  # Uniform prior
-        lambdas = np.random.dirichlet(alphas)
+        lambdas = rng.dirichlet(alphas)
         
         # Interpolate to get point
         point = bc.interpolate(lambdas)

@@ -508,7 +508,7 @@ class FactorizationMonteCarloEnhancer:
             ]
             
             # Generate stratified samples in simplex
-            sample_points = simplicial_stratification(vertices_2d, num_samples)
+            sample_points = simplicial_stratification(vertices_2d, num_samples, rng=self.rng)
             
             # Define curvature weighting function
             # Vertices closer to √N get higher weight
