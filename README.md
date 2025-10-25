@@ -352,7 +352,7 @@ enhancer = FactorizationMonteCarloEnhancer(seed=42)
 candidates = enhancer.biased_sampling_with_phi(
     N=899,                    # 29 × 31
     num_samples=500,
-    mode='barycentric'        # NEW barycentric mode
+    mode="barycentric"        # NEW barycentric mode
 )
 # Achieves 100% hit rate with moderate candidate count
 
@@ -379,10 +379,10 @@ embedding, anchors = torus_barycentric_embedding(N, dims=5)
 ### Documentation
 
 - [BARYCENTRIC_COORDINATES.md](docs/BARYCENTRIC_COORDINATES.md) - Complete specification
-- `python/barycentric.py` - Core module (580 lines)
-- `tests/test_barycentric.py` - Unit tests (18 tests)
-- `tests/test_monte_carlo_barycentric.py` - Integration tests (8 tests)
-- `python/examples/barycentric_demo.py` - Demonstration script
+- `python/barycentric.py` - Core module (486 lines)
+- `tests/test_barycentric.py` - Unit tests (411 lines, 18 tests)
+- `tests/test_monte_carlo_barycentric.py` - Integration tests (198 lines, 8 tests)
+- `python/examples/barycentric_demo.py` - Demonstration script (371 lines)
 
 ---
 
