@@ -35,6 +35,7 @@ A comprehensive research framework for geometric approaches to integer factoriza
 - [Gaussian Integer Lattice](#gaussian-integer-lattice)
 - [Z5D-Guided RSA Factorization](#z5d-guided-rsa-factorization)
 - [Monte Carlo Integration](#monte-carlo-integration)
+- [Barycentric Coordinates Enhancement](#barycentric-coordinates-enhancement)
 - [Geometric Factorization (GVA)](#geometric-factorization-gva)
 - [Minimal Existence Demonstration (MED)](#minimal-existence-demonstration-med)
 - [RSA Challenge Framework](#rsa-challenge-framework)
