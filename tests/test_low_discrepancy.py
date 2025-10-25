@@ -291,6 +291,63 @@ def test_convergence_rate():
     print()
 
 
+def test_input_validation():
+    """Test input validation for samplers."""
+    print("=== Test: Input Validation ===")
+    
+    # Test dimension guard for Sobol'
+    try:
+        sampler = SobolSampler(dimension=10, scramble=False, seed=42)
+        assert False, "Should have raised ValueError for dimension > 8"
+    except ValueError as e:
+        assert "Dimension 10 not supported" in str(e)
+        print(f"✓ Sobol' dimension guard works: {str(e)[:50]}...")
+    
+    # Test annulus validation - equal radii
+    sampler = GoldenAngleSampler(seed=42)
+    try:
+        sampler.generate_2d_annulus(n=10, r_min=5.0, r_max=5.0)
+        assert False, "Should have raised ValueError for r_min >= r_max"
+    except ValueError as e:
+        assert "must be less than" in str(e)
+        print(f"✓ Annulus validation (equal radii): {str(e)[:50]}...")
+    
+    # Test annulus validation - negative radii
+    try:
+        sampler.generate_2d_annulus(n=10, r_min=-1.0, r_max=5.0)
+        assert False, "Should have raised ValueError for negative radius"
+    except ValueError as e:
+        assert "non-negative" in str(e)
+        print(f"✓ Annulus validation (negative): {str(e)[:50]}...")
+    
+    # Test annulus validation - non-finite
+    try:
+        sampler.generate_2d_annulus(n=10, r_min=0.0, r_max=float('inf'))
+        assert False, "Should have raised ValueError for non-finite radius"
+    except ValueError as e:
+        assert "finite" in str(e)
+        print(f"✓ Annulus validation (non-finite): {str(e)[:50]}...")
+    
+    # Test sigma generation validation
+    from run_distance_break import generate_sigma_values
+    try:
+        generate_sigma_values(num_curves=0, sampler_type="prng")
+        assert False, "Should have raised ValueError for num_curves <= 0"
+    except ValueError as e:
+        assert "must be positive" in str(e)
+        print(f"✓ Sigma validation (num_curves): {str(e)[:50]}...")
+    
+    try:
+        generate_sigma_values(num_curves=10, sampler_type="invalid")
+        assert False, "Should have raised ValueError for invalid sampler_type"
+    except ValueError as e:
+        assert "Invalid sampler_type" in str(e)
+        print(f"✓ Sigma validation (sampler_type): {str(e)[:50]}...")
+    
+    print("✓ Input validation test passes")
+    print()
+
+
 def run_all_tests():
     """Run all low-discrepancy sampling tests."""
     print("\n" + "=" * 70)
@@ -308,6 +365,7 @@ def run_all_tests():
         test_monte_carlo_integration,
         test_prefix_optimality,
         test_convergence_rate,
+        test_input_validation,
     ]
     
     passed = 0

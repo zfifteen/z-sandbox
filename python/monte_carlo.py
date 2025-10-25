@@ -532,7 +532,6 @@ class FactorizationMonteCarloEnhancer:
                     offset = int((u1 - 0.5) * 2 * spread)
                     
                     # Apply φ modulation using u2
-                    k = 0.3
                     phi_mod = u2
                     offset_scale = phi_mod ** k
                     offset = int(offset * offset_scale)

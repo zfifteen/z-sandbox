@@ -116,6 +116,27 @@ jobs:
               print('⚠ WARNING: QMC mode performance below 100 cand/s')
           "
   
+  low-discrepancy-tests:
+    name: Low-Discrepancy Sampling Tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          pip install -r python/requirements.txt
+      - name: Run low-discrepancy tests
+        run: |
+          PYTHONPATH=python python3 tests/test_low_discrepancy.py
+      - name: Run QMC-φ hybrid tests
+        run: |
+          PYTHONPATH=python python3 tests/test_qmc_phi_hybrid.py
+  
   codeql:
     runs-on: ubuntu-latest
     permissions:

@@ -15,6 +15,7 @@ import os
 import time
 import datetime
 from pathlib import Path
+from typing import List
 from ecm_backend import run_ecm_once, backend_info
 
 # Try to import theta_gate
@@ -92,11 +93,25 @@ def generate_sigma_values(num_curves: int, sampler_type: str = "prng", seed: int
     
     Returns:
         List of sigma values in valid range for ECM
+    
+    Raises:
+        ValueError: If num_curves <= 0 or sampler_type is invalid
     """
+    # Validate inputs
+    if num_curves <= 0:
+        raise ValueError(f"num_curves must be positive, got {num_curves}")
+    
+    valid_samplers = ["prng", "sobol", "sobol-owen", "golden-angle"]
+    if sampler_type not in valid_samplers:
+        raise ValueError(
+            f"Invalid sampler_type '{sampler_type}'. "
+            f"Must be one of: {', '.join(valid_samplers)}"
+        )
+    
     # ECM sigma range: typically [6, 2^31-1]
     # Use large primes or well-distributed values
     sigma_min = 6
-    sigma_max = 2**31 - 1  # Mersenne prime
+    sigma_max = 2**31 - 1  # 8th Mersenne prime (M31)
     
     if not LOW_DISCREPANCY_AVAILABLE or sampler_type == "prng":
         # Fallback to PRNG
@@ -196,71 +211,6 @@ def factor_with_ecm(N, schedule, timeout_per_stage, checkpoint_dir, use_sigma, s
             'time_sec': round(stage_time, 3),
             'found_factor': factor is not None,
             'sigma_used': sigma
-        })
-        
-        if factor:
-            result['factored'] = True
-            result['factor'] = factor
-            result['stage'] = stage_name
-            result['time_sec'] = round(time.time() - start_time, 3)
-            return result
-    
-    result['time_sec'] = round(time.time() - start_time, 3)
-    return result
-
-
-def run_distance_break(targets_file, timeout_per_stage, checkpoint_dir, use_sigma, log_file, sampler_type="prng"):
-    """
-    Attempt to factor N using the given ECM schedule.
-    
-    Args:
-        N: The semiprime to factor
-        schedule: List of (name, B1, curves) tuples
-        timeout_per_stage: Timeout in seconds per stage
-        checkpoint_dir: Directory for checkpoints
-        use_sigma: Whether to use deterministic sigma seeding
-    
-    Returns:
-        Dictionary with factorization result
-    """
-    result = {
-        'factored': False,
-        'factor': None,
-        'stage': None,
-        'time_sec': 0.0,
-        'stages_attempted': []
-    }
-    
-    start_time = time.time()
-    
-    for stage_name, B1, curves in schedule:
-        stage_start = time.time()
-        
-        # If deterministic sigma seeding is requested (use_sigma=True), use a fixed large prime value.
-        # Note: The environment variable ECM_SIGMA=1 enables deterministic seeding (acts as a boolean flag),
-        # but the actual sigma value used is 2147483647 (the Mersenne prime 2^31-1).
-        # Sigma=1 is invalid for ECM, so we use this large prime instead.
-        sigma = 2147483647 if use_sigma else None  # Mersenne prime 2^31-1
-        
-        # Try to factor
-        factor = run_ecm_once(
-            N=N,
-            B1=B1,
-            curves=curves,
-            timeout_sec=timeout_per_stage,
-            checkpoint_dir=checkpoint_dir,
-            sigma=sigma,
-            allow_resume=True
-        )
-        
-        stage_time = time.time() - stage_start
-        
-        result['stages_attempted'].append({
-            'stage': stage_name,
-            'B1': B1,
-            'curves': curves,
-            'time_sec': round(stage_time, 3),
-            'found_factor': factor is not None
         })
         
         if factor:

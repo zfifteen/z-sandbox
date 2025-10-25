@@ -138,7 +138,18 @@ class GoldenAngleSampler:
             
         Returns:
             Array of shape (n, 2) with (x, y) coordinates
+        
+        Raises:
+            ValueError: If radii are invalid (r_min >= r_max, negative, non-finite)
         """
+        # Validate inputs
+        if not (np.isfinite(r_min) and np.isfinite(r_max)):
+            raise ValueError(f"Radii must be finite: r_min={r_min}, r_max={r_max}")
+        if r_min < 0 or r_max < 0:
+            raise ValueError(f"Radii must be non-negative: r_min={r_min}, r_max={r_max}")
+        if r_min >= r_max:
+            raise ValueError(f"Inner radius must be less than outer radius: r_min={r_min}, r_max={r_max}")
+        
         indices = np.arange(n)
         
         # Annulus: r_i = √(r_min² + i/n * (r_max² - r_min²))
@@ -209,10 +220,20 @@ class SobolSampler:
         Initialize Sobol' sampler.
         
         Args:
-            dimension: Number of dimensions (1 to 21201 supported)
+            dimension: Number of dimensions (1 to 8 supported)
             scramble: Whether to apply Owen scrambling
             seed: Random seed for scrambling (if scramble=True)
+        
+        Raises:
+            ValueError: If dimension > 8 (not yet supported)
         """
+        if dimension > 8:
+            raise ValueError(
+                f"Dimension {dimension} not supported. Currently supports dimensions 1-8. "
+                f"To extend beyond 8 dimensions, load full Joe-Kuo direction number table "
+                f"from https://web.maths.unsw.edu.au/~fkuo/sobol/"
+            )
+        
         self.dimension = dimension
         self.scramble = scramble
         self.seed = seed
@@ -365,7 +386,7 @@ class SobolSampler:
             for bit_level in range(31):
                 # Random XOR mask for this bit level
                 if self.rng.rand() < 0.5:
-                    mask = self.rng.randint(0, 2**31, dtype=np.int64)
+                    mask = self.rng.randint(0, 2**31 - 1, dtype=np.int64)
                     int_samples = int_samples ^ mask
             
             # Convert back to [0, 1]
