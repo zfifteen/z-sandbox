@@ -16,6 +16,12 @@ Based on Monte Carlo integration theory:
 - Estimator: Area = (points_inside / N) * domain_area
 - Convergence: Error ~ 1/√N (law of large numbers)
 - Variance: σ²(estimator) = p(1-p)/N where p = true_ratio
+
+Low-Discrepancy Enhancement:
+- Sobol' sequences with Joe-Kuo direction numbers for O((log N)^s/N) discrepancy
+- Owen scrambling for unbiased, independent replicas
+- Golden-angle (phyllotaxis) sequences for anytime uniformity
+- Prefix-optimal coverage for restartable computation
 """
 
 import math
@@ -24,6 +30,16 @@ import time
 from typing import Tuple, List, Dict, Optional
 from mpmath import mp, mpf, sqrt as mp_sqrt, pi as mp_pi, log as mp_log
 import numpy as np
+
+# Import low-discrepancy samplers
+try:
+    from low_discrepancy import (
+        SamplerType, LowDiscrepancySampler,
+        GoldenAngleSampler, SobolSampler
+    )
+    LOW_DISCREPANCY_AVAILABLE = True
+except ImportError:
+    LOW_DISCREPANCY_AVAILABLE = False
 
 # Set high precision for mpmath (per axiom requirements)
 mp.dps = 50  # Decimal places, target error < 1e-16
@@ -333,7 +349,8 @@ class FactorizationMonteCarloEnhancer:
         Args:
             N: Number to factor
             num_samples: Number of samples
-            mode: Sampling mode - "uniform" (default), "stratified", "qmc", or "qmc_phi_hybrid"
+                  "sobol", "sobol-owen", or "golden-angle"
+            mode: Sampling mode - "uniform" (default), "stratified", "qmc", "qmc_phi_hybrid", "barycentric", "sobol", "sobol-owen", or "golden-angle"
             
         Returns:
             Z5D-enhanced candidate list
@@ -341,8 +358,12 @@ class FactorizationMonteCarloEnhancer:
         Modes:
             - "uniform": Standard φ-biased sampling with random offsets
             - "stratified": Divides search space into strata for better coverage
-            - "qmc": Quasi-Monte Carlo with low-discrepancy sequence
+            - "qmc": Quasi-Monte Carlo with Halton sequence
             - "qmc_phi_hybrid": Hybrid QMC-Halton with φ-biased torus embedding (RECOMMENDED)
+            - "sobol": Sobol' sequence with Joe-Kuo direction numbers
+            - "sobol-owen": Owen-scrambled Sobol' for parallel replicas
+            - "golden-angle": Golden-angle/phyllotaxis spiral for anytime uniformity
+            - "barycentric": Barycentric coordinate-based simplicial sampling with curvature weighting
         """
         sqrt_N = int(math.sqrt(N))
         candidates = []
@@ -461,8 +482,177 @@ class FactorizationMonteCarloEnhancer:
                 if symmetric_candidate > 1 and symmetric_candidate < N and symmetric_candidate != candidate:
                     candidates.append(symmetric_candidate)
         
+        elif mode in ["sobol", "sobol-owen", "golden-angle"]:
+            # Low-discrepancy sampling with Sobol' or golden-angle sequences
+            if False:
+                raise ImportError("low_discrepancy module not available. Using fallback.")
+            else:
+                # Use the imported low-discrepancy library
+                if mode == "sobol":
+                    sampler = SobolSampler(dim=1, scramble=False)
+                elif mode == "sobol-owen":
+                    sampler = SobolSampler(dim=1, scramble=True)
+                elif mode == "golden-angle":
+                    sampler = GoldenAngleSampler()
+                else:
+                    raise ValueError(f"Unknown low-discrepancy mode: {mode}")
+                
+                for i in range(num_samples):
+                    point = sampler.sample(i)
+                    offset = (point[0] - 0.5) * 2 * spread
+                    candidate = sqrt_N + offset
+                    
+                    if candidate > 1 and candidate < N:
+                        candidates.append(candidate)
+                    
+                    # Symmetric
+                    symmetric_candidate = sqrt_N - offset
+                    if symmetric_candidate > 1 and symmetric_candidate < N and symmetric_candidate != candidate:
+                        candidates.append(symmetric_candidate)
+        
+        elif mode == "barycentric":
+            # Barycentric coordinate-based sampling with curvature weighting
+            # This mode uses simplicial stratification of the search space around √N
+            # with barycentric interpolation for affine-invariant candidate generation
+            
+            try:
+                from barycentric import (
+                    BarycentricCoordinates,
+                    simplicial_stratification,
+                    curvature_weighted_barycentric
+                )
+            except ImportError:
+                raise ImportError("barycentric module required for barycentric sampling mode")
+            
+            # Adaptive spread based on N's size
+            bit_length = N.bit_length()
+            if bit_length <= 64:
+                spread_factor = 0.15
+            elif bit_length <= 128:
+                spread_factor = 0.10
+            else:
+                spread_factor = 0.05
+            
+            spread = max(int(sqrt_N * spread_factor), 100)
+            
+            # Generate low-discrepancy samples
+            if mode == "golden-angle":
+                # Use golden-angle spiral for annulus around √N
+                sampler = GoldenAngleSampler(seed=self.seed)
+                points = sampler.generate_2d_annulus(
+                    n=num_samples,
+                    r_min=max(1, sqrt_N - spread),
+                    r_max=min(N - 1, sqrt_N + spread)
+                )
+                
+                # Convert 2D points to candidate integers
+                for x, y in points:
+                    # Map from annulus to integer candidates
+                    radius = math.sqrt(x*x + y*y)
+                    candidate = int(radius)
+                    
+                    if candidate > 1 and candidate < N:
+                        candidates.append(candidate)
+            
+            else:
+                # Sobol' sequence (with or without Owen scrambling)
+                scramble = (mode == "sobol-owen")
+                sampler = SobolSampler(dimension=2, scramble=scramble, seed=self.seed)
+                samples = sampler.generate(num_samples)
+                
+                # Map 2D Sobol' samples to candidates around √N
+                for i in range(num_samples):
+                    # Use first dimension for radial offset
+                    # Use second dimension for angular variation (for diversity)
+                    u1, u2 = samples[i]
+                    
+                    # Map u1 to offset: [-spread, +spread]
+                    offset = int((u1 - 0.5) * 2 * spread)
+                    
+                    # Apply φ modulation using u2
+                    phi_mod = u2
+                    offset_scale = phi_mod ** k
+                    offset = int(offset * offset_scale)
+                    
+                    candidate = sqrt_N + offset
+                    
+                    if candidate > 1 and candidate < N:
+                        candidates.append(candidate)
+                    
+                    # Add symmetric candidate
+                    symmetric_candidate = sqrt_N - offset
+                    if symmetric_candidate > 1 and symmetric_candidate < N and symmetric_candidate != candidate:
+                        candidates.append(symmetric_candidate)
+        
         else:
-            raise ValueError(f"Unknown mode: {mode}. Choose 'uniform', 'stratified', 'qmc', or 'qmc_phi_hybrid'.")
+            raise ValueError(f"Unknown mode: {mode}. Choose 'uniform', 'stratified', 'qmc', "
+                           f"'qmc_phi_hybrid', 'sobol', 'sobol-owen', or 'golden-angle'.")
+            # Compute curvature for weighting
+            log_N = math.log(N + 1)
+            E2 = math.exp(2)
+            kappa = 4 * log_N / E2
+            
+            # Define simplex anchor vertices in 1D search space around √N
+            # We'll use 3 anchor points: left boundary, center (√N), right boundary
+            # and map them to 2D for barycentric interpolation
+            anchor_left = sqrt_N - spread
+            anchor_center = sqrt_N
+            anchor_right = sqrt_N + spread
+            
+            # Map to 2D simplex for barycentric sampling
+            # This allows us to use barycentric coordinates for weighted interpolation
+            vertices_2d = [
+                np.array([0.0, 0.0]),           # Left anchor
+                np.array([1.0, 0.0]),           # Right anchor
+                np.array([0.5, math.sqrt(3)/2]) # Top (creates equilateral triangle)
+            ]
+            
+            # Generate stratified samples in simplex
+            sample_points = simplicial_stratification(vertices_2d, num_samples, rng=self.rng)
+            
+            # Define curvature weighting function
+            # Vertices closer to √N get higher weight
+            def kappa_weight_func(vertex_idx):
+                if vertex_idx == 0:  # Left anchor
+                    return kappa * 0.5
+                elif vertex_idx == 1:  # Right anchor
+                    return kappa * 0.5
+                else:  # Center (top of triangle, represents √N region)
+                    return kappa * 2.0  # Higher weight near √N
+            
+            bc = BarycentricCoordinates(vertices_2d)
+            
+            for point in sample_points:
+                # Compute barycentric coordinates
+                lambdas = bc.compute_barycentric_coords(point)
+                
+                # Apply curvature weighting
+                weighted_lambdas = curvature_weighted_barycentric(
+                    point, vertices_2d, kappa_weight_func
+                )
+                
+                # Map from barycentric coordinates to candidate space
+                # λ₀ = weight for left, λ₁ = weight for right, λ₂ = weight for center
+                # Interpolate: candidate = λ₀*anchor_left + λ₁*anchor_right + λ₂*anchor_center
+                candidate_float = (
+                    weighted_lambdas[0] * anchor_left +
+                    weighted_lambdas[1] * anchor_right +
+                    weighted_lambdas[2] * anchor_center
+                )
+                
+                candidate = int(round(candidate_float))
+                
+                # Apply φ-modulation for fine-tuning
+                phi_mod = (candidate % int(PHI)) / PHI
+                offset_scale = phi_mod ** k
+                adjustment = int(spread * 0.01 * offset_scale * (1 if candidate < sqrt_N else -1))
+                candidate = candidate + adjustment
+                
+                if candidate > 1 and candidate < N:
+                    candidates.append(candidate)
+        
+        else:
+            raise ValueError(f"Unknown mode: {mode}. Choose 'uniform', 'stratified', 'qmc', 'qmc_phi_hybrid', 'barycentric', 'sobol', 'sobol-owen', or 'golden-angle'.")
         
         return sorted(set(candidates))
     
