@@ -508,7 +508,9 @@ class FactorizationMonteCarloEnhancer:
                     # Symmetric
                     symmetric_candidate = sqrt_N - offset
                     if symmetric_candidate > 1 and symmetric_candidate < N and symmetric_candidate != candidate:
-                        candidates.append(symmetric_candidate)        elif mode == "barycentric":
+                        candidates.append(symmetric_candidate)
+        
+        elif mode == "barycentric":
             # Barycentric coordinate-based sampling with curvature weighting
             # This mode uses simplicial stratification of the search space around √N
             # with barycentric interpolation for affine-invariant candidate generation
