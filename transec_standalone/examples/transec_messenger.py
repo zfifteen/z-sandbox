@@ -59,7 +59,9 @@ def listen_mode(port: int, secret: bytes, slot_duration: int = 5):
     cipher = TransecCipher(secret, slot_duration=slot_duration)
     
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.bind(('0.0.0.0', port))
+    # Bind to all interfaces for demo purposes
+    # In production, bind to specific interface for security
+    sock.bind(('0.0.0.0', port))  # nosec - demo server binds to all interfaces
     
     print(f"[*] Listening on UDP port {port}")
     print(f"[*] Slot duration: {slot_duration}s")
@@ -126,9 +128,14 @@ def generate_mode():
     print("[*] Generated new shared secret")
     print()
     print("    Share this with your peer (QR-ready format):")
-    print(f"    {qr_data}")
+    # Security note: This intentionally displays the secret for the user to share
+    # In production, use secure out-of-band channels (QR code, USB, secure vault)
+    print(f"    {qr_data}")  # nosec - intentional display for key provisioning
     print()
     print("    Use --secret option to use this key")
+    print()
+    print("    WARNING: Keep this secret secure!")
+    print("    Anyone with this secret can decrypt your messages.")
 
 
 def main():
