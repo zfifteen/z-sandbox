@@ -58,10 +58,9 @@ The oracle provides:
 
 ### Chudnovsky Formula (1988)
 
-```
-1/π = 12 Σ_{k=0}^∞ [(-1)^k (6k)! (13591409 + 545140134k)] / 
-                    [(3k)! (k!)^3 (640320)^(3k+3/2)]
-```
+$$
+\frac{1}{\pi} = 12 \sum_{k=0}^{\infty} \frac{(-1)^k (6k)! (13591409 + 545140134k)}{(3k)! (k!)^3 (640320)^{3k+3/2}}
+$$
 
 **Properties:**
 - Convergence: ~14.18 decimal digits per term

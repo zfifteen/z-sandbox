@@ -29,8 +29,15 @@ from monte_carlo import FactorizationMonteCarloEnhancer
 try:
     from oracle import DeterministicOracle
     ORACLE_AVAILABLE = True
-except ImportError:
+except ImportError as e:
     ORACLE_AVAILABLE = False
+    import warnings
+    warnings.warn(
+        f"Oracle module not available ({e}). "
+        "Oracle-based validation will be skipped. "
+        "To enable oracle features, ensure oracle.py is in the Python path.",
+        ImportWarning
+    )
 
 
 def benchmark_sampling_mode(N: int, p: int, q: int, mode: str, num_samples: int, seed: int = 42) -> Dict:
