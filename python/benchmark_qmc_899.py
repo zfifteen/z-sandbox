@@ -8,6 +8,8 @@ sampling modes for RSA factorization candidate generation.
 This script validates the first documented application of quasi-Monte Carlo
 (QMC) low-discrepancy sequences to RSA integer factorization candidate sampling.
 
+Now enhanced with deterministic oracle validation for clean error measurement.
+
 Output: qmc_benchmark_899.csv with sampling_mode and candidates_per_second metrics
 """
 
@@ -22,6 +24,13 @@ from typing import List, Dict
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'python'))
 
 from monte_carlo import FactorizationMonteCarloEnhancer
+
+# Oracle integration for validation
+try:
+    from oracle import DeterministicOracle
+    ORACLE_AVAILABLE = True
+except ImportError:
+    ORACLE_AVAILABLE = False
 
 
 def benchmark_sampling_mode(N: int, p: int, q: int, mode: str, num_samples: int, seed: int = 42) -> Dict:
@@ -196,6 +205,32 @@ def run_benchmark():
     print("3. Deterministic sequences enable exact replay with seed values")
     print("4. Performance varies by mode, with trade-offs between speed and coverage")
     print()
+    
+    # Oracle validation (if available)
+    if ORACLE_AVAILABLE:
+        print("=" * 80)
+        print("Oracle Validation - Deterministic Error Measurement")
+        print("=" * 80)
+        print()
+        print("The deterministic oracle provides RNG-free ground truth for")
+        print("clean separation of algorithmic variance from stochastic noise.")
+        print()
+        print("For π estimation with similar sample counts:")
+        oracle = DeterministicOracle(precision=50)
+        
+        # Show theoretical error bounds
+        N_test = num_samples
+        mc_bound = oracle.mc_expected_error(N_test)
+        qmc_bound = oracle.qmc_expected_error(N_test, dimension=2)
+        
+        print(f"  Sample count: {N_test}")
+        print(f"  MC theoretical error bound:  {mc_bound:.6e}")
+        print(f"  QMC theoretical error bound: {qmc_bound:.6e}")
+        print(f"  QMC advantage factor: {mc_bound/qmc_bound:.2f}×")
+        print()
+        print("Run python/benchmark_oracle_qmc.py for full oracle-based validation")
+        print()
+    
     print("See monte_carlo.py for implementation details and theoretical foundations.")
     print("=" * 80)
     
