@@ -311,7 +311,7 @@ PYTHONPATH=python python3 python/examples/barycentric_demo.py
 
 ### Implementation Files
 
-- `python/barycentric.py` - Core barycentric module (580 lines)
+- `python/barycentric.py` - Core barycentric module (486 lines)
 - `python/monte_carlo.py` - Monte Carlo integration with barycentric mode
 - `tests/test_barycentric.py` - Core tests (18 tests)
 - `tests/test_monte_carlo_barycentric.py` - Integration tests (8 tests)

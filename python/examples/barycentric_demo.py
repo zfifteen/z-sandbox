@@ -22,7 +22,7 @@ from typing import List, Tuple
 import numpy as np
 
 # Add python directory to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'python'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from barycentric import (
     BarycentricCoordinates,

@@ -316,12 +316,21 @@ def torus_barycentric_embedding(n: int, dims: int = 11,
     Args:
         n: Integer to embed
         dims: Embedding dimension (default 11 for GVA)
+              Note: For dims > 5, the embedding is extended by phase-shifted
+              repetition with φ modulation beyond the base 5D embedding from
+              embed_5torus. For dims <= 5, uses direct embedding.
         anchor_scale: Scale factor for anchor vertex spread
         
     Returns:
         (embedding_coords, anchor_vertices)
     """
-    from manifold_core import embed_5torus, curvature
+    try:
+        from manifold_core import embed_5torus, curvature
+    except ImportError as e:
+        raise ImportError(
+            "The function torus_barycentric_embedding requires the 'manifold_core' module. "
+            "Please ensure it is installed and accessible. Original error: {}".format(e)
+        )
     
     # Adjust dims to work with embed_5torus (which uses 5 dimensions)
     if dims > 5:
