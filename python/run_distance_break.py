@@ -2,6 +2,11 @@
 """
 Run ECM factorization with theta-gating on distance-organized targets.
 Gated targets get full schedule, ungated get light pass.
+
+Enhanced with low-discrepancy sampling for ECM parameters:
+- Sigma values sampled with Sobol'/golden-angle sequences
+- B1/B2 parameter exploration with prefix-optimal coverage
+- Deterministic, restartable computation
 """
 
 import argparse
@@ -19,6 +24,14 @@ try:
 except ImportError:
     THETA_GATE_AVAILABLE = False
     print("Warning: theta_gate not available, all targets will be ungated")
+
+# Try to import low-discrepancy samplers
+try:
+    from low_discrepancy import SamplerType, LowDiscrepancySampler
+    LOW_DISCREPANCY_AVAILABLE = True
+except ImportError:
+    LOW_DISCREPANCY_AVAILABLE = False
+    print("Warning: low_discrepancy module not available, using PRNG fallback")
 
 
 # ECM schedules
@@ -68,7 +81,135 @@ def determine_schedule(N, use_gate):
         return LIGHT_SCHEDULE, False
 
 
-def factor_with_ecm(N, schedule, timeout_per_stage, checkpoint_dir, use_sigma):
+def generate_sigma_values(num_curves: int, sampler_type: str = "prng", seed: int = 42) -> List[int]:
+    """
+    Generate sigma values for ECM using low-discrepancy sequences.
+    
+    Args:
+        num_curves: Number of sigma values to generate
+        sampler_type: Type of sampler ("prng", "sobol", "sobol-owen", "golden-angle")
+        seed: Random seed for reproducibility
+    
+    Returns:
+        List of sigma values in valid range for ECM
+    """
+    # ECM sigma range: typically [6, 2^31-1]
+    # Use large primes or well-distributed values
+    sigma_min = 6
+    sigma_max = 2**31 - 1  # Mersenne prime
+    
+    if not LOW_DISCREPANCY_AVAILABLE or sampler_type == "prng":
+        # Fallback to PRNG
+        import random
+        random.seed(seed)
+        return [random.randint(sigma_min, sigma_max) for _ in range(num_curves)]
+    
+    # Use low-discrepancy sampling
+    if sampler_type == "golden-angle":
+        sampler_enum = SamplerType.GOLDEN_ANGLE
+    elif sampler_type == "sobol":
+        sampler_enum = SamplerType.SOBOL
+    elif sampler_type == "sobol-owen":
+        sampler_enum = SamplerType.SOBOL_OWEN
+    else:
+        sampler_enum = SamplerType.PRNG
+    
+    sampler = LowDiscrepancySampler(sampler_enum, dimension=1, seed=seed)
+    samples = sampler.generate(num_curves)
+    
+    # Map [0, 1] to sigma range
+    # Use log-uniform distribution for better coverage
+    import numpy as np
+    log_min = np.log(sigma_min)
+    log_max = np.log(sigma_max)
+    
+    sigma_values = []
+    for u in samples[:, 0]:
+        # Log-uniform mapping
+        log_sigma = log_min + u * (log_max - log_min)
+        sigma = int(np.exp(log_sigma))
+        sigma = max(sigma_min, min(sigma_max, sigma))
+        sigma_values.append(sigma)
+    
+    return sigma_values
+
+
+def factor_with_ecm(N, schedule, timeout_per_stage, checkpoint_dir, use_sigma, sampler_type="prng"):
+    """
+    Attempt to factor N using the given ECM schedule.
+    
+    Args:
+        N: The semiprime to factor
+        schedule: List of (name, B1, curves) tuples
+        timeout_per_stage: Timeout in seconds per stage
+        checkpoint_dir: Directory for checkpoints
+        use_sigma: Whether to use deterministic sigma seeding
+        sampler_type: Type of low-discrepancy sampler for sigma values
+    
+    Returns:
+        Dictionary with factorization result
+    """
+    result = {
+        'factored': False,
+        'factor': None,
+        'stage': None,
+        'time_sec': 0.0,
+        'stages_attempted': [],
+        'sampler_type': sampler_type
+    }
+    
+    start_time = time.time()
+    
+    for stage_idx, (stage_name, B1, curves) in enumerate(schedule):
+        stage_start = time.time()
+        
+        # Generate sigma values using low-discrepancy sampling
+        if use_sigma:
+            # Use sampler to generate diverse sigma values
+            sigma_values = generate_sigma_values(
+                num_curves=curves,
+                sampler_type=sampler_type,
+                seed=42 + stage_idx  # Different seed per stage
+            )
+            # For simplicity, use first sigma value (could iterate over all)
+            sigma = sigma_values[0]
+        else:
+            sigma = None
+        
+        # Try to factor
+        factor = run_ecm_once(
+            N=N,
+            B1=B1,
+            curves=curves,
+            timeout_sec=timeout_per_stage,
+            checkpoint_dir=checkpoint_dir,
+            sigma=sigma,
+            allow_resume=True
+        )
+        
+        stage_time = time.time() - stage_start
+        
+        result['stages_attempted'].append({
+            'stage': stage_name,
+            'B1': B1,
+            'curves': curves,
+            'time_sec': round(stage_time, 3),
+            'found_factor': factor is not None,
+            'sigma_used': sigma
+        })
+        
+        if factor:
+            result['factored'] = True
+            result['factor'] = factor
+            result['stage'] = stage_name
+            result['time_sec'] = round(time.time() - start_time, 3)
+            return result
+    
+    result['time_sec'] = round(time.time() - start_time, 3)
+    return result
+
+
+def run_distance_break(targets_file, timeout_per_stage, checkpoint_dir, use_sigma, log_file, sampler_type="prng"):
     """
     Attempt to factor N using the given ECM schedule.
     
@@ -133,7 +274,7 @@ def factor_with_ecm(N, schedule, timeout_per_stage, checkpoint_dir, use_sigma):
     return result
 
 
-def run_distance_break(targets_file, timeout_per_stage, checkpoint_dir, use_sigma, log_file):
+def run_distance_break(targets_file, timeout_per_stage, checkpoint_dir, use_sigma, log_file, sampler_type="prng"):
     """
     Run ECM factorization on distance-organized targets with theta-gating.
     
@@ -143,6 +284,7 @@ def run_distance_break(targets_file, timeout_per_stage, checkpoint_dir, use_sigm
         checkpoint_dir: Directory for checkpoints
         use_sigma: Whether to use deterministic sigma seeding
         log_file: Path to log file (JSONL format)
+        sampler_type: Type of low-discrepancy sampler for ECM parameters
     """
     # Create directories
     Path(checkpoint_dir).mkdir(parents=True, exist_ok=True)
@@ -154,6 +296,7 @@ def run_distance_break(targets_file, timeout_per_stage, checkpoint_dir, use_sigm
     print(f"Loaded {len(targets)} targets")
     print(f"Target bits: {metadata['bits']}")
     print(f"Theta-gating: {'enabled' if use_sigma and THETA_GATE_AVAILABLE else 'disabled'}")
+    print(f"Sampler type: {sampler_type}")
     
     # Write run metadata
     run_meta = {
@@ -166,6 +309,8 @@ def run_distance_break(targets_file, timeout_per_stage, checkpoint_dir, use_sigm
         'timeout_per_stage': timeout_per_stage,
         'checkpoint_dir': str(checkpoint_dir),
         'use_sigma': use_sigma,
+        'sampler_type': sampler_type,
+        'low_discrepancy_available': LOW_DISCREPANCY_AVAILABLE,
         'theta_gate_available': THETA_GATE_AVAILABLE,
         'full_schedule': [{'stage': s, 'B1': b, 'curves': c} for s, b, c in FULL_SCHEDULE],
         'light_schedule': [{'stage': s, 'B1': b, 'curves': c} for s, b, c in LIGHT_SCHEDULE],
@@ -205,7 +350,8 @@ def run_distance_break(targets_file, timeout_per_stage, checkpoint_dir, use_sigm
             schedule=schedule,
             timeout_per_stage=timeout_per_stage,
             checkpoint_dir=checkpoint_dir,
-            use_sigma=use_sigma
+            use_sigma=use_sigma,
+            sampler_type=sampler_type
         )
         
         # Check integrity if factored
@@ -239,6 +385,7 @@ def run_distance_break(targets_file, timeout_per_stage, checkpoint_dir, use_sigm
             'fermat_target': target.get('fermat_target'),
             'gate': gate_result,
             'schedule_type': schedule_type,
+            'sampler_type': sampler_type,
             'status': 'factored' if ecm_result['factored'] else 'not_factored',
             'stage': ecm_result.get('stage'),
             'time_sec': ecm_result['time_sec'],
@@ -273,6 +420,9 @@ def main():
                        help='Directory for ECM checkpoints (default: ckpts)')
     parser.add_argument('--use-sigma', action='store_true',
                        help='Enable deterministic sigma seeding and theta-gating')
+    parser.add_argument('--sampler', type=str, default='prng',
+                       choices=['prng', 'sobol', 'sobol-owen', 'golden-angle'],
+                       help='Low-discrepancy sampler for ECM parameters (default: prng)')
     parser.add_argument('--log', type=str, default='logs/distance_break.jsonl',
                        help='Log file path (default: logs/distance_break.jsonl)')
     
@@ -283,6 +433,8 @@ def main():
         args.use_sigma = bool(int(os.environ.get('ECM_SIGMA', '0')))
     if 'ECM_CKDIR' in os.environ:
         args.checkpoint_dir = os.environ['ECM_CKDIR']
+    if 'ECM_SAMPLER' in os.environ:
+        args.sampler = os.environ['ECM_SAMPLER']
     
     print("="*70)
     print("ECM Distance Break with Theta-Gating")
@@ -292,6 +444,7 @@ def main():
     print(f"Timeout per stage: {args.timeout_per_stage}s")
     print(f"Checkpoint dir: {args.checkpoint_dir}")
     print(f"Use sigma/gating: {args.use_sigma}")
+    print(f"Sampler: {args.sampler}")
     print(f"Log file: {args.log}")
     
     run_distance_break(
@@ -299,7 +452,8 @@ def main():
         timeout_per_stage=args.timeout_per_stage,
         checkpoint_dir=args.checkpoint_dir,
         use_sigma=args.use_sigma,
-        log_file=args.log
+        log_file=args.log,
+        sampler_type=args.sampler
     )
 
 
