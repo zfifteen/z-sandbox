@@ -83,3 +83,4 @@ python/*checkpoint*.json
 ckpts/
 ckpts/**/*.sav
 python/ANALYSIS_*.md
+python/targets_256bit_z5d_test.json

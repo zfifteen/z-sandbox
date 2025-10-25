@@ -4,9 +4,13 @@
 
 **Inspired by military frequency-hopping radio COMSEC (SINCGARS, HAVE QUICK)**, this system adapts time-synchronized key rotation to software-defined networking, eliminating handshake latency in tactical/industrial scenarios where zero-RTT encryption is required.
 
+TRANSEC implements a property set **absent from widely-deployed Internet standards** (TLS 1.3, QUIC, IKEv2, Signal): true **zero-handshake, first-contact, replay-bounded AEAD** using only pre-shared key + synchronized time. See [Protocol Comparison](TRANSEC_PROTOCOL_COMPARISON.md) for detailed analysis.
+
 ## Core Concept
 
 TRANSEC (Transmission Security) implements deterministic key material derived from a shared secret combined with precise time epochs. This enables instant encrypted communication without per-message handshakes, accepting the COMSEC tradeoff that seed compromise requires network-wide rekeying.
+
+**Military Parallel:** Just as HAVE QUICK/SINCGARS radios load a Word-of-Day (WOD) and Time-of-Day (TOD) and then communicate immediately without over-the-air key exchange, TRANSEC endpoints load a pre-shared secret and synchronized time, then send authenticated-encrypted messages with zero handshake overhead.
 
 ## Design Principles
 
@@ -17,9 +21,25 @@ TRANSEC (Transmission Security) implements deterministic key material derived fr
 
 ## Target Applications
 
-- **Tactical Communications**: Drone swarms, battlefield mesh networks
-- **Critical Infrastructure**: SCADA/power grid telemetry where TLS latency is unacceptable
-- **Autonomous Systems**: V2V messaging, vehicle platoons
+TRANSEC is designed for domains where **sub-100ms end-to-end latencies** are required and traditional handshake protocols introduce unacceptable overhead:
+
+### Vehicular Communications (V2X/CAM)
+- **Standard:** [ETSI TS 102 637-2](https://www.etsi.org/deliver/etsi_ts/102600_102699/10263702/01.02.01_60/ts_10263702v010201p.pdf) - Cooperative Awareness Messages
+- **Requirements:** 1-10 Hz beacons with tight delay budgets for collision avoidance
+- **TRANSEC Benefit:** Zero-handshake eliminates initial RTT, preserving budget for safety processing
+
+### Critical Infrastructure (SCADA/DER Telemetry)
+- **Standard:** IEC 61850-90-5 - Power utility automation
+- **Requirements:** ≤6-100ms for teleprotection classes (trip commands, protection relaying)
+- **TRANSEC Benefit:** Deterministic timing meets protection relay requirements
+
+### Tactical Communications
+- **Drone swarms**: Real-time formation control and coordination
+- **Battlefield mesh networks**: Low-latency command and control
+
+### Autonomous Systems
+- **V2V messaging**: Vehicle platoons and collision avoidance
+- **Swarm coordination**: Multi-robot systems requiring instant encrypted communication
 - **Edge Computing**: Low-latency IoT mesh networks
 - **Satellite Ground Stations**: Predictable pass windows requiring instant lock-on
 
@@ -111,9 +131,13 @@ Associated Data (AAD):
 
 ## Comparison with Traditional Approaches
 
+**Note:** See [TRANSEC Protocol Comparison](TRANSEC_PROTOCOL_COMPARISON.md) for comprehensive analysis with RFC references, security model details, and performance benchmarks.
+
 | Property | TRANSEC | TLS 1.3 | IPsec | Signal Protocol |
 |----------|---------|---------|-------|-----------------|
 | Handshake RTT | 0 | 1-RTT | 1-4 RTT | Multiple RTT |
+| First Contact | ✅ Yes | ❌ No (requires PSK) | ❌ No | ❌ No (X3DH) |
+| Replay Protection | ✅ Inherent | ❌ App-level | ✅ Via IKE | ✅ Via ratchet |
 | Forward Secrecy | No (without ratchet) | Yes | Yes | Yes |
 | Key Compromise Impact | Network rekey | Session only | SA rekey | Conversation only |
 | Time Dependency | Critical | None | Optional | None |
