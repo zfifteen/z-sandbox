@@ -11,6 +11,7 @@ Key features:
 - ChaCha20-Poly1305 AEAD for authenticated encryption
 - Replay protection via sequence tracking
 - Configurable slot duration and drift tolerance
+- Prime-based slot normalization for enhanced synchronization stability
 """
 
 import os
@@ -21,10 +22,20 @@ from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
 
+# Import prime optimization utilities
+try:
+    from transec_prime_optimization import normalize_slot_to_prime
+    PRIME_OPTIMIZATION_AVAILABLE = True
+except ImportError:
+    PRIME_OPTIMIZATION_AVAILABLE = False
+    def normalize_slot_to_prime(slot: int, strategy: str = "none") -> int:
+        return slot
+
 
 DEFAULT_CONTEXT = b"z-sandbox:transec:v1"
 DEFAULT_SLOT_DURATION = 5  # seconds
 DEFAULT_DRIFT_WINDOW = 2   # ±2 slots
+DEFAULT_PRIME_STRATEGY = "none"  # Options: "none", "nearest", "next"
 
 
 class TransecCipher:
@@ -33,6 +44,9 @@ class TransecCipher:
     
     This cipher derives per-slot encryption keys from a shared secret
     and current time epoch, enabling zero-handshake communication.
+    
+    Supports prime-based slot normalization for enhanced synchronization
+    stability through reduced discrete curvature.
     """
     
     def __init__(
@@ -40,7 +54,8 @@ class TransecCipher:
         shared_secret: bytes,
         context: bytes = DEFAULT_CONTEXT,
         slot_duration: int = DEFAULT_SLOT_DURATION,
-        drift_window: int = DEFAULT_DRIFT_WINDOW
+        drift_window: int = DEFAULT_DRIFT_WINDOW,
+        prime_strategy: str = DEFAULT_PRIME_STRATEGY
     ):
         """
         Initialize TRANSEC cipher.
@@ -50,6 +65,10 @@ class TransecCipher:
             context: Application-specific context string for key derivation
             slot_duration: Duration of each time slot in seconds
             drift_window: Number of slots to accept (±) for clock drift tolerance
+            prime_strategy: Slot normalization strategy - "none" (default), "nearest", or "next"
+                           - "none": Use raw slot indices (backward compatible)
+                           - "nearest": Map to nearest prime for lower curvature
+                           - "next": Map to next prime >= slot_index
         
         Raises:
             ValueError: If shared_secret is not 32 bytes
@@ -57,10 +76,14 @@ class TransecCipher:
         if len(shared_secret) != 32:
             raise ValueError("Shared secret must be exactly 32 bytes (256 bits)")
         
+        if prime_strategy not in ["none", "nearest", "next"]:
+            raise ValueError(f"Invalid prime_strategy: {prime_strategy}")
+        
         self.shared_secret = shared_secret
         self.context = context
         self.slot_duration = slot_duration
         self.drift_window = drift_window
+        self.prime_strategy = prime_strategy
         
         # Replay protection: track seen (slot_index, sequence) pairs
         self._seen_messages: Set[Tuple[int, int]] = set()
@@ -68,8 +91,28 @@ class TransecCipher:
         self._message_count = 0
     
     def get_current_slot(self) -> int:
-        """Get current time slot index based on system time."""
+        """Get current time slot index based on system time (normalized)."""
+        raw_slot = int(time.time() / self.slot_duration)
+        return self._normalize_slot(raw_slot)
+    
+    def get_raw_current_slot(self) -> int:
+        """Get current raw time slot index (before normalization)."""
         return int(time.time() / self.slot_duration)
+    
+    def _normalize_slot(self, slot_index: int) -> int:
+        """
+        Normalize slot index according to prime strategy.
+        
+        Args:
+            slot_index: Raw slot index
+        
+        Returns:
+            Normalized slot index (prime or original)
+        """
+        if self.prime_strategy == "none" or not PRIME_OPTIMIZATION_AVAILABLE:
+            return slot_index
+        
+        return normalize_slot_to_prime(slot_index, strategy=self.prime_strategy)
     
     def derive_slot_key(self, slot_index: int) -> bytes:
         """
@@ -107,13 +150,16 @@ class TransecCipher:
             plaintext: Data to encrypt
             sequence: Monotonically increasing sequence number
             associated_data: Additional data to authenticate (not encrypted)
-            slot_index: Time slot to use (defaults to current slot)
+            slot_index: Time slot to use (defaults to current slot, will be normalized)
         
         Returns:
             Encrypted packet: slot_index (8) || sequence (8) || random (4) || ciphertext + tag
         """
         if slot_index is None:
             slot_index = self.get_current_slot()
+        else:
+            # Normalize explicitly provided slot index
+            slot_index = self._normalize_slot(slot_index)
         
         # Derive key for this slot
         key = self.derive_slot_key(slot_index)
@@ -173,12 +219,32 @@ class TransecCipher:
         ciphertext = packet[20:]
         
         # Validate slot is within acceptable window
+        # The slot_index in the packet is already normalized by sender
         current_slot = self.get_current_slot()
-        slot_diff = abs(current_slot - slot_index)
         
-        if slot_diff > self.drift_window:
-            # Slot outside acceptable window - reject
-            return None
+        # For prime normalization, we need to check drift properly
+        # by comparing normalized slots to normalized slots
+        if self.prime_strategy != "none" and PRIME_OPTIMIZATION_AVAILABLE:
+            # Get raw current slot (before normalization)
+            raw_current = self.get_raw_current_slot()
+            
+            # Normalize the current slot using the same function as the sender
+            normalized_current = self._normalize_slot(raw_current)
+            
+            # Compare normalized slots for drift
+            slot_diff = abs(normalized_current - slot_index)
+            
+            # The drift window applies to the semantic drift between normalized slots
+            # We use the standard drift_window since we're comparing like-to-like now
+            if slot_diff > self.drift_window:
+                return None
+        else:
+            # Standard drift check for non-normalized slots
+            slot_diff = abs(current_slot - slot_index)
+            
+            if slot_diff > self.drift_window:
+                # Slot outside acceptable window - reject
+                return None
         
         # Check for replay attack
         if check_replay:
