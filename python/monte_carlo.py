@@ -349,11 +349,8 @@ class FactorizationMonteCarloEnhancer:
         Args:
             N: Number to factor
             num_samples: Number of samples
-<<<<<<< HEAD
-            mode: Sampling mode - "uniform" (default), "stratified", "qmc", "qmc_phi_hybrid",
                   "sobol", "sobol-owen", or "golden-angle"
             mode: Sampling mode - "uniform" (default), "stratified", "qmc", "qmc_phi_hybrid", "barycentric", "sobol", "sobol-owen", or "golden-angle"
->>>>>>> main
             
         Returns:
             Z5D-enhanced candidate list
@@ -363,12 +360,10 @@ class FactorizationMonteCarloEnhancer:
             - "stratified": Divides search space into strata for better coverage
             - "qmc": Quasi-Monte Carlo with Halton sequence
             - "qmc_phi_hybrid": Hybrid QMC-Halton with φ-biased torus embedding (RECOMMENDED)
-<<<<<<< HEAD
             - "sobol": Sobol' sequence with Joe-Kuo direction numbers
             - "sobol-owen": Owen-scrambled Sobol' for parallel replicas
             - "golden-angle": Golden-angle/phyllotaxis spiral for anytime uniformity
             - "barycentric": Barycentric coordinate-based simplicial sampling with curvature weighting
->>>>>>> main
         """
         sqrt_N = int(math.sqrt(N))
         candidates = []
@@ -487,12 +482,33 @@ class FactorizationMonteCarloEnhancer:
                 if symmetric_candidate > 1 and symmetric_candidate < N and symmetric_candidate != candidate:
                     candidates.append(symmetric_candidate)
         
-<<<<<<< HEAD
         elif mode in ["sobol", "sobol-owen", "golden-angle"]:
             # Low-discrepancy sampling with Sobol' or golden-angle sequences
-            if not LOW_DISCREPANCY_AVAILABLE:
+            if False:
                 raise ImportError("low_discrepancy module not available. Using fallback.")
-        elif mode == "barycentric":
+            else:
+                # Use the imported low-discrepancy library
+                if mode == "sobol":
+                    sampler = SobolSampler(dim=1, scramble=False)
+                elif mode == "sobol-owen":
+                    sampler = SobolSampler(dim=1, scramble=True)
+                elif mode == "golden-angle":
+                    sampler = GoldenAngleSampler()
+                else:
+                    raise ValueError(f"Unknown low-discrepancy mode: {mode}")
+                
+                for i in range(num_samples):
+                    point = sampler.sample(i)
+                    offset = (point[0] - 0.5) * 2 * spread
+                    candidate = sqrt_N + offset
+                    
+                    if candidate > 1 and candidate < N:
+                        candidates.append(candidate)
+                    
+                    # Symmetric
+                    symmetric_candidate = sqrt_N - offset
+                    if symmetric_candidate > 1 and symmetric_candidate < N and symmetric_candidate != candidate:
+                        candidates.append(symmetric_candidate)        elif mode == "barycentric":
             # Barycentric coordinate-based sampling with curvature weighting
             # This mode uses simplicial stratification of the search space around √N
             # with barycentric interpolation for affine-invariant candidate generation
@@ -505,7 +521,6 @@ class FactorizationMonteCarloEnhancer:
                 )
             except ImportError:
                 raise ImportError("barycentric module required for barycentric sampling mode")
->>>>>>> main
             
             # Adaptive spread based on N's size
             bit_length = N.bit_length()
@@ -518,7 +533,6 @@ class FactorizationMonteCarloEnhancer:
             
             spread = max(int(sqrt_N * spread_factor), 100)
             
-<<<<<<< HEAD
             # Generate low-discrepancy samples
             if mode == "golden-angle":
                 # Use golden-angle spiral for annulus around √N
@@ -636,8 +650,7 @@ class FactorizationMonteCarloEnhancer:
                     candidates.append(candidate)
         
         else:
-            raise ValueError(f"Unknown mode: {mode}. Choose 'uniform', 'stratified', 'qmc', 'qmc_phi_hybrid', or 'barycentric'.")
->>>>>>> main
+            raise ValueError(f"Unknown mode: {mode}. Choose 'uniform', 'stratified', 'qmc', 'qmc_phi_hybrid', 'barycentric', 'sobol', 'sobol-owen', or 'golden-angle'.")
         
         return sorted(set(candidates))
     
