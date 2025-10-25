@@ -21,6 +21,12 @@ import numpy as np
 from tsvf import TSVFState, TSVFOptimizer
 
 
+# Constants
+BITS_PER_BYTE = 8
+MS_PER_SECOND = 1000
+MAX_WEAK_VALUES_STORED = 100  # Maximum weak values to store in JSON
+
+
 class TSVFMetricsLogger:
     """
     Logger for TSVF performance metrics and weak values.
@@ -137,7 +143,7 @@ class TSVFMetricsLogger:
                 "avg": avg_weak,
                 "max": max_weak,
                 "min": min_weak,
-                "values": weak_values[:100]  # Store first 100
+                "values": weak_values[:MAX_WEAK_VALUES_STORED]  # Store first N values
             },
             "tsvf_enabled": tsvf_enabled,
             "success": success,
@@ -176,7 +182,8 @@ class TSVFMetricsLogger:
             "time_ms": time_ms,
             "success": success,
             "message_size": message_size,
-            "throughput_mbps": (message_size * 8 / 1000) / (time_ms / 1000) if time_ms > 0 else 0,
+            "throughput_mbps": ((message_size * BITS_PER_BYTE / MS_PER_SECOND) / (time_ms / MS_PER_SECOND) 
+                              if time_ms > 0 else 0),
             "notes": notes
         }
         
@@ -297,17 +304,29 @@ class TSVFPerformanceAnalyzer:
                 "avg_weak_value": np.mean([m['weak_values']['avg'] for m in metrics_list]),
             }
         
+        tsvf_stats = compute_stats(tsvf_metrics)
+        standard_stats = compute_stats(standard_metrics)
+        
+        # Compute improvements safely
+        improvement = {}
+        if tsvf_stats and standard_stats:
+            # Success rate improvement (handle zero denominator)
+            if standard_stats['success_rate'] > 0:
+                improvement['success_rate'] = tsvf_stats['success_rate'] / standard_stats['success_rate']
+            else:
+                improvement['success_rate'] = None
+            
+            # Variance reduction improvement (handle zero denominator)
+            if standard_stats['avg_variance_reduction'] > 0:
+                improvement['variance_reduction'] = (tsvf_stats['avg_variance_reduction'] / 
+                                                   standard_stats['avg_variance_reduction'])
+            else:
+                improvement['variance_reduction'] = None
+        
         return {
-            "tsvf_enhanced": compute_stats(tsvf_metrics),
-            "standard": compute_stats(standard_metrics),
-            "improvement": {
-                "success_rate": (compute_stats(tsvf_metrics)['success_rate'] / 
-                               compute_stats(standard_metrics)['success_rate'] 
-                               if standard_metrics and tsvf_metrics else None),
-                "variance_reduction": (compute_stats(tsvf_metrics)['avg_variance_reduction'] /
-                                     compute_stats(standard_metrics)['avg_variance_reduction']
-                                     if standard_metrics and tsvf_metrics else None)
-            }
+            "tsvf_enhanced": tsvf_stats,
+            "standard": standard_stats,
+            "improvement": improvement
         }
     
     def generate_summary_report(self, output_file: str = "tsvf_summary.md"):
