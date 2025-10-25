@@ -426,7 +426,7 @@ def triangle_area_2d(x1: float, y1: float, x2: float, y2: float,
         >>> triangle_area_2d(0, 0, 4, 0, 0, 3)
         6.0
         >>> triangle_area_2d(1, 1, 4, 2, 2, 5)
-        4.5
+        5.5
     """
     area = 0.5 * abs(x1 * (y2 - y3) + x2 * (y3 - y1) + x3 * (y1 - y2))
     return area
