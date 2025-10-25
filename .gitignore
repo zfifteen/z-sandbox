@@ -84,3 +84,8 @@ ckpts/
 ckpts/**/*.sav
 python/ANALYSIS_*.md
 python/targets_256bit_z5d_test.json
+
+# TSVF generated metrics and logs
+logs/tsvf_metrics.csv
+logs/tsvf_metrics.jsonl
+logs/tsvf_summary.md
