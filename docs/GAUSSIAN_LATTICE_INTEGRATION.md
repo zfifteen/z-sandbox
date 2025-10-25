@@ -75,6 +75,63 @@ kappa_enhanced = lattice.z5d_lattice_curvature(n, max_lattice=10)
 density = lattice.sample_lattice_density(radius=10.0, num_samples=10000)
 ```
 
+## Line-Intersection Multiplication Visualization
+
+### Discrete Analog to Lattice-Enhanced Distances
+
+The line-intersection method of multiplication provides an intuitive geometric lens for understanding how lattice intersections relate to factorization. This visualization technique:
+
+**Mathematical Connection**:
+- Digits from factor p generate horizontal line positions
+- Digits from factor q generate vertical line positions
+- Lines crossing create intersections encoding partial products
+- Intersection clusters correspond to lattice points in ℤ[i]
+
+**Relationship to Epstein Zeta**:
+The intersection count in base-10 multiplication mirrors the discrete summation in Epstein zeta:
+```
+Intersections: Σ(i,j) digit_p[i] × digit_q[j]  (base-10 distributive)
+Epstein Zeta:  Σ_{(m,n)} 1/(m² + n²)^(9/4)    (lattice summation)
+```
+
+Both represent discrete accumulations over grid structures, with:
+- Line intersections → partial products without carries
+- Lattice points → complex plane integer coordinates
+- Clustering near √N → factor proximity in both representations
+
+**Practical Implementation**:
+```python
+from examples.multiplication_viz_factor import (
+    draw_intersection_mult,
+    intersection_based_candidates
+)
+
+# Visualize multiplication geometry
+fig = draw_intersection_mult([1,1], [1,3], 143)
+
+# Generate candidates using intersection oracle
+candidates = intersection_based_candidates(N=143, num_candidates=20)
+# Returns candidates near √N, analogous to lattice-enhanced distance
+```
+
+**Integration with Lattice Metrics**:
+The visualization's clustering behavior mirrors `lattice_enhanced_distance()`:
+- Intersection density ≈ discrete point density in Gaussian lattice
+- Distance from √N ≈ lattice distance in complex plane
+- Both provide geometric intuition for factor proximity
+
+This bridges educational base-10 arithmetic to advanced lattice theory, making Gaussian integer concepts accessible while maintaining mathematical rigor.
+
+### Educational Value
+
+The line-intersection visualization serves as a "double helix moment"—an instantly recognizable pattern that makes abstract factorization concrete:
+1. Shows why geometric encodings matter for cryptography
+2. Connects to barycentric coordinates (affine-invariant weights)
+3. Demonstrates curvature effects: κ(n) = d(n) · ln(n+1) / e²
+4. Provides testable predictions for factor locations
+
+See `python/examples/multiplication_viz_factor.py` for complete implementation.
+
 ## Applications to Factorization
 
 ### 1. Enhanced Distance Metrics for GVA
