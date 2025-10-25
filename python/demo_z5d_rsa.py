@@ -219,8 +219,15 @@ def main():
     print("✅ Integration with 256-bit RSA complete")
     print("✅ Ready for factorization enhancement")
     
+    print("\nFoundational Support:")
+    print("  • coordinate_geometry module provides Euclidean distance formulas")
+    print("    for computing geodesic proximities before curvature κ incorporation")
+    print("  • Section division formulas inform ratio-based Z = A(B/c) transformations")
+    print("  • Centroid calculations help validate factor clusters in embedding space")
+    
     print("\n" + "=" * 70)
     print(" For more information, see docs/Z5D_RSA_FACTORIZATION.md")
+    print(" Related: python/coordinate_geometry.py, examples/coordinate_geometry_demo.py")
     print("=" * 70 + "\n")
 
 if __name__ == "__main__":
