@@ -240,16 +240,19 @@ class GaussianIntegerLattice:
             Provides empirical bounds for lattice-based distance metrics
             in Z5D geometric embeddings.
         """
+        # Use numpy RandomState for isolated random state
         if seed is not None:
-            np.random.seed(seed)
+            rng = np.random.RandomState(seed)
+        else:
+            rng = np.random.RandomState()
         
         inside_count = 0
         
         # Sample uniformly in square [-radius, radius] × [-radius, radius]
         for _ in range(num_samples):
             # Random point in square
-            x = np.random.uniform(-radius, radius)
-            y = np.random.uniform(-radius, radius)
+            x = rng.uniform(-radius, radius)
+            y = rng.uniform(-radius, radius)
             z = complex(x, y)
             
             # Check if within circular radius
@@ -349,8 +352,11 @@ class LatticeMonteCarloIntegrator:
         self.precision_dps = precision_dps
         mp.dps = precision_dps
         
+        # Use numpy RandomState for isolated random state management
         if seed is not None:
-            np.random.seed(seed)
+            self.rng = np.random.RandomState(seed)
+        else:
+            self.rng = np.random.RandomState()
     
     def integrate_lattice_function(self, func, bounds: Tuple[float, float],
                                    num_samples: int = 10000,
@@ -382,8 +388,8 @@ class LatticeMonteCarloIntegrator:
                 t = (i * PHI) % 1.0
                 x = a + t * domain_width
             else:
-                # Uniform sampling
-                x = np.random.uniform(a, b)
+                # Uniform sampling using instance RNG
+                x = self.rng.uniform(a, b)
             
             # Evaluate function at sampled point
             value = func(complex(x, 0))

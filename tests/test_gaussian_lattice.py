@@ -278,12 +278,8 @@ def test_reproducibility():
     def test_func(z):
         return z.real
     
-    # Reset numpy seed before each run for reproducibility
-    import numpy as np
-    np.random.seed(42)
+    # Each integrator has its own RandomState, no need for manual seeding
     result1, _ = integrator1.integrate_lattice_function(test_func, (0, 1), num_samples=100)
-    
-    np.random.seed(42)
     result2, _ = integrator2.integrate_lattice_function(test_func, (0, 1), num_samples=100)
     
     mc_diff = abs(float(result1) - float(result2))
@@ -291,8 +287,8 @@ def test_reproducibility():
     print(f"Monte Carlo result 2: {float(result2):.10f}")
     print(f"Difference: {mc_diff:.2e}")
     
-    # With same seed and numpy state, should be very close
-    assert mc_diff < 1e-6, f"Monte Carlo results should be reproducible with same seed: diff={mc_diff}"
+    # With same seed and isolated RandomState, should be identical
+    assert mc_diff < 1e-10, f"Monte Carlo results should be reproducible with same seed: diff={mc_diff}"
     
     print("✓ Reproducibility test passed")
     return True
