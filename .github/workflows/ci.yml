@@ -34,6 +34,7 @@ jobs:
         run: |
           python3 tests/test_factorization_256bit.py
   
+<<<<<<< HEAD
   monte-carlo-tests:
     name: Monte Carlo Tests
     runs-on: ${{ matrix.os }}
@@ -137,6 +138,9 @@ jobs:
         run: |
           PYTHONPATH=python python3 tests/test_qmc_phi_hybrid.py
   
+    
+
+>>>>>>> main
   codeql:
     runs-on: ubuntu-latest
     permissions:

@@ -349,8 +349,11 @@ class FactorizationMonteCarloEnhancer:
         Args:
             N: Number to factor
             num_samples: Number of samples
+<<<<<<< HEAD
             mode: Sampling mode - "uniform" (default), "stratified", "qmc", "qmc_phi_hybrid",
                   "sobol", "sobol-owen", or "golden-angle"
+            mode: Sampling mode - "uniform" (default), "stratified", "qmc", "qmc_phi_hybrid", "barycentric", "sobol", "sobol-owen", or "golden-angle"
+>>>>>>> main
             
         Returns:
             Z5D-enhanced candidate list
@@ -360,9 +363,12 @@ class FactorizationMonteCarloEnhancer:
             - "stratified": Divides search space into strata for better coverage
             - "qmc": Quasi-Monte Carlo with Halton sequence
             - "qmc_phi_hybrid": Hybrid QMC-Halton with φ-biased torus embedding (RECOMMENDED)
+<<<<<<< HEAD
             - "sobol": Sobol' sequence with Joe-Kuo direction numbers
             - "sobol-owen": Owen-scrambled Sobol' for parallel replicas
             - "golden-angle": Golden-angle/phyllotaxis spiral for anytime uniformity
+            - "barycentric": Barycentric coordinate-based simplicial sampling with curvature weighting
+>>>>>>> main
         """
         sqrt_N = int(math.sqrt(N))
         candidates = []
@@ -481,10 +487,25 @@ class FactorizationMonteCarloEnhancer:
                 if symmetric_candidate > 1 and symmetric_candidate < N and symmetric_candidate != candidate:
                     candidates.append(symmetric_candidate)
         
+<<<<<<< HEAD
         elif mode in ["sobol", "sobol-owen", "golden-angle"]:
             # Low-discrepancy sampling with Sobol' or golden-angle sequences
             if not LOW_DISCREPANCY_AVAILABLE:
                 raise ImportError("low_discrepancy module not available. Using fallback.")
+        elif mode == "barycentric":
+            # Barycentric coordinate-based sampling with curvature weighting
+            # This mode uses simplicial stratification of the search space around √N
+            # with barycentric interpolation for affine-invariant candidate generation
+            
+            try:
+                from barycentric import (
+                    BarycentricCoordinates,
+                    simplicial_stratification,
+                    curvature_weighted_barycentric
+                )
+            except ImportError:
+                raise ImportError("barycentric module required for barycentric sampling mode")
+>>>>>>> main
             
             # Adaptive spread based on N's size
             bit_length = N.bit_length()
@@ -497,6 +518,7 @@ class FactorizationMonteCarloEnhancer:
             
             spread = max(int(sqrt_N * spread_factor), 100)
             
+<<<<<<< HEAD
             # Generate low-discrepancy samples
             if mode == "golden-angle":
                 # Use golden-angle spiral for annulus around √N
@@ -549,6 +571,73 @@ class FactorizationMonteCarloEnhancer:
         else:
             raise ValueError(f"Unknown mode: {mode}. Choose 'uniform', 'stratified', 'qmc', "
                            f"'qmc_phi_hybrid', 'sobol', 'sobol-owen', or 'golden-angle'.")
+            # Compute curvature for weighting
+            log_N = math.log(N + 1)
+            E2 = math.exp(2)
+            kappa = 4 * log_N / E2
+            
+            # Define simplex anchor vertices in 1D search space around √N
+            # We'll use 3 anchor points: left boundary, center (√N), right boundary
+            # and map them to 2D for barycentric interpolation
+            anchor_left = sqrt_N - spread
+            anchor_center = sqrt_N
+            anchor_right = sqrt_N + spread
+            
+            # Map to 2D simplex for barycentric sampling
+            # This allows us to use barycentric coordinates for weighted interpolation
+            vertices_2d = [
+                np.array([0.0, 0.0]),           # Left anchor
+                np.array([1.0, 0.0]),           # Right anchor
+                np.array([0.5, math.sqrt(3)/2]) # Top (creates equilateral triangle)
+            ]
+            
+            # Generate stratified samples in simplex
+            sample_points = simplicial_stratification(vertices_2d, num_samples, rng=self.rng)
+            
+            # Define curvature weighting function
+            # Vertices closer to √N get higher weight
+            def kappa_weight_func(vertex_idx):
+                if vertex_idx == 0:  # Left anchor
+                    return kappa * 0.5
+                elif vertex_idx == 1:  # Right anchor
+                    return kappa * 0.5
+                else:  # Center (top of triangle, represents √N region)
+                    return kappa * 2.0  # Higher weight near √N
+            
+            bc = BarycentricCoordinates(vertices_2d)
+            
+            for point in sample_points:
+                # Compute barycentric coordinates
+                lambdas = bc.compute_barycentric_coords(point)
+                
+                # Apply curvature weighting
+                weighted_lambdas = curvature_weighted_barycentric(
+                    point, vertices_2d, kappa_weight_func
+                )
+                
+                # Map from barycentric coordinates to candidate space
+                # λ₀ = weight for left, λ₁ = weight for right, λ₂ = weight for center
+                # Interpolate: candidate = λ₀*anchor_left + λ₁*anchor_right + λ₂*anchor_center
+                candidate_float = (
+                    weighted_lambdas[0] * anchor_left +
+                    weighted_lambdas[1] * anchor_right +
+                    weighted_lambdas[2] * anchor_center
+                )
+                
+                candidate = int(round(candidate_float))
+                
+                # Apply φ-modulation for fine-tuning
+                phi_mod = (candidate % int(PHI)) / PHI
+                offset_scale = phi_mod ** k
+                adjustment = int(spread * 0.01 * offset_scale * (1 if candidate < sqrt_N else -1))
+                candidate = candidate + adjustment
+                
+                if candidate > 1 and candidate < N:
+                    candidates.append(candidate)
+        
+        else:
+            raise ValueError(f"Unknown mode: {mode}. Choose 'uniform', 'stratified', 'qmc', 'qmc_phi_hybrid', or 'barycentric'.")
+>>>>>>> main
         
         return sorted(set(candidates))
     
