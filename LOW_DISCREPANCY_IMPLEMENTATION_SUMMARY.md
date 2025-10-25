@@ -10,7 +10,7 @@ Replace PRNG sampling with deterministic, prefix-optimal low-discrepancy schedul
 
 ### Files Added
 
-1. **python/low_discrepancy.py** (19,556 bytes)
+1. **python/low_discrepancy.py** (19,532 bytes)
    - `GoldenAngleSampler`: Phyllotaxis/Vogel spiral sequences
    - `SobolSampler`: Digital nets with Joe-Kuo directions
    - `LowDiscrepancySampler`: Unified interface
@@ -117,11 +117,15 @@ Enhanced `run_distance_break.py`:
 Sampler              Discrepancy    Theory
 -----------------------------------------------
 PRNG                 0.029631       O(N^(-1/2))
-Golden-angle         0.491035       O((log N)/N)
 Sobol'               0.009414       O((log N)/N)
 Sobol'+Owen          0.009760       O((log N)/N)
+Golden-angle         0.491035*      O((log N)/N)
 ```
 **Result**: Sobol' achieves **3.15× lower discrepancy** than PRNG.
+
+*Note: Golden-angle shows higher box-counting discrepancy because it optimizes 
+for spatial uniformity (disk/annulus coverage) rather than box alignment. It 
+excels in applications requiring uniform radial distribution and anytime coverage.
 
 ### Factorization Candidates (N=899, 200 samples)
 ```

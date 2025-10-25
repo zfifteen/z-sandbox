@@ -155,11 +155,13 @@ python3 python/run_distance_break.py \
 | Sampler | Discrepancy | Expected Rate |
 |---------|-------------|---------------|
 | PRNG | 0.029631 | O(N^(-1/2)) ≈ 0.0316 |
-| Golden-angle | 0.491035 | O((log N)/N) ≈ 0.0069 |
 | Sobol' | 0.009414 | O((log N)/N) ≈ 0.0069 |
 | Sobol'+Owen | 0.009760 | O((log N)/N) ≈ 0.0069 |
+| Golden-angle* | 0.491035 | O((log N)/N) ≈ 0.0069 |
 
 **Result**: Sobol' sequences achieve 3× lower discrepancy than PRNG.
+
+*Note: Golden-angle optimizes spatial uniformity (disk/annulus) rather than box-counting discrepancy.
 
 ### Factorization Candidates (N=899, 200 samples)
 
