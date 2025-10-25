@@ -254,8 +254,8 @@ class TSVFGuidedFactorization:
         radius = min(num_candidates // 2, int(sqrt_n * 0.01))
         raw_candidates = list(range(sqrt_n - radius, sqrt_n + radius + 1))
         
-        # Filter to odd numbers (except 2)
-        candidates = [c for c in raw_candidates if c > 2 and (c == 2 or c % 2 == 1)]
+        # Filter to odd numbers (and 2)
+        candidates = [c for c in raw_candidates if c == 2 or (c > 2 and c % 2 == 1)]
         
         # Embed target
         target_embedding = self.embedding.embed(self.target_N, k)

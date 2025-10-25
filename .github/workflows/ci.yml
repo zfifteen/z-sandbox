@@ -34,6 +34,35 @@ jobs:
         run: |
           python3 tests/test_factorization_256bit.py
   
+  tsvf-tests:
+    name: TSVF Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: |
+          pip install -r python/requirements.txt
+      - name: Run TSVF unit tests
+        run: |
+          PYTHONPATH=python python3 tests/test_tsvf.py -v
+      - name: Run TSVF benchmarks
+        run: |
+          PYTHONPATH=python python3 python/tsvf_metrics.py
+      - name: Upload TSVF metrics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tsvf-metrics
+          path: |
+            logs/tsvf_metrics.csv
+            logs/tsvf_metrics.jsonl
+            logs/tsvf_summary.md
+          if-no-files-found: ignore
+          retention-days: 7
+  
   monte-carlo-tests:
     name: Monte Carlo Tests
     runs-on: ${{ matrix.os }}

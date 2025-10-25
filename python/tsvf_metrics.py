@@ -182,7 +182,7 @@ class TSVFMetricsLogger:
             "time_ms": time_ms,
             "success": success,
             "message_size": message_size,
-            "throughput_mbps": ((message_size * BITS_PER_BYTE / MS_PER_SECOND) / (time_ms / MS_PER_SECOND) 
+            "throughput_mbps": ((message_size * BITS_PER_BYTE) / time_ms 
                               if time_ms > 0 else 0),
             "notes": notes
         }
